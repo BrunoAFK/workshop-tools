@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { createHash, createHmac } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,9 +12,9 @@ const distRoot = path.join(projectRoot, 'dist');
 
 /* ═══════════════════════════════════════════════════════════
    Rute
-   `sources/` se nikad ne servira. Svaki dokument dobije kopiju
-   pod nepogodivim imenom u `/d/`, a katalog živi na zasebnoj
-   putanji koja se ne da izvesti iz javnog linka na dokument.
+   `sources/` se nikad ne servira. Katalog stoji na korijenu, a
+   svaki dokument dobije kopiju pod čitljivom adresom u `/alat/`.
+   Ništa nije skriveno — adrese su pogodive i namijenjene dijeljenju.
    ═══════════════════════════════════════════════════════════ */
 
 // `.env` se učitava ovdje, a ne u dev.mjs: ESM importi se izvrše prije
@@ -22,9 +22,6 @@ const distRoot = path.join(projectRoot, 'dist');
 // ovog modula vidjelo praznu vrijednost. Ovo je najranija točka koju
 // dijele i `npm run dev` i `npm run build`.
 try { process.loadEnvFile(path.join(projectRoot, '.env')); } catch { /* nema .env */ }
-
-// Čita se lijeno, da promjena okoline između poziva ne ostane neprimijećena.
-const onCloudflare = () => Boolean(process.env.CF_PAGES);
 
 /**
  * Javna adresa dokumenta.
@@ -43,22 +40,29 @@ const onCloudflare = () => Boolean(process.env.CF_PAGES);
  * treba biti samo jedinstvena, dostupne su iz vremenske crte.
  */
 export const PUBLIC_DIR = 'alat';
+export const VERSION_DIR = 'v';
 
 export function urlFor(item, isHead) {
   return isHead
     ? `/${PUBLIC_DIR}/${item.lineage}.html`
-    : `/${PUBLIC_DIR}/v/${item.path}`;
+    : `/${PUBLIC_DIR}/${VERSION_DIR}/${item.path}`;
 }
 
-const RESERVED_PATHS = new Set([PUBLIC_DIR, 'thumbnails', 'assets']);
-
 /**
- * Naziv mape ne smije se sudariti s putanjama koje build već koristi.
+ * Nazivi mapa u `sources/` koji bi se sudarili s putanjama builda.
+ *
+ * Jedini stvarni sudarač je `v`: starije verzije žive pod
+ * `/alat/v/<putanja>`, pa bi aktivni `sources/v/archive/foo-2026-08-18.html`
+ * i arhivirani `sources/archive/foo-2026-08-18.html` ciljali istu adresu.
+ * Provjera kolizija u `buildIndex` to i uhvati, ali tek nabrajanjem —
+ * ovdje se kaže koja je mapa kriva i zašto.
  */
+const RESERVED_DIRS = new Set([VERSION_DIR]);
+
 export function safeName(relativePath) {
   const head = relativePath.split('/')[0];
-  if (RESERVED_PATHS.has(head)) {
-    throw new Error(`„${head}" je rezerviran naziv — sudara se s /${PUBLIC_DIR}/.`);
+  if (RESERVED_DIRS.has(head) && relativePath.includes('/')) {
+    throw new Error(`„${head}/" je rezerviran naziv mape — sudara se s /${PUBLIC_DIR}/${VERSION_DIR}/. Preimenuj je.`);
   }
   return relativePath;
 }
@@ -321,24 +325,41 @@ function findImageSource(html, meta) {
   return imageTag ? getAttributes(imageTag).get('src') || '' : '';
 }
 
-/** Base64 slike postaju datoteke uz katalog; ostalo ostaje kakvo jest. */
+/* SVG je dopušten jer se slika uvijek prikazuje kroz `<img src>`, a tamo
+   se skripte u SVG-u ne izvršavaju. Za ručno napisanu sličicu to je
+   najlakši put — nekoliko stotina bajta u samom alatu, bez binarnih
+   datoteka u repozitoriju. */
+const IMAGE_TYPES = ['avif', 'gif', 'jpg', 'png', 'svg', 'webp'];
+
+/**
+ * Slika iz dokumenta postaje datoteka uz katalog.
+ *
+ * Vraća i razlog odbijanja, da build može prijaviti kad je slika
+ * upisana ali neupotrebljiva — inače kartica ostane prazna bez ijedne
+ * riječi objašnjenja, a najčešća greška (relativna putanja) izgleda
+ * točno kao da slike nema.
+ */
 async function materializeImage(imageSource, thumbnailsDirectory) {
-  if (!imageSource) return null;
+  if (!imageSource) return { image: null, skipped: null };
+
   if (/^data:image\//i.test(imageSource)) {
     const match = imageSource.match(/^data:image\/([a-z0-9.+-]+)(;base64)?,([\s\S]+)$/i);
-    if (!match) return null;
+    if (!match) return { image: null, skipped: 'neispravan data: URI' };
     const extensionMap = { 'jpeg': 'jpg', 'svg+xml': 'svg' };
     const extension = extensionMap[match[1].toLowerCase()] || match[1].toLowerCase();
-    if (!['avif', 'gif', 'jpg', 'png', 'webp'].includes(extension)) return null;
+    if (!IMAGE_TYPES.includes(extension)) return { image: null, skipped: `nepodržan format ${extension}` };
     const buffer = match[2] ? Buffer.from(match[3].replace(/\s/g, ''), 'base64') : Buffer.from(decodeURIComponent(match[3]));
-    if (!buffer.length) return null;
+    if (!buffer.length) return { image: null, skipped: 'prazna slika' };
     const name = `${createHash('sha256').update(buffer).digest('hex').slice(0, 18)}.${extension}`;
     await mkdir(thumbnailsDirectory, { recursive: true });
     await writeFile(path.join(thumbnailsDirectory, name), buffer);
-    return `thumbnails/${name}`;
+    return { image: `thumbnails/${name}`, skipped: null };
   }
-  if (/^(https?:)?\/\//i.test(imageSource)) return imageSource;
-  return null;   // relativne putanje nemaju smisla nakon preimenovanja dokumenta
+
+  if (/^(https?:)?\/\//i.test(imageSource)) return { image: imageSource, skipped: null };
+
+  // Dokument se kopira na drugu putanju, pa relativna referenca vodi u prazno.
+  return { image: null, skipped: 'relativna putanja' };
 }
 
 async function htmlFiles(directory) {
@@ -379,8 +400,15 @@ export function groupVersions(items) {
   }
 
   const visible = [];
-  for (const members of lineages.values()) {
+  for (const [key, members] of lineages) {
     const active = members.filter((item) => !item.isArchive);
+    // `foo.html` i `foo.htm` daju isti ključ loze i natjecali bi se za istu
+    // adresu. Bez ove provjere druga datoteka tiho ostane bez `url`-a, a
+    // build pukne tek pri kopiranju — na mjestu koje o uzroku ne govori ništa.
+    if (active.length > 1) {
+      const names = active.map((item) => item.path).sort().join(', ');
+      throw new Error(`Dvije aktivne datoteke dijele lozu „${key}": ${names}. Preimenuj jednu.`);
+    }
     // Redni broj razdvaja verzije arhivirane isti dan. Bez njega ih dijeli
     // samo `modifiedAt`, koji je u CI-ju za sve datoteke isti, pa bi im
     // redoslijed ovisio o okolini u kojoj se build vrti.
@@ -418,7 +446,8 @@ export function groupVersions(items) {
 async function indexFile(filePath, thumbnailsDirectory, dates) {
   const [html, fileStats] = await Promise.all([readFile(filePath, 'utf8'), stat(filePath)]);
   const relativePath = path.relative(sourcesRoot, filePath);
-  const repoPath = `sources/${relativePath.split(path.sep).join('/')}`;
+  const posixPath = safeName(relativePath.split(path.sep).join('/'));
+  const repoPath = `sources/${posixPath}`;
   const meta = metaValues(html);
   const markup = visibleText(html);
   const scripted = scriptText(html);
@@ -427,7 +456,7 @@ async function indexFile(filePath, thumbnailsDirectory, dates) {
   const rawDescription = meta.get('description')?.[0] || meta.get('og:description')?.[0] || firstUsefulParagraph(html);
   const description = trimDescription(rawDescription, `Otvori alat “${title}”.`);
   const tags = automaticTags(meta, relativePath, title, description, content);
-  const image = await materializeImage(findImageSource(html, meta), thumbnailsDirectory);
+  const { image, skipped: imageSkipped } = await materializeImage(findImageSource(html, meta), thumbnailsDirectory);
 
   const declared = declaredDate(html, meta);
   const fromGit = dates.get(repoPath) || null;
@@ -438,6 +467,7 @@ async function indexFile(filePath, thumbnailsDirectory, dates) {
     description,
     tags: tags.length ? tags : ['Alat'],
     image,
+    imageSkipped,
     path: relativePath.split(path.sep).join('/'),
     isArchive: stateOf(repoPath) === 'archive',
     bytes: fileStats.size,
@@ -463,6 +493,9 @@ function headersFile() {
 /${PUBLIC_DIR}/*
   Cache-Control: public, max-age=300, must-revalidate
 
+/favicon.svg
+  Cache-Control: public, max-age=86400
+
 # Indeks se mijenja sa svakim buildom i nikad se ne smije poslužiti iz cachea.
 /search-index.js
   Cache-Control: no-store
@@ -473,6 +506,19 @@ function headersFile() {
 
 const ROBOTS_FILE = `User-agent: *
 Disallow: /
+`;
+
+/**
+ * Znak kataloga: šesterokut s probušenom rupom, isti kao u zaglavlju.
+ *
+ * Puna ploha, a ne obris — na 16 px obris se pretvori u mrlju. Jantar
+ * se drži i na svijetloj i na tamnoj traci kartica, pa nema potrebe za
+ * dvije inačice. Alati pod `/alat/` nose vlastiti dizajn i ovaj znak
+ * ne dobivaju; build im ne dira sadržaj.
+ */
+const FAVICON_FILE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+<path fill="#d9a441" fill-rule="evenodd" d="M20 2.4 35.2 11.2v17.6L20 37.6 4.8 28.8V11.2Zm0 11.2a6.4 6.4 0 1 0 0 12.8 6.4 6.4 0 0 0 0-12.8Z"/>
+</svg>
 `;
 
 /**
@@ -576,7 +622,7 @@ export async function buildIndex({ quiet = false, dev = false } = {}) {
     generatedAt: new Date().toISOString(),
     // `dateSource` ide van jer po njemu i preglednik slaže „Najnovije";
     // bez njega bi klijentsko sortiranje odstupalo od build poretka.
-    items: items.map(({ sourceFile, scriptChars, lineage, sequence, archivedAt, bytes, versions, ...item }) => ({
+    items: items.map(({ sourceFile, scriptChars, imageSkipped, lineage, sequence, archivedAt, bytes, versions, ...item }) => ({
       ...item,
       versions: versions.map(({ bytes: _bytes, ...version }) => version)
     }))
@@ -590,6 +636,7 @@ export async function buildIndex({ quiet = false, dev = false } = {}) {
     copyFile(path.join(appRoot, 'index.html'), path.join(appOutRoot, 'index.html')),
     writeFile(path.join(distRoot, '_headers'), headersFile()),
     writeFile(path.join(distRoot, 'robots.txt'), ROBOTS_FILE),
+    writeFile(path.join(distRoot, 'favicon.svg'), FAVICON_FILE),
     writeFile(path.join(distRoot, '404.html'), NOT_FOUND_FILE)
   ]);
 
@@ -602,6 +649,9 @@ export async function buildIndex({ quiet = false, dev = false } = {}) {
     console.log(`Indeksirano: ${items.length} ${items.length === 1 ? 'alat' : 'alata'} (${withImages} sa slikom, ${olderVersions} starijih verzija u arhivi).`);
     console.log(`Tekst za pretragu: ${totalChars.toLocaleString('hr-HR')} znakova, od toga ${fromScripts.toLocaleString('hr-HR')} iz JS podataka.`);
     console.log(`Datumi: ${bySource('meta')} iz dokumenta, ${bySource('git')} iz gita, ${bySource('mtime')} s mtimea.`);
+    for (const item of indexed.filter((entry) => entry.imageSkipped)) {
+      console.log(`Slika preskočena (${item.imageSkipped}): ${item.path}`);
+    }
     console.log(`Indeks: ${Math.round(json.length / 1024)} kB`);
     console.log('');
     console.log('  /'.padEnd(30) + 'katalog i pretraga');

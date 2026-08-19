@@ -43,6 +43,13 @@ const clients = new Set();
 const watchers = new Map();
 let rebuildTimer;
 
+/* `buildIndex` prvo obriše cijeli `dist/`, pa se dva builda ne smiju
+   preklopiti — drugi bi pomeo ono što prvi upravo piše i preglednik bi
+   dobio indeks koji ne odgovara datotekama na disku. Odgoda od 180 ms
+   to ne sprječava: dovoljno je da build traje dulje od nje. */
+let building = null;
+let buildAgain = false;
+
 const mimeTypes = {
   '.avif': 'image/avif', '.css': 'text/css; charset=utf-8', '.gif': 'image/gif',
   '.html': 'text/html; charset=utf-8', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
@@ -55,9 +62,10 @@ function notify() {
   for (const response of clients) response.write('event: index-updated\ndata: updated\n\n');
 }
 
-function scheduleBuild() {
-  clearTimeout(rebuildTimer);
-  rebuildTimer = setTimeout(async () => {
+async function rebuild() {
+  if (building) { buildAgain = true; return building; }
+
+  building = (async () => {
     try {
       const data = await buildIndex({ quiet: true, dev: true });
       console.log(`[${new Date().toLocaleTimeString('hr-HR')}] Indeks osvježen · ${data.items.length} dokumenata`);
@@ -66,7 +74,18 @@ function scheduleBuild() {
     } catch (error) {
       console.error('Indeksiranje nije uspjelo:', error instanceof Error ? error.message : error);
     }
-  }, 180);
+  })();
+
+  await building;
+  building = null;
+
+  // Promjena stigla usred builda — indeks bi inače ostao na starom stanju.
+  if (buildAgain) { buildAgain = false; return rebuild(); }
+}
+
+function scheduleBuild() {
+  clearTimeout(rebuildTimer);
+  rebuildTimer = setTimeout(rebuild, 180);
 }
 
 async function directories(directory) {

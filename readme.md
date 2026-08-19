@@ -14,6 +14,7 @@ Pretraživi registar brzinskih alata — kalkulatora, konvertera, generatora, š
 - [Rute](#rute)
 - [Kako radi indeksiranje](#kako-radi-indeksiranje)
 - [Sučelje](#sučelje)
+- [Jezici](#jezici)
 - [Dizajn](#dizajn)
 - [Deploy](#deploy)
 - [Testovi](#testovi)
@@ -74,6 +75,7 @@ Oba uređaja moraju biti na istoj mreži; prvi put macOS pita smije li Node prim
 │   ├── timer.html
 │   ├── archive/            # Starije verzije — u vremenskoj crti
 │   └── deleted/            # Koš — build ih preskače
+├── test/                   # Testovi generatora i pravila putanja
 └── dist/                   # GENERIRANO — u .gitignore
 ```
 
@@ -107,6 +109,8 @@ Glava loze imenuje se po **ključu loze**, ne po putanji datoteke, pa podijeljen
 
 Starije verzije stoje pod `/alat/v/<putanja>`; adresa im treba biti samo jedinstvena, dostupne su iz vremenske crte.
 
+Zbog toga je **`v/` rezerviran naziv mape** u `sources/` — build ga odbije s objašnjenjem, umjesto da pusti dvije datoteke na istu adresu.
+
 > Sajt nosi `X-Robots-Tag: noindex` i `robots.txt` sa `Disallow: /`. Adrese su pogodive i namijenjene dijeljenju, ali nisu u tražilicama. Ako želiš i to, obriši ta dva pravila u [`build-index.mjs`](scripts/build-index.mjs).
 
 ---
@@ -120,7 +124,7 @@ Za svaku `.html` / `.htm` datoteku u `sources/`:
 | **Naslov** | `og:title` → `<title>` → prvi `<h1>` → naziv datoteke |
 | **Opis** | `<meta name="description">` → `og:description` → prvi smisleni `<p>`, skraćen na 210 znakova |
 | **Tagovi** | `keywords` / `article:tag` / `category` + bodovanje ključnih riječi + naziv podmape |
-| **Slika** | `og:image` → `twitter:image` → prvi `<img>`; base64 slike postaju datoteke uz katalog |
+| **Slika** | `og:image` → `twitter:image` → prvi `<img>`; ugrađene slike postaju datoteke uz katalog — vidi [Slika na kartici](#slika-na-kartici) |
 | **Sadržaj** | Vidljivi tekst **plus tekst izvučen iz inline `<script>` blokova** |
 
 ### Zašto se čita i JavaScript
@@ -135,6 +139,44 @@ Generator iz inline skripti vadi string literale i zadržava one koji izgledaju 
 
 ```
 Tekst za pretragu: 18.400 znakova, od toga 14.900 iz JS podataka.
+```
+
+### Slika na kartici
+
+Kartica dobiva pojas 16:9 na vrhu kad dokument nosi sliku. Bez slike nema zamjenskog ukrasa — kartica je samo tekst.
+
+Traži se `og:image`, pa `twitter:image`, pa prvi `<img>` u dokumentu. Prihvaćaju se dva oblika:
+
+```html
+<!-- Ugrađena slika — postaje datoteka uz katalog, s hešom u nazivu -->
+<meta property="og:image" content="data:image/png;base64,iVBORw0KGgo…">
+
+<!-- Ili apsolutna adresa na tuđem poslužitelju -->
+<meta property="og:image" content="https://primjer.hr/slike/timer.png">
+```
+
+Formati: `avif`, `gif`, `jpg`, `png`, `svg`, `webp`.
+
+**Najlakši put je ručno napisan SVG** — nekoliko stotina bajta u samom alatu, bez ijedne binarne datoteke u repozitoriju:
+
+```html
+<meta property="og:image" content="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 180'%3E%3Crect width='320' height='180' fill='%2312313f'/%3E%3Ccircle cx='160' cy='90' r='52' fill='none' stroke='%234fd8c4' stroke-width='7'/%3E%3C/svg%3E">
+```
+
+U takvom se URI-ju `#` piše kao `%23`, a `<` i `>` kao `%3C` i `%3E`; jednostruki navodnici u atributima prolaze kakvi jesu.
+
+> **Relativne putanje se preskaču.** `content="./slike/timer.png"` ne radi — dokument se kopira na drugu putanju, pa referenca vodi u prazno. Build to prijavi imenom datoteke:
+>
+> ```
+> Slika preskočena (relativna putanja): timer.html
+> ```
+
+Snimku zaslona alata možeš napraviti i lokalno, pa je ugraditi kao `data:` URI:
+
+```bash
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --headless --hide-scrollbars --window-size=1200,675 \
+  --screenshot=snimka.png "file://$PWD/sources/timer.html"
 ```
 
 ### Datum izmjene
@@ -165,22 +207,46 @@ Dokument se kopira na drugu putanju, pa **relativne reference na vanjske datotek
 | --- | --- |
 | **Pretraga** | Rangira po tome gdje pojam pada: naslov > tagovi > opis > sadržaj, s isječkom rečenice |
 | **Prikazi** | Kartice (`G`) i gusti registar-popis (`L`) |
-| **Pregled** | Klik na karticu otvara alat u panelu |
-| **Verzije** | Alat s više verzija dobiva vremensku crtu s razlikama |
-| **Nacrti** | Alati bez slike dobivaju generiran nacrt dijela izveden iz `id`-a |
-| **Teme** | Beton (zadano) i noćna smjena (`T`) |
+| **Otvaranje** | Klik bilo gdje po kartici ili retku otvara alat u novoj kartici |
+| **Verzije** | Alat s više verzija dobiva gumb sa satom; on otvara vremensku crtu s razlikama |
+| **Teme** | Dan (zadano) i noć (`T`) |
+| **Jezici** | Hrvatski, engleski i njemački — vidi [Jezici](#jezici) |
 | **URL stanje** | `#q=pdv&tag=Kalkulator&sort=recent` |
-| **Tipkovnica** | `/` pretraga · `⌘K` skok · `J`/`K` kretanje · `G`/`L` prikaz · `T` tema · `Esc` natrag |
+| **Tipkovnica** | `/` pretraga · `⌘K` skok · `J`/`K` kretanje · `G`/`L` prikaz · `T` tema · `Esc` zatvori |
+
+---
+
+## Jezici
+
+Sučelje govori hrvatski, engleski i njemački. Zadani se bira iz preglednika (`navigator.languages`), izbor s globusa u zaglavlju pamti se u `localStorage` i nadjača ga.
+
+Uz tekst se mijenja i **formatiranje brojeva i datuma** — `hr-HR`, `en-GB` ili `de-DE` — pa engleski katalog ne pokazuje hrvatske datume. Sve niske stoje u jednom `STRINGS` objektu na vrhu skripte u [`app/index.html`](app/index.html); novi jezik je jedan ključ više u `LANGS` i jedan blok u `STRINGS`.
+
+**Sadržaj se ne prevodi.** Naslovi, opisi i automatski tagovi dolaze iz samih alata, pa ostaju na jeziku na kojem je alat napisan.
 
 ---
 
 ## Dizajn
 
-Katalog je **industrijski katalog dijelova**: svijetla podloga, teška zbijena verzalna, pune crne linije, tvrde sjene bez zamućenja, sigurnosno žuta. Sve boje su tokeni u jednom bloku na vrhu [`app/index.html`](app/index.html).
+Katalog je **namjerno tih**: sadržaj nosi stranicu, ukras ne postoji. Nema pozadinskih slojeva, nema hero sekcije, nema ulaznih animacija — stranica počinje pretragom, a odmah ispod je popis alata.
 
-Uz boje idu **skala razmaka** (`--sp-1` … `--sp-6`, višekratnici od 4 px) i **jedinstvena visina kontrole** (`--ctl: 32px`), pa retci alata čine ravnu crtu umjesto stepenica.
+Pravila su kratka:
 
-Nacrti na karticama nisu slike nego SVG izveden iz `id`-a alata: četiri obitelji dijelova, uvijek isti crtež za isti alat.
+| | |
+| --- | --- |
+| **Pismo** | Jedno — sistemski sans. Monospace samo za brojeve, datume i oznake |
+| **Linija** | 1 px, jedina debljina u sučelju. Bez sjena osim ispod ladice i palete |
+| **Boja** | Neutralna podloga i jedan akcent (jantar) za aktivni filtar, pogodak i primarni gumb |
+| **Razmaci** | Skala `--sp-1` … `--sp-7`, višekratnici od 4 px |
+| **Kontrole** | Jedinstvena visina `--ctl-sm: 28px`, pa retci čine ravnu crtu umjesto stepenica |
+
+Sve boje i mjere su tokeni u jednom bloku na vrhu [`app/index.html`](app/index.html), u dvije teme — `day` i `night`.
+
+**Kartica pokazuje samo ono što pomaže odabrati alat:** kategorije, naslov, opis i — kad se pretražuje — isječak s pogotkom. Slika se prikaže ako je dokument nosi; kad je nema, ne stavlja se zamjenski ukras.
+
+Cijela je kartica klikabilna. Vlastiti gumbi i poveznice u njoj rade svoje, a označavanje teksta se ne broji kao klik — inače bi svako povlačenje preko opisa otvorilo alat.
+
+Znak kataloga je šesterokut s probušenom rupom. Isti oblik stoji u zaglavlju i u `favicon.svg`, koji build generira uz `robots.txt` i `404.html`.
 
 Sami alati ne moraju pratiti taj jezik — svaki nosi vlastiti dizajn.
 
@@ -221,8 +287,20 @@ Nijedan nema upisan datum, a git ih ne razdvaja. Dodaj `<meta name="date">`.
 **Mobitel ne može otvoriti stranicu**
 Upiši adresu koju server ispiše pod „S mobitela na istoj mreži". Oba uređaja moraju biti na istoj mreži; gostinski Wi-Fi često blokira promet među uređajima.
 
+**Build javlja da dvije datoteke dijele lozu**
+Dva aktivna dokumenta daju isti ključ loze — najčešće `foo.html` i `foo.htm` — pa bi se natjecali za istu adresu. Preimenuj jedan.
+
+**Build javlja da je `v/` rezerviran naziv mape**
+Pod `/alat/v/` žive starije verzije, pa mapa `sources/v/` može ciljati adresu koja je već nečija. Preimenuj mapu.
+
 **Podijeljeni link vraća 404**
 Alat je preimenovan, arhiviran ili u košu. Adresa je naziv datoteke, pa je preimenovanje mijenja.
+
+**Slika se ne pojavljuje na kartici**
+Pogledaj ispis builda — ako javi „Slika preskočena", piše i razlog. Najčešće je posrijedi relativna putanja; vidi [Slika na kartici](#slika-na-kartici).
+
+**Indeks ne odgovara datotekama na disku**
+`npm run build` pokrenut dok `npm run dev` već radi — oba brišu i pišu `dist/` pa se mogu preklopiti. Dev server sam sa sobom to više ne radi, ali dvije odvojene naredbe nemaju zajedničku bravu. Pusti dev server da odradi svoje ili ga ugasi prije ručnog builda.
 
 **Watcher ne primjećuje promjene**
 `fs.watch` na nekim mrežnim datotečnim sustavima ne javlja događaje. Restartaj `npm run dev`.
