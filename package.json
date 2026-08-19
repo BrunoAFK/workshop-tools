@@ -1,0 +1,15 @@
+{
+  "name": "workshop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-index.mjs",
+    "dev": "node scripts/dev.mjs",
+    "check": "node scripts/build-index.mjs --check",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

@@ -1,0 +1,2873 @@
+<!doctype html>
+<html lang="hr" data-theme="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Workshop — osobni registar alata. Pretraživ do zadnje rečenice.">
+<title data-i18n="title">Workshop — registar alata</title>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   WORKSHOP · katalog dijelova
+   Heavy condensed caps. Solid rules. Hard offset shadows.
+   Safety yellow on concrete. Nothing delicate anywhere.
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* Zbijena verzalna za displej, geometrijska za tekst, pisaći stroj
+     za oznake. Nijedno lice se ne preklapa s Atlasovim. */
+  --display: "Haettenschweiler", "Arial Narrow Bold", Impact, "Franklin Gothic Heavy", sans-serif;
+  --sans: Futura, "Century Gothic", "Trebuchet MS", "Segoe UI", sans-serif;
+  --mono: "American Typewriter", "Courier New", Courier, monospace;
+
+  --ease: cubic-bezier(.2, .85, .25, 1);
+  --ease-sharp: cubic-bezier(.85, 0, .15, 1);
+
+  /* Sve u sučelju stoji na višekratniku od 4px. Bez toga se razmaci
+     razilaze po datoteci i ništa se ne poravnava ni s čim. */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px;
+
+  /* Svaka mala kontrola ima istu visinu, pa retci alata čine crtu. */
+  --ctl: 32px;
+  --ctl-sm: 26px;
+
+  --edge: 2px;      /* standardno pravilo */
+  --edge-2: 3px;    /* teško pravilo */
+  --edge-3: 4px;    /* rub ladice i palete */
+  --off: 5px;       /* pomak tvrde sjene */
+}
+
+/* ── DAN (zadano): beton i traka ───────────────────────────── */
+html[data-theme="day"] {
+  --bg:        #d7d3c8;
+  --panel:     #f3f0e6;
+  --panel-3:   #e9e5d8;
+  --panel-2:   #fffdf4;
+  --fg:        #15140e;
+  --fg-2:      #4b4739;
+  --fg-3:      #837d6c;
+  --line:      rgba(21, 20, 14, .26);
+  --line-2:    #15140e;
+  --line-3:    rgba(21, 20, 14, .52);
+  --accent:    #ffc400;   /* sigurnosno žuta */
+  --accent-2:  #ff8c00;   /* signalna narančasta */
+  --beacon:    #cf2410;   /* signalna crvena */
+  --sand:      #1f6b47;   /* kontrolno zelena */
+  --grid-a:    rgba(21, 20, 14, .055);
+  --peg:       rgba(21, 20, 14, .085);
+  --mark-bg:   #ffc400;
+  --mark-fg:   #15140e;
+  --grain:     .26;
+  --plate-ink: #15140e;
+  --plate-bg:  #e7e3d6;
+  --shadow:    var(--off) var(--off) 0 var(--fg);
+  --shadow-lg: 12px 12px 0 rgba(21, 20, 14, .22);
+}
+
+/* ── NOĆ: noćna smjena ─────────────────────────────────────── */
+html[data-theme="night"] {
+  --bg:        #16171a;
+  --panel:     #212427;
+  --panel-3:   #1a1c1f;
+  --panel-2:   #2a2e32;
+  --fg:        #f2efe4;
+  --fg-2:      #aeaa9e;
+  --fg-3:      #7c8288;
+  --line:      rgba(242, 239, 228, .22);
+  --line-2:    #f2efe4;
+  --line-3:    rgba(242, 239, 228, .5);
+  --accent:    #ffc400;
+  --accent-2:  #ffdc5e;
+  --beacon:    #ff5c46;
+  --sand:      #4fbe86;
+  --grid-a:    rgba(242, 239, 228, .045);
+  --peg:       rgba(242, 239, 228, .07);
+  --mark-bg:   #ffc400;
+  --mark-fg:   #16171a;
+  --grain:     .34;
+  --plate-ink: #f2efe4;
+  --plate-bg:  #1b1e21;
+  --shadow:    var(--off) var(--off) 0 #000;
+  --shadow-lg: 12px 12px 0 rgba(0, 0, 0, .5);
+}
+
+* { box-sizing: border-box; }
+
+/* Atribut `hidden` mora nadjačati svaki `display` iz ovih pravila —
+   inače se skriveni gumbi i paneli i dalje crtaju. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+body.locked { overflow: hidden; }
+
+::selection { background: var(--accent); color: var(--mark-fg); }
+
+/* ═══ POZADINA ═════════════════════════════════════════════ */
+
+.bg-grid,
+.bg-glow,
+.bg-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Perforirana ploča: rupe u rasteru, pa fina milimetarska mreža. */
+.bg-grid {
+  background-image:
+    radial-gradient(circle at center, var(--peg) 1.6px, transparent 1.7px),
+    linear-gradient(var(--grid-a) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-a) 1px, transparent 1px);
+  background-size: 48px 48px, 16px 16px, 16px 16px;
+  background-position: 24px 24px, 0 0, 0 0;
+}
+
+/* Dijagonalna žuta traka preko cijelog lista, jedva vidljiva. */
+.bg-glow {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--accent) 16%, transparent) 0 90px,
+    transparent 90px 260px);
+  opacity: .5;
+}
+
+/* Na tamnoj podlozi ista traka nosi puno veći kontrast, pa se stišava
+   da ne konkurira imenu. */
+html[data-theme="night"] .bg-glow { opacity: .22; }
+
+.bg-grain {
+  opacity: var(--grain);
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+}
+
+html[data-theme="night"] .bg-grain { mix-blend-mode: overlay; }
+
+/* Veliki tehnički crtež u pozadini lista. */
+.bg-schematic {
+  position: fixed;
+  right: -14vw;
+  bottom: -18vh;
+  z-index: 0;
+  width: min(78vw, 940px);
+  color: var(--fg);
+  opacity: .075;
+  pointer-events: none;
+  animation: turn 220s linear infinite;
+}
+
+@keyframes turn { to { transform: rotate(360deg); } }
+
+/* ═══ LJUSKA ═══════════════════════════════════════════════ */
+
+.shell {
+  position: relative;
+  z-index: 1;
+  max-width: 1420px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 3.4vw, 46px);
+}
+
+/* ═══ ZAGLAVLJE ════════════════════════════════════════════ */
+
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 calc(clamp(16px, 3.4vw, 46px) * -1);
+  padding: 0 clamp(16px, 3.4vw, 46px);
+  min-height: 64px;
+  border-bottom: var(--edge-2) solid var(--line-2);
+  background: var(--bg);
+}
+
+/* Traka opasnosti visi ispod zaglavlja. */
+.masthead::after {
+  position: absolute;
+  right: 0;
+  bottom: calc(var(--edge-2) * -1 - 6px);
+  left: 0;
+  height: 6px;
+  content: "";
+  background-image: repeating-linear-gradient(
+    -45deg, var(--accent) 0 9px, transparent 9px 18px);
+}
+
+.mark {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Značka: šesterokutna matica na žutoj pločici. */
+.mark-badge {
+  width: 36px;
+  height: 36px;
+  padding: 6px;
+  border: var(--edge) solid var(--line-2);
+  color: var(--fg);
+  background: var(--accent);
+  transition: transform .18s var(--ease-sharp);
+}
+
+.mark:hover .mark-badge { transform: translate(-2px, -2px); box-shadow: 3px 3px 0 var(--fg); }
+
+.mark-text { display: flex; flex-direction: column; gap: 2px; }
+
+.mark-name {
+  font-family: var(--display);
+  font-size: 1.42rem;
+  font-weight: 400;
+  line-height: .88;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.mark-sub {
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: .55rem;
+  letter-spacing: .19em;
+  text-transform: uppercase;
+}
+
+.masthead-tools {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.sysline {
+  height: var(--ctl);
+  margin-right: var(--sp-1);
+  padding: 0 var(--sp-2);
+  line-height: calc(var(--ctl) - var(--edge) * 2);
+  border: var(--edge) solid var(--line-2);
+  color: var(--fg-2);
+  background: var(--panel);
+  font-family: var(--mono);
+  font-size: .56rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sysline b { color: var(--fg); font-weight: 700; }
+
+.segmented { display: flex; height: var(--ctl); border: var(--edge) solid var(--line-2); background: var(--panel); }
+
+.icon-btn {
+  display: grid;
+  width: calc(var(--ctl) - var(--edge) * 2);
+  height: 100%;
+  padding: 0;
+  border: 0;
+  color: var(--fg-2);
+  background: none;
+  cursor: pointer;
+  place-items: center;
+  transition: background .12s, color .12s;
+}
+
+.segmented .icon-btn + .icon-btn { border-left: var(--edge) solid var(--line-2); }
+.icon-btn:hover { color: var(--fg); background: var(--accent); }
+.icon-btn[aria-pressed="true"] { color: var(--fg); background: var(--accent); }
+.icon-btn svg { width: 15px; height: 15px; }
+
+.icon-btn.solo {
+  width: var(--ctl);
+  height: var(--ctl);
+  border: var(--edge) solid var(--line-2);
+  background: var(--panel);
+}
+
+.icon-btn.solo:hover { background: var(--accent); }
+
+.lang-wrap { position: relative; flex: 0 0 auto; }
+
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  display: grid;
+  min-width: 132px;
+  border: var(--edge) solid var(--line-2);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.lang-menu button {
+  padding: var(--sp-2) var(--sp-3);
+  border: 0;
+  color: var(--fg-2);
+  background: none;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .12em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.lang-menu button + button { border-top: 1px solid var(--line); }
+.lang-menu button:hover { color: var(--fg); background: var(--panel-2); }
+.lang-menu button[aria-pressed="true"] { color: var(--fg); background: var(--accent); }
+
+.search-toggle { display: none; }
+.search-toggle.filtering { color: var(--fg); background: var(--accent); }
+
+/* ═══ NASLOVNA PLOČA ═══════════════════════════════════════ */
+
+.hero {
+  position: relative;
+  padding: clamp(34px, 6vw, 74px) 0 clamp(24px, 4vw, 44px);
+}
+
+/* Ime stoji izravno na podlozi. Boja je `--fg`, koja se s temom
+   obrne — tamna tinta na betonu, svijetla na noćnoj smjeni — pa je
+   kontrast isti u obje teme. */
+.wordmark {
+  display: flex;
+  margin: 0;
+  color: var(--fg);
+  font-family: var(--display);
+  font-size: clamp(3.2rem, 13.5vw, 13rem);
+  font-weight: 400;
+  line-height: .84;
+  letter-spacing: .012em;
+  text-transform: uppercase;
+}
+
+.wordmark span {
+  display: block;
+  animation: wipeIn .5s var(--ease-sharp) both;
+}
+
+.wordmark span:nth-child(1) { animation-delay: .10s; }
+.wordmark span:nth-child(2) { animation-delay: .14s; }
+.wordmark span:nth-child(3) { animation-delay: .18s; }
+.wordmark span:nth-child(4) { animation-delay: .22s; }
+.wordmark span:nth-child(5) { animation-delay: .26s; }
+.wordmark span:nth-child(6) { animation-delay: .30s; }
+.wordmark span:nth-child(7) { animation-delay: .34s; }
+.wordmark span:nth-child(8) { animation-delay: .38s; }
+.wordmark span:nth-child(9) { animation-delay: .42s; }
+
+.wordmark .dot { color: var(--accent-2); }
+
+.hero-base {
+  display: flex;
+  gap: var(--sp-6);
+  align-items: stretch;
+  margin-top: var(--sp-4);
+  animation: dropIn .55s .34s var(--ease) both;
+}
+
+.hero-lede {
+  max-width: 46ch;
+  margin: 0;
+  padding: var(--sp-4);
+  border: var(--edge) solid var(--line-2);
+  color: var(--fg-2);
+  background: var(--panel);
+  font-size: clamp(.9rem, 1.25vw, 1.02rem);
+  line-height: 1.62;
+}
+
+.hero-lede em {
+  padding: 0 3px;
+  color: var(--fg);
+  background: var(--accent);
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* Statistika kao natpisna pločica: uokvirene ćelije, bez razmaka. */
+.hero-stats {
+  display: flex;
+  margin: 0;
+  margin-left: auto;
+  border: var(--edge) solid var(--line-2);
+  background: var(--panel);
+}
+
+.hero-stats div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--sp-3) var(--sp-4);
+  text-align: right;
+}
+
+.hero-stats div + div { border-left: var(--edge) solid var(--line-2); }
+
+.hero-stats dt {
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: .53rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+
+.hero-stats dd {
+  margin: 2px 0 0;
+  font-family: var(--display);
+  font-size: clamp(1.5rem, 2.6vw, 2.3rem);
+  line-height: 1;
+  letter-spacing: .02em;
+}
+
+/* Veliki tehnički crtež uz naslov. */
+.spec-gear {
+  position: absolute;
+  top: 4%;
+  right: -3%;
+  z-index: -1;
+  width: min(38vw, 400px);
+  color: var(--fg);
+  opacity: .13;
+  pointer-events: none;
+  animation: turn 140s linear infinite;
+}
+
+@keyframes gearIn { from { opacity: 0; } to { opacity: .13; } }
+
+/* ═══ TRAŽILICA ════════════════════════════════════════════ */
+
+.console {
+  position: sticky;
+  top: 59px;
+  z-index: 30;
+  padding: var(--sp-4) 0 var(--sp-3);
+  background: var(--bg);
+}
+
+.console::before {
+  position: absolute;
+  inset: 0 calc(clamp(16px, 3.4vw, 46px) * -1);
+  z-index: -1;
+  content: "";
+  border-bottom: var(--edge) solid var(--line-2);
+  background: var(--bg);
+}
+
+@supports not (backdrop-filter: blur(1px)) { .console::before { background: var(--bg); } }
+
+/* Traka s žutim jezičcem „TRAŽI" s lijeve strane. */
+.console-bar {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: stretch;
+  padding: 0 var(--sp-4) 0 0;
+  border: var(--edge-2) solid var(--line-2);
+  background: var(--panel-2);
+  transition: box-shadow .14s var(--ease-sharp), transform .14s var(--ease-sharp);
+}
+
+.console-bar:focus-within {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow);
+}
+
+.console-bar > svg {
+  width: 48px;
+  flex: 0 0 auto;
+  padding: var(--sp-4);
+  border-right: var(--edge) solid var(--line-2);
+  color: var(--fg);
+  background: var(--accent);
+}
+
+.console-bar:focus-within > svg { background: var(--accent-2); }
+
+#search {
+  flex: 1;
+  min-width: 0;
+  padding: var(--sp-3) 0;
+  border: 0;
+  color: var(--fg);
+  background: none;
+  font-family: var(--sans);
+  font-size: 1rem;
+  outline: 0;
+}
+
+#search::placeholder { color: var(--fg-3); }
+#search::-webkit-search-cancel-button { display: none; }
+
+kbd {
+  padding: 3px 7px;
+  border: var(--edge) solid var(--line-2);
+  color: var(--fg-2);
+  background: var(--panel-3);
+  font-family: var(--mono);
+  font-size: .6rem;
+  line-height: 1.3;
+}
+
+.console-bar kbd { flex: 0 0 auto; align-self: center; }
+
+.clear-btn {
+  display: none;
+  align-self: center;
+  padding: var(--sp-1) var(--sp-2);
+  border: var(--edge) solid var(--line-2);
+  color: var(--fg);
+  background: var(--panel-3);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: .7rem;
+  line-height: 1;
+}
+
+.clear-btn.on { display: block; }
+.clear-btn:hover { color: var(--panel-2); background: var(--beacon); }
+
+.console-rail {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--sp-3);
+}
+
+.filters {
+  display: flex;
+  gap: var(--sp-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.filters::-webkit-scrollbar { display: none; }
+
+/* Pločice kategorija — pravokutne, debele, bez zaobljenja. */
+.chip {
+  flex: 0 0 auto;
+  height: var(--ctl);
+  padding: 0 var(--sp-3);
+  border: var(--edge) solid var(--line-2);
+  color: var(--fg-2);
+  background: var(--panel);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: background .12s, color .12s, box-shadow .12s;
+}
+
+.chip i { font-style: normal; color: var(--fg-3); }
+.chip:hover { color: var(--fg); background: var(--panel-2); }
+
+/* Odabrano se označava bojom i unutarnjim prstenom, nikad pomakom —
+   pomak bi izbio pločicu iz lijevog ruba koji dijeli s cijelom stranicom. */
+.chip[aria-pressed="true"] {
+  color: var(--fg);
+  background: var(--accent);
+  box-shadow: inset 0 0 0 var(--edge) var(--fg);
+}
+
+.chip[aria-pressed="true"] i { color: var(--fg); }
+
+.rail-right { display: flex; gap: var(--sp-2); align-items: center; flex: 0 0 auto; }
+
+.select-wrap { position: relative; }
+
+.select-wrap::after {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  color: var(--fg);
+  content: "▼";
+  font-size: .5rem;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+#sort {
+  height: var(--ctl);
+  padding: 0 28px 0 var(--sp-3);
+  border: var(--edge) solid var(--line-2);
+  color: var(--fg-2);
+  background: var(--panel);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  appearance: none;
+  outline: 0;
+}
+
+#sort:focus-visible { background: var(--accent); color: var(--fg); }
+
+/* ═══ BROJAČ ═══════════════════════════════════════════════ */
+
+.tally {
+  display: block;
+  margin: 0;
+  padding: var(--sp-5) 0;
+  color: var(--fg-2);
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.tally b { color: var(--fg); font-weight: 700; }
+
+.tally-hint {
+  margin-left: 10px;
+  padding: 2px 7px;
+  border: var(--edge) solid var(--beacon);
+  color: var(--beacon);
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.tally-hint:hover { color: var(--panel-2); background: var(--beacon); }
+
+/* ═══ REZULTATI · PLOČICE ══════════════════════════════════ */
+
+.results { margin-bottom: 92px; }
+
+.results[data-view="chart"] {
+  display: grid;
+  gap: var(--sp-5);
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.results[data-view="chart"] .card {
+  display: flex;
+  flex-direction: column;
+  border: var(--edge-2) solid var(--line-2);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  animation: cardIn .4s var(--ease) both;
+  transition: transform .14s var(--ease-sharp), box-shadow .14s var(--ease-sharp), background .14s;
+}
+
+/* Pritisak: pločica sjedne na svoju sjenu. */
+.results[data-view="chart"] .card:hover,
+.results[data-view="chart"] .card:focus-within {
+  transform: translate(var(--off), var(--off));
+  box-shadow: 0 0 0 var(--fg);
+  background: var(--panel-2);
+}
+
+.card { position: relative; }
+
+.card-link { color: inherit; text-decoration: none; }
+
+.card-link::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
+/* ── ploča ── */
+
+.plate {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 2 / 1;
+  border-bottom: var(--edge) solid var(--line-2);
+  background: var(--plate-bg);
+}
+
+.plate img,
+.plate svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .3s var(--ease);
+}
+
+html[data-theme="night"] .plate img { filter: saturate(.85) brightness(.88); }
+.card:hover .plate img { transform: scale(1.04); filter: none; }
+
+/* Žuta traka koja prijeđe preko ploče pri prelasku mišem. */
+.plate-scan {
+  position: absolute;
+  inset: 0 100% 0 0;
+  background: color-mix(in srgb, var(--accent) 34%, transparent);
+  pointer-events: none;
+}
+
+.card:hover .plate-scan { animation: sweep .5s var(--ease-sharp); }
+
+@keyframes sweep {
+  0%   { inset: 0 100% 0 0; }
+  50%  { inset: 0 0 0 0; }
+  100% { inset: 0 0 0 100%; }
+}
+
+/* Broj dijela — utisnuta pločica u kutu. */
+.plate-no {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 4px 9px;
+  border-right: var(--edge) solid var(--line-2);
+  border-bottom: var(--edge) solid var(--line-2);
+  color: var(--fg);
+  background: var(--accent);
+  font-family: var(--mono);
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+}
+
+.plate-flag {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 4px 9px;
+  border-bottom: var(--edge) solid var(--line-2);
+  border-left: var(--edge) solid var(--line-2);
+  color: var(--panel-2);
+  background: var(--beacon);
+  font-family: var(--mono);
+  font-size: .55rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+/* ── tijelo ── */
+
+.card-body { flex: 1; padding: var(--sp-4); }
+
+.card-tags {
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.t {
+  padding: 2px 7px;
+  border: 1px solid var(--line-3);
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: .52rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+
+.card h2 {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: calc(1.42rem * 1.06 * 2);
+  margin: 0 0 var(--sp-2);
+  font-family: var(--display);
+  font-size: 1.42rem;
+  font-weight: 400;
+  line-height: 1.06;
+  letter-spacing: .022em;
+  text-transform: uppercase;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.card h2 a { color: inherit; text-decoration: none; }
+.card:hover h2 { color: var(--fg); }
+
+.card p {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: calc(.86rem * 1.55 * 3);
+  margin: 0;
+  color: var(--fg-2);
+  font-size: .86rem;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.card p.snippet {
+  min-height: 0;
+  margin-top: var(--sp-3);
+  -webkit-line-clamp: 3;
+  padding: 8px 10px;
+  border-left: var(--edge-2) solid var(--accent);
+  color: var(--fg-2);
+  background: var(--panel-3);
+  font-family: var(--mono);
+  font-size: .7rem;
+  line-height: 1.6;
+}
+
+.card p.snippet > span { display: block; }
+
+mark { padding: 0 2px; color: var(--mark-fg); background: var(--mark-bg); font-weight: 700; }
+
+/* ── podnožje kartice ── */
+
+.card-foot {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+  padding: var(--sp-1) var(--sp-2) var(--sp-1) var(--sp-4);
+  border-top: var(--edge) solid var(--line-2);
+  color: var(--fg-3);
+  background: var(--panel-3);
+  font-family: var(--mono);
+  font-size: .55rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.card-foot span { display: flex; gap: 7px; align-items: center; }
+.card-foot .sep { color: var(--line-3); }
+
+.mini {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: var(--ctl-sm);
+  height: var(--ctl-sm);
+  padding: 0;
+  border: var(--edge) solid var(--line-2);
+  color: var(--fg-2);
+  background: var(--panel);
+  cursor: pointer;
+  place-items: center;
+}
+
+.mini:hover { color: var(--fg); background: var(--accent); }
+.mini.ok { color: var(--panel-2); background: var(--sand); border-color: var(--sand); }
+.mini svg { width: 12px; height: 12px; }
+
+/* ═══ REZULTATI · POPIS ════════════════════════════════════ */
+
+.results[data-view="register"] {
+  display: block;
+  border: var(--edge-2) solid var(--line-2);
+  background: var(--panel);
+}
+
+.results[data-view="register"] .card {
+  display: grid;
+  gap: var(--sp-4);
+  align-items: center;
+  padding: var(--sp-1) var(--sp-4);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  box-shadow: none;
+  grid-template-columns: 62px minmax(180px, 1.1fr) minmax(0, 1.7fr) 140px 76px 92px 34px;
+  animation: rowIn .3s var(--ease) both;
+  transition: background .1s;
+}
+
+.results[data-view="register"] .card:nth-child(even) { background: var(--panel-3); }
+.results[data-view="register"] .card:last-child { border-bottom: 0; }
+.results[data-view="register"] .card:hover { background: var(--accent); }
+
+.results[data-view="register"] .r-no {
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+
+.results[data-view="register"] .card:hover .r-no { color: var(--fg); }
+
+.results[data-view="register"] .r-title {
+  overflow: hidden;
+  font-family: var(--display);
+  font-size: 1.02rem;
+  letter-spacing: .03em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.results[data-view="register"] .r-title a { color: inherit; text-decoration: none; }
+
+.results[data-view="register"] .r-desc {
+  overflow: hidden;
+  color: var(--fg-2);
+  font-size: .78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.results[data-view="register"] .card:hover .r-desc { color: var(--fg); }
+
+.results[data-view="register"] .r-tags,
+.results[data-view="register"] .r-meta {
+  overflow: hidden;
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: .55rem;
+  letter-spacing: .12em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.results[data-view="register"] .card:hover .r-tags,
+.results[data-view="register"] .card:hover .r-meta { color: var(--fg-2); }
+
+.results[data-view="register"] .r-act { display: flex; justify-content: flex-end; }
+
+.results[data-view="register"] .plate,
+.results[data-view="register"] .card-foot,
+.results[data-view="register"] .card-body { display: none; }
+
+/* ═══ PRAZNO STANJE ════════════════════════════════════════ */
+
+.notice {
+  padding: 64px 24px;
+  border: var(--edge-2) solid var(--line-2);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.notice svg { width: 40px; height: 40px; margin-bottom: 16px; color: var(--fg-3); }
+
+.notice h2 {
+  margin: 0 0 10px;
+  font-family: var(--display);
+  font-size: 1.7rem;
+  font-weight: 400;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.notice p { max-width: 46ch; margin: 0 auto; color: var(--fg-2); font-size: .88rem; }
+
+.notice code {
+  padding: 2px 6px;
+  border: 1px solid var(--line-3);
+  background: var(--panel-3);
+  font-family: var(--mono);
+  font-size: .82em;
+}
+
+/* ═══ PODNOŽJE ═════════════════════════════════════════════ */
+
+.foot {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin: 0 calc(clamp(16px, 3.4vw, 46px) * -1);
+  padding: 16px clamp(16px, 3.4vw, 46px);
+  border-top: var(--edge-3) solid var(--line-2);
+  color: var(--fg-3);
+  background: var(--panel-3);
+  font-family: var(--mono);
+  font-size: .55rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.foot-keys { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+.foot kbd { padding: 2px 6px; font-size: .55rem; }
+
+/* ═══ LADICA S PREGLEDOM ═══════════════════════════════════ */
+
+.drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.drawer.on { visibility: visible; pointer-events: auto; }
+
+.drawer-scrim {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: color-mix(in srgb, var(--fg) 62%, transparent);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .22s var(--ease);
+}
+
+.drawer.on .drawer-scrim { opacity: 1; }
+
+.drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(940px, 94vw);
+  height: 100%;
+  border-left: var(--edge-3) solid var(--line-2);
+  background: var(--panel);
+  transform: translateX(101%);
+  transition: transform .3s var(--ease-sharp);
+}
+
+.drawer.on .drawer-panel { transform: translateX(0); }
+
+.drawer-head {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  border-bottom: var(--edge-2) solid var(--line-2);
+  background: var(--panel-3);
+}
+
+.drawer-ident { min-width: 0; }
+
+.drawer-head h3 {
+  overflow: hidden;
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.28rem;
+  font-weight: 400;
+  letter-spacing: .03em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.drawer-meta {
+  margin: 3px 0 0;
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: .55rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.drawer-acts { display: flex; gap: 7px; flex-shrink: 0; }
+
+.act {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 7px 11px;
+  border: var(--edge) solid var(--line-2);
+  color: var(--fg-2);
+  background: var(--panel);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: .56rem;
+  letter-spacing: .14em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: background .12s, color .12s;
+}
+
+.act:hover { color: var(--fg); background: var(--accent); }
+.act.ok { color: var(--panel-2); background: var(--sand); border-color: var(--sand); }
+.act svg { width: 12px; height: 12px; }
+
+.act.primary { color: var(--fg); background: var(--accent); font-weight: 700; }
+.act.primary:hover { color: var(--panel-2); background: var(--fg); }
+
+.act[aria-pressed="true"] { color: var(--fg); background: var(--accent); }
+
+.drawer-frame {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: var(--panel-2);
+}
+
+.drawer-frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.drawer-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  color: var(--fg-3);
+  background: var(--panel);
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  place-items: center;
+  transition: opacity .2s;
+}
+
+.drawer-frame.ready .drawer-loading { opacity: 0; pointer-events: none; }
+
+/* ═══ VREMENSKA CRTA ═══════════════════════════════════════ */
+
+.timeline {
+  overflow-y: auto;
+  max-height: 52%;
+  padding: 16px;
+  border-top: var(--edge-2) solid var(--line-2);
+  background: var(--panel-3);
+}
+
+.timeline-list { margin: 0; padding: 0; list-style: none; }
+
+.tl-item {
+  position: relative;
+  padding: 0 0 14px 26px;
+  border-left: var(--edge) solid var(--line);
+  margin-left: 5px;
+}
+
+.tl-item:last-child { border-left-color: transparent; padding-bottom: 0; }
+
+/* Kvadratni čvor umjesto točke. */
+.tl-item::before {
+  position: absolute;
+  top: 3px;
+  left: -7px;
+  width: 11px;
+  height: 11px;
+  border: var(--edge) solid var(--line-2);
+  background: var(--panel);
+  content: "";
+}
+
+.tl-item.current::before { background: var(--accent); }
+
+.tl-when {
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: .55rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.tl-badge {
+  margin-left: 7px;
+  padding: 1px 6px;
+  color: var(--fg);
+  background: var(--accent);
+  font-size: .52rem;
+  letter-spacing: .12em;
+}
+
+.tl-title {
+  margin: 3px 0 7px;
+  font-family: var(--display);
+  font-size: .98rem;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.tl-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.tl-acts .act { padding: 5px 9px; font-size: .53rem; }
+
+/* ═══ RAZLIKE ══════════════════════════════════════════════ */
+
+.diff { margin-top: 14px; border: var(--edge-2) solid var(--line-2); background: var(--panel); }
+
+.diff-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-bottom: var(--edge) solid var(--line-2);
+  background: var(--panel-3);
+  color: var(--fg-2);
+  font-family: var(--mono);
+  font-size: .56rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.diff-body { overflow-y: auto; max-height: 340px; padding: 4px 0; }
+
+.diff-row {
+  display: grid;
+  gap: 10px;
+  padding: 3px 12px;
+  font-family: var(--mono);
+  font-size: .72rem;
+  line-height: 1.5;
+  grid-template-columns: 18px 1fr;
+}
+
+.diff-row span:first-child { color: var(--fg-3); text-align: center; user-select: none; }
+.diff-row.add { background: color-mix(in srgb, var(--sand) 18%, transparent); }
+.diff-row.add span:first-child { color: var(--sand); }
+.diff-row.del { background: color-mix(in srgb, var(--beacon) 15%, transparent); }
+.diff-row.del span:first-child { color: var(--beacon); }
+.diff-row.del span:last-child { text-decoration: line-through; opacity: .72; }
+.diff-row.same { color: var(--fg-3); }
+
+.diff-skip {
+  padding: 5px 12px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--fg-3);
+  background: var(--panel-3);
+  font-family: var(--mono);
+  font-size: .55rem;
+  letter-spacing: .14em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.diff-note {
+  margin: 0;
+  padding: 16px 12px;
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .14em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* ═══ BRZI SKOK ════════════════════════════════════════════ */
+
+.palette {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: grid;
+  padding-top: 12vh;
+  background: color-mix(in srgb, var(--fg) 58%, transparent);
+  visibility: hidden;
+  opacity: 0;
+  place-items: start center;
+  transition: opacity .16s, visibility .16s;
+}
+
+.palette.on { visibility: visible; opacity: 1; }
+
+.palette-box {
+  width: min(680px, 92vw);
+  border: var(--edge-3) solid var(--line-2);
+  background: var(--panel);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-10px);
+  transition: transform .18s var(--ease-sharp);
+}
+
+.palette.on .palette-box { transform: none; }
+
+.palette-input {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 0 14px 0 0;
+  border-bottom: var(--edge-2) solid var(--line-2);
+}
+
+.palette-input svg {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  padding: 13px;
+  border-right: var(--edge) solid var(--line-2);
+  color: var(--fg);
+  background: var(--accent);
+}
+
+.palette-input input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 0;
+  border: 0;
+  color: var(--fg);
+  background: none;
+  font-family: var(--sans);
+  font-size: .96rem;
+  outline: 0;
+}
+
+.palette-input input::placeholder { color: var(--fg-3); }
+
+.palette-list { overflow-y: auto; max-height: 46vh; }
+
+.p-item {
+  display: grid;
+  gap: 12px;
+  align-items: baseline;
+  width: 100%;
+  padding: 9px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  cursor: pointer;
+  grid-template-columns: 46px 1fr auto;
+  text-align: left;
+}
+
+.p-item[aria-selected="true"] { background: var(--accent); }
+
+.p-no {
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: .58rem;
+  font-weight: 700;
+}
+
+.p-item[aria-selected="true"] .p-no,
+.p-item[aria-selected="true"] .p-name,
+.p-item[aria-selected="true"] .p-tags { color: var(--fg); }
+
+.p-name {
+  overflow: hidden;
+  color: var(--fg);
+  font-family: var(--display);
+  font-size: 1rem;
+  letter-spacing: .03em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.p-tags {
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: .53rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.palette-foot {
+  display: flex;
+  gap: 14px;
+  padding: 8px 14px;
+  border-top: var(--edge-2) solid var(--line-2);
+  color: var(--fg-3);
+  background: var(--panel-3);
+  font-family: var(--mono);
+  font-size: .53rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.palette-empty {
+  padding: 26px 14px;
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .16em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* ═══ PORUKA ═══════════════════════════════════════════════ */
+
+.toast {
+  position: fixed;
+  bottom: 26px;
+  left: 50%;
+  z-index: 99;
+  padding: 10px 18px;
+  border: var(--edge-2) solid var(--line-2);
+  color: var(--fg);
+  background: var(--accent);
+  box-shadow: var(--shadow);
+  font-family: var(--mono);
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 14px);
+  transition: opacity .18s, transform .18s var(--ease-sharp);
+}
+
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ═══ ANIMACIJE ════════════════════════════════════════════ */
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Slova se brišu odozdo prema gore, kao otisak. */
+@keyframes wipeIn {
+  from { opacity: 0; clip-path: inset(100% 0 0 0); }
+  to   { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translate(-6px, 10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ═══ RESPONZIVNO ══════════════════════════════════════════ */
+
+@media (max-width: 1180px) {
+  /* Broj stupaca mora pratiti broj vidljivih ćelija — inače zadnja
+     ispadne u drugi redak i gumb odleti ispod teksta. */
+  .results[data-view="register"] .card { grid-template-columns: 54px minmax(150px, 1fr) 88px 92px 34px; }
+  .results[data-view="register"] .r-desc,
+  .results[data-view="register"] .r-tags { display: none; }
+}
+
+@media (max-width: 900px) {
+  .spec-gear { top: auto; right: -22%; bottom: 2%; width: 54vw; opacity: .08; }
+  .hero-base { flex-direction: column; align-items: stretch; }
+  .hero-stats { margin-left: 0; }
+  .hero-stats div { flex: 1; }
+  .sysline { display: none; }
+}
+
+@media (max-width: 620px) {
+  .mark-sub { display: none; }
+
+  /* Traka je na mobitelu 70px stalnog kroma — sklopi se iza ikone
+     u zaglavlju i pojavi tek dok se stvarno pretražuje. */
+  .search-toggle { display: grid; }
+  .console { top: 55px; padding-top: 0; }
+  .console-bar { display: none; }
+  .console-bar kbd { display: none; }
+  html[data-search="open"] .console { padding-top: 12px; }
+  html[data-search="open"] .console-bar { display: flex; }
+
+  .console-rail { flex-direction: column; align-items: stretch; gap: 12px; }
+  .rail-right { justify-content: space-between; }
+
+  .results[data-view="chart"] { grid-template-columns: 1fr; }
+  .results[data-view="register"] .card { grid-template-columns: 44px minmax(0, 1fr) 34px; gap: 12px; }
+  .results[data-view="register"] .r-tags,
+  .results[data-view="register"] .r-meta { display: none; }
+  .results[data-view="register"] .r-title { white-space: normal; }
+
+  /* Uže zaglavlje ladice — inače pojede trećinu ekrana prije dokumenta. */
+  .drawer-head { gap: 10px; padding: 9px 10px 9px 14px; }
+  .drawer-head h3 { font-size: .95rem; line-height: 1.3; }
+  .drawer-meta { display: none; }
+  .drawer-acts { gap: 5px; }
+  .act-label { display: none; }
+  #drawerCopy { display: none; }
+  .act { padding: 8px 10px; }
+
+  .foot { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .foot-keys { display: none; }
+  .hero-stats { flex-wrap: wrap; }
+  .wordmark { font-size: clamp(2.6rem, 15vw, 6rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<svg class="bg-schematic" viewBox="0 0 600 600" fill="none" aria-hidden="true" id="bgSchematic"></svg>
+<div class="bg-grain" aria-hidden="true"></div>
+
+<div class="shell">
+
+  <header class="masthead">
+    <a class="mark" href="./" data-i18n-attr="aria-label:home">
+      <svg class="mark-badge" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <path d="M20 2.6 35.1 11.3v17.4L20 37.4 4.9 28.7V11.3Z" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/>
+        <circle cx="20" cy="20" r="7.4" stroke="currentColor" stroke-width="2.6"/>
+      </svg>
+      <span class="mark-text">
+        <span class="mark-name">Workshop</span>
+        <span class="mark-sub" data-i18n="tagline">Brzi alati · Registar</span>
+      </span>
+    </a>
+
+    <div class="masthead-tools">
+      <span class="sysline" id="sysline">—</span>
+      <button class="icon-btn solo search-toggle" id="searchToggle" type="button" aria-expanded="false" aria-controls="search" data-i18n-attr="aria-label:searchAria">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="6.9" cy="6.9" r="5.1"/><path d="m10.7 10.7 3.5 3.5"/></svg>
+      </button>
+      <div class="segmented" role="group" data-i18n-attr="aria-label:viewAria">
+        <button class="icon-btn" type="button" data-view="chart" aria-pressed="true" data-i18n-attr="aria-label:viewCards,title:viewCards">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.2" y="1.2" width="5.6" height="5.6"/><rect x="9.2" y="1.2" width="5.6" height="5.6"/><rect x="1.2" y="9.2" width="5.6" height="5.6"/><rect x="9.2" y="9.2" width="5.6" height="5.6"/></svg>
+        </button>
+        <button class="icon-btn" type="button" data-view="register" aria-pressed="false" data-i18n-attr="aria-label:viewList,title:viewList">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1.4 3.2h13.2M1.4 8h13.2M1.4 12.8h13.2"/></svg>
+        </button>
+      </div>
+      <div class="lang-wrap">
+        <button class="icon-btn solo" id="langBtn" type="button" aria-haspopup="true" aria-expanded="false" data-i18n-attr="aria-label:langBtn,title:langBtn">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="8" cy="8" r="6.4"/><path d="M1.6 8h12.8M8 1.6a10 10 0 0 1 0 12.8 10 10 0 0 1 0-12.8"/></svg>
+        </button>
+        <div class="lang-menu" id="langMenu" role="menu" hidden></div>
+      </div>
+      <button class="icon-btn solo" id="themeBtn" type="button" data-i18n-attr="aria-label:themeBtn,title:themeBtn">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="8" cy="8" r="6.2"/><path d="M8 1.8v12.4A6.2 6.2 0 0 0 8 1.8Z" fill="currentColor" stroke="none"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="wm">
+      <svg class="spec-gear" viewBox="0 0 400 400" fill="none" aria-hidden="true" id="specGear"></svg>
+
+      <h1 class="wordmark" id="wm" aria-label="Workshop">
+        <span aria-hidden="true">W</span><span aria-hidden="true">o</span><span aria-hidden="true">r</span><span aria-hidden="true">k</span><span aria-hidden="true">s</span><span aria-hidden="true">h</span><span aria-hidden="true">o</span><span aria-hidden="true">p</span><span class="dot" aria-hidden="true">.</span>
+      </h1>
+
+      <div class="hero-base">
+        <p class="hero-lede">
+          <span data-i18n-html="lede">Svaki alat koji sam napravio, na jednom mjestu i <em>pretraživ do zadnje rečenice</em> — ne samo naslovi i opisi, nego cijeli tekst svakog dokumenta.</span>
+        </p>
+        <dl class="hero-stats">
+          <div><dt data-i18n="statTools">Alata</dt><dd id="stDocs">—</dd></div>
+          <div><dt data-i18n="statWords">Riječi</dt><dd id="stWords">—</dd></div>
+          <div><dt data-i18n="statTags">Kategorija</dt><dd id="stTags">—</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="console" data-i18n-attr="aria-label:searchSection">
+      <div class="console-bar">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <circle cx="8.6" cy="8.6" r="6.4"/><path d="m13.4 13.4 4.2 4.2"/>
+        </svg>
+        <input id="search" type="search" autocomplete="off" spellcheck="false"
+               data-i18n-attr="placeholder:searchPlaceholder,aria-label:searchAria">
+        <kbd>/</kbd>
+        <button class="clear-btn" id="clearBtn" type="button" data-i18n-attr="aria-label:clearSearch">✕</button>
+      </div>
+
+      <div class="console-rail">
+        <div class="filters" id="filters" role="group" data-i18n-attr="aria-label:filterAria"></div>
+        <div class="rail-right">
+          <button class="chip" id="archiveBtn" type="button" aria-pressed="false"><span data-i18n="archive">Arhiva</span> <i id="archiveCount"></i></button>
+          <div class="select-wrap">
+            <select id="sort" data-i18n-attr="aria-label:sortAria">
+              <option value="relevance" data-i18n="sortRelevance">Relevantnost</option>
+              <option value="recent" data-i18n="sortRecent">Najnovije</option>
+              <option value="oldest" data-i18n="sortOldest">Najstarije</option>
+              <option value="title" data-i18n="sortTitle">Naslov A–Ž</option>
+              <option value="size" data-i18n="sortSize">Opsežnost</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <p class="tally" id="tally" aria-live="polite" data-i18n="loading">Učitavanje…</p>
+    <div class="results" id="results" data-view="chart"></div>
+  </main>
+
+  <footer class="foot">
+    <span data-i18n="footer">Workshop · katalog alata</span>
+    <span class="foot-keys">
+      <span data-i18n-html="keys"><kbd>/</kbd> pretraga <kbd>⌘K</kbd> skok <kbd>J</kbd><kbd>K</kbd> kretanje <kbd>G</kbd><kbd>L</kbd> prikaz <kbd>T</kbd> tema <kbd>ESC</kbd> natrag</span>
+    </span>
+    <span id="stamp">—</span>
+  </footer>
+</div>
+
+<!-- PREVIEW DRAWER -->
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" aria-hidden="true">
+  <button class="drawer-scrim" id="drawerScrim" type="button" data-i18n-attr="aria-label:closePreview" tabindex="-1"></button>
+  <div class="drawer-panel">
+    <div class="drawer-head">
+      <div class="drawer-ident">
+        <h3 id="drawerTitle">—</h3>
+        <p class="drawer-meta" id="drawerMeta">—</p>
+      </div>
+      <div class="drawer-acts">
+        <button class="act" id="drawerVersions" type="button" aria-pressed="false" hidden>
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="7" cy="7" r="5.6"/><path d="M7 3.8V7l2.2 1.6"/></svg>
+          <span class="act-label" data-i18n="versions">Verzije</span> <span id="drawerVersionCount">0</span>
+        </button>
+        <button class="act" id="drawerCopy" type="button" data-i18n-attr="aria-label:copyLink">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4.6" y="4.6" width="8.2" height="8.2"/><path d="M9.4 4.6V1.2H1.2v8.2h3.4"/></svg>
+          <span class="act-label" data-i18n="copy">Kopiraj</span>
+        </button>
+        <a class="act primary" id="drawerOpen" href="#" target="_blank" rel="noopener" data-i18n-attr="aria-label:openTabAria">
+          <span class="act-label" data-i18n="open">Otvori</span>
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 10 10 4M5 4h5v5"/></svg>
+        </a>
+        <button class="act" id="drawerClose" type="button" data-i18n-attr="aria-label:close">✕</button>
+      </div>
+    </div>
+    <div class="drawer-frame" id="drawerFrame">
+      <div class="drawer-loading" data-i18n="loadingDoc">Učitavam dokument…</div>
+      <iframe id="drawerIframe" title="Pregled dokumenta" loading="lazy"></iframe>
+    </div>
+
+    <div class="timeline" id="timeline" hidden>
+      <ol class="timeline-list" id="timelineList"></ol>
+      <div class="diff" id="diff" hidden>
+        <div class="diff-head">
+          <span id="diffTitle">—</span>
+          <button class="act" id="diffClose" type="button" data-i18n="diffClose">Zatvori razlike</button>
+        </div>
+        <div class="diff-body" id="diffBody"></div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- COMMAND PALETTE -->
+<div class="palette" id="palette" role="dialog" aria-modal="true" data-i18n-attr="aria-label:jump" aria-hidden="true">
+  <div class="palette-box">
+    <div class="palette-input">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M3 10h14M10 3v14" opacity=".35"/><circle cx="10" cy="10" r="7.2"/>
+      </svg>
+      <input id="paletteInput" type="text" autocomplete="off" spellcheck="false" data-i18n-attr="aria-label:jump,placeholder:jumpPlaceholder" aria-controls="paletteList">
+    </div>
+    <div class="palette-list" id="paletteList" role="listbox" data-i18n-attr="aria-label:results"></div>
+    <div class="palette-foot">
+      <span data-i18n="jumpMove">↑ ↓ kretanje</span><span data-i18n="jumpOpen">⏎ otvori</span><span data-i18n="jumpPreview">⇧⏎ pregled</span><span data-i18n="jumpClose">ESC zatvori</span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="search-index.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════
+   0 · JEZICI
+
+   Zadani se bira iz preglednika; izbor se pamti i nadjača ga.
+   ═══════════════════════════════════════════════════════════ */
+
+const LANGS = { hr: 'Hrvatski', en: 'English', de: 'Deutsch' };
+
+const STRINGS = {
+  hr: {
+    title: 'Workshop — registar alata',
+    tagline: 'Brzi alati · Registar', home: 'Workshop — početna',
+    lede: 'Svaki alat koji sam napravio, na jednom mjestu i <em>pretraživ do zadnje rečenice</em> — ne samo naslovi i opisi, nego cijeli tekst svakog dokumenta.',
+    statTools: 'Alata', statWords: 'Riječi', statTags: 'Kategorija',
+    searchPlaceholder: 'Pretraži naslove, opise, tagove i cijeli sadržaj…',
+    searchAria: 'Pretraži zbirku', searchSection: 'Pretraživanje', clearSearch: 'Očisti pretragu',
+    filterAria: 'Filtriraj po kategoriji', all: 'Sve', archive: 'Arhiva',
+    sortAria: 'Sortiranje', sortRelevance: 'Relevantnost', sortRecent: 'Najnovije',
+    sortOldest: 'Najstarije', sortTitle: 'Naslov A–Ž', sortSize: 'Opsežnost',
+    viewAria: 'Prikaz', viewCards: 'Prikaz kartica', viewList: 'Prikaz popisa', themeBtn: 'Promijeni temu',
+    langBtn: 'Jezik', loading: 'Učitavanje…',
+    tools1: 'alat', toolsN: 'alata', inCategory: 'u kategoriji', matching: 'za',
+    noHits: 'Nema pogodaka', noHitsHint: 'Ništa u ovom kvadrantu',
+    noHitsTip: 'Pokušaj s kraćim pojmom, ukloni filtar kategorije', noHitsArchive: ' ili uključi arhivu',
+    noIndex: 'Nedostaje indeks zbirke',
+    noIndexHint: 'Pokreni <code>npm run dev</code> za lokalni katalog s live osvježavanjem, ili <code>npm run build</code> za statičku verziju.',
+    copy: 'Kopiraj', copyLink: 'Kopiraj link dokumenta', openTab: 'U novoj kartici',
+    openTabAria: 'Otvori dokument u novoj kartici', open: 'Otvori',
+    show: 'Prikaži', versions: 'Verzije', diffPrev: 'Razlike od prethodne', diffClose: 'Zatvori razlike',
+    diffNone: 'Nema razlika u tekstu.', diffBig: 'Dokumenti su preveliki za usporedbu odlomak po odlomak.',
+    comparing: 'Uspoređujem…', loadingDoc: 'Učitavam dokument…',
+    closePreview: 'Zatvori pregled', close: 'Zatvori',
+    jump: 'Brzi skok', jumpPlaceholder: 'Skoči na dokument…', results: 'Rezultati',
+    jumpMove: '↑ ↓ kretanje', jumpOpen: '⏎ otvori', jumpPreview: '⇧⏎ pregled', jumpClose: 'ESC zatvori',
+    plate: 'Nacrt dijela', live: 'Live', footer: 'Workshop · katalog alata',
+    keys: '<kbd>/</kbd> pretraga <kbd>⌘K</kbd> skok <kbd>J</kbd><kbd>K</kbd> kretanje <kbd>G</kbd><kbd>L</kbd> prikaz <kbd>T</kbd> tema <kbd>ESC</kbd> natrag',
+    rev: 'Revizija', words: 'r.', minutes: 'min'
+  },
+  en: {
+    title: 'Workshop — tool registry',
+    tagline: 'Quick tools · Registry', home: 'Workshop — home',
+    lede: 'Every tool I have built, in one place and <em>searchable to the last sentence</em> — not just titles and descriptions, but the full text of every document.',
+    statTools: 'Tools', statWords: 'Words', statTags: 'Categories',
+    searchPlaceholder: 'Search titles, descriptions, tags and full content…',
+    searchAria: 'Search the collection', searchSection: 'Search', clearSearch: 'Clear the search',
+    filterAria: 'Filter by category', all: 'All', archive: 'Archive',
+    sortAria: 'Sorting', sortRelevance: 'Relevance', sortRecent: 'Newest',
+    sortOldest: 'Oldest', sortTitle: 'Title A–Z', sortSize: 'Length',
+    viewAria: 'View', viewCards: 'Card view', viewList: 'List view', themeBtn: 'Change the theme',
+    langBtn: 'Language', loading: 'Loading…',
+    tools1: 'tool', toolsN: 'tools', inCategory: 'in category', matching: 'for',
+    noHits: 'No matches', noHitsHint: 'Nothing in this quadrant',
+    noHitsTip: 'Try a shorter term, or drop the category filter', noHitsArchive: ' or switch the archive on',
+    noIndex: 'The index is missing',
+    noIndexHint: 'Run <code>npm run dev</code> for a local catalogue with live reload, or <code>npm run build</code> for a static version.',
+    copy: 'Copy', copyLink: 'Copy the document link', openTab: 'New tab',
+    openTabAria: 'Open the document in a new tab', open: 'Open',
+    show: 'Show', versions: 'Versions', diffPrev: 'Changes from the previous', diffClose: 'Close the changes',
+    diffNone: 'No difference in the text.', diffBig: 'The documents are too large to compare paragraph by paragraph.',
+    comparing: 'Comparing…', loadingDoc: 'Loading the document…',
+    closePreview: 'Close the preview', close: 'Close',
+    jump: 'Quick jump', jumpPlaceholder: 'Jump to a document…', results: 'Results',
+    jumpMove: '↑ ↓ move', jumpOpen: '⏎ open', jumpPreview: '⇧⏎ preview', jumpClose: 'ESC close',
+    plate: 'Part drawing', live: 'Live', footer: 'Workshop · tool catalogue',
+    keys: '<kbd>/</kbd> search <kbd>⌘K</kbd> jump <kbd>J</kbd><kbd>K</kbd> move <kbd>G</kbd><kbd>L</kbd> view <kbd>T</kbd> theme <kbd>ESC</kbd> back',
+    rev: 'Revision', words: 'w.', minutes: 'min'
+  },
+  de: {
+    title: 'Workshop — Werkzeugregister',
+    tagline: 'Schnelle Werkzeuge · Register', home: 'Workshop — Startseite',
+    lede: 'Jedes Werkzeug, das ich gebaut habe, an einem Ort und <em>bis zum letzten Satz durchsuchbar</em> — nicht nur Titel und Beschreibungen, sondern der ganze Text jedes Dokuments.',
+    statTools: 'Werkzeuge', statWords: 'Wörter', statTags: 'Kategorien',
+    searchPlaceholder: 'Titel, Beschreibungen, Schlagwörter und Volltext durchsuchen…',
+    searchAria: 'Sammlung durchsuchen', searchSection: 'Suche', clearSearch: 'Suche löschen',
+    filterAria: 'Nach Kategorie filtern', all: 'Alle', archive: 'Archiv',
+    sortAria: 'Sortierung', sortRelevance: 'Relevanz', sortRecent: 'Neueste',
+    sortOldest: 'Älteste', sortTitle: 'Titel A–Z', sortSize: 'Umfang',
+    viewAria: 'Ansicht', viewCards: 'Kartenansicht', viewList: 'Listenansicht', themeBtn: 'Design wechseln',
+    langBtn: 'Sprache', loading: 'Wird geladen…',
+    tools1: 'Werkzeug', toolsN: 'Werkzeuge', inCategory: 'in Kategorie', matching: 'für',
+    noHits: 'Keine Treffer', noHitsHint: 'Nichts in diesem Quadranten',
+    noHitsTip: 'Versuche einen kürzeren Begriff oder entferne den Kategoriefilter', noHitsArchive: ' oder schalte das Archiv ein',
+    noIndex: 'Der Index fehlt',
+    noIndexHint: 'Starte <code>npm run dev</code> für einen lokalen Katalog mit Live-Reload oder <code>npm run build</code> für eine statische Fassung.',
+    copy: 'Kopieren', copyLink: 'Dokumentlink kopieren', openTab: 'Neuer Tab',
+    openTabAria: 'Dokument in neuem Tab öffnen', open: 'Öffnen',
+    show: 'Anzeigen', versions: 'Versionen', diffPrev: 'Änderungen zur vorherigen', diffClose: 'Änderungen schließen',
+    diffNone: 'Kein Unterschied im Text.', diffBig: 'Die Dokumente sind zu groß für einen Absatzvergleich.',
+    comparing: 'Wird verglichen…', loadingDoc: 'Dokument wird geladen…',
+    closePreview: 'Vorschau schließen', close: 'Schließen',
+    jump: 'Schnellsprung', jumpPlaceholder: 'Zu einem Dokument springen…', results: 'Ergebnisse',
+    jumpMove: '↑ ↓ bewegen', jumpOpen: '⏎ öffnen', jumpPreview: '⇧⏎ Vorschau', jumpClose: 'ESC schließen',
+    plate: 'Teilzeichnung', live: 'Live', footer: 'Workshop · Werkzeugkatalog',
+    keys: '<kbd>/</kbd> Suche <kbd>⌘K</kbd> Sprung <kbd>J</kbd><kbd>K</kbd> bewegen <kbd>G</kbd><kbd>L</kbd> Ansicht <kbd>T</kbd> Design <kbd>ESC</kbd> zurück',
+    rev: 'Revision', words: 'W.', minutes: 'Min'
+  }
+};
+
+function detectLang() {
+  for (const tag of navigator.languages || [navigator.language || '']) {
+    const code = String(tag).slice(0, 2).toLowerCase();
+    if (LANGS[code]) return code;
+  }
+  return 'en';
+}
+
+let lang = (() => {
+  try { const stored = localStorage.getItem('workshop.lang'); if (LANGS[stored]) return stored; } catch { /* nema pohrane */ }
+  return detectLang();
+})();
+
+const t = (key) => (STRINGS[lang] || STRINGS.en)[key] ?? STRINGS.en[key] ?? key;
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('title');
+  for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n);
+  for (const el of document.querySelectorAll('[data-i18n-html]')) el.innerHTML = t(el.dataset.i18nHtml);
+  for (const el of document.querySelectorAll('[data-i18n-attr]')) {
+    for (const pair of el.dataset.i18nAttr.split(',')) {
+      const [attr, key] = pair.split(':');
+      el.setAttribute(attr, t(key));
+    }
+  }
+  if (docs.length) { renderFilters(); render(); }
+}
+
+function setLang(code) {
+  lang = LANGS[code] ? code : 'en';
+  try { localStorage.setItem('workshop.lang', lang); } catch { /* nema pohrane */ }
+  for (const button of els.langMenu.children) button.setAttribute('aria-pressed', String(button.dataset.lang === lang));
+  applyLang();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   0 · DOM
+   ═══════════════════════════════════════════════════════════ */
+const $ = (s) => document.querySelector(s);
+const els = {
+  results: $('#results'), search: $('#search'), clear: $('#clearBtn'),
+  filters: $('#filters'), tally: $('#tally'), sort: $('#sort'),
+  archiveBtn: $('#archiveBtn'), archiveCount: $('#archiveCount'),
+  sysline: $('#sysline'), stamp: $('#stamp'),
+  stDocs: $('#stDocs'), stWords: $('#stWords'), stTags: $('#stTags'),
+  themeBtn: $('#themeBtn'), toast: $('#toast'), searchToggle: $('#searchToggle'),
+  langBtn: $('#langBtn'), langMenu: $('#langMenu'),
+  drawer: $('#drawer'), drawerTitle: $('#drawerTitle'), drawerMeta: $('#drawerMeta'),
+  drawerOpen: $('#drawerOpen'), drawerCopy: $('#drawerCopy'), drawerClose: $('#drawerClose'),
+  drawerScrim: $('#drawerScrim'), drawerFrame: $('#drawerFrame'), drawerIframe: $('#drawerIframe'),
+  drawerVersions: $('#drawerVersions'), drawerVersionCount: $('#drawerVersionCount'),
+  timeline: $('#timeline'), timelineList: $('#timelineList'),
+  diff: $('#diff'), diffTitle: $('#diffTitle'), diffBody: $('#diffBody'), diffClose: $('#diffClose'),
+  palette: $('#palette'), paletteInput: $('#paletteInput'), paletteList: $('#paletteList'),
+  specGear: $('#specGear'), bgSchematic: $('#bgSchematic')
+};
+
+/* ═══════════════════════════════════════════════════════════
+   1 · STATE
+   ═══════════════════════════════════════════════════════════ */
+let index = window.__WORKSHOP_INDEX__ || null;
+let docs = [];
+let visible = [];
+let cursor = -1;
+let paletteHits = [];
+let paletteCursor = 0;
+let lastFocus = null;
+let activeDoc = null;
+
+const state = {
+  q: '',
+  tag: null,
+  sort: 'relevance',
+  view: localStorage.getItem('workshop.view') || 'chart',
+  archive: false
+};
+
+/* ═══════════════════════════════════════════════════════════
+   2 · TEXT UTILITIES
+   ═══════════════════════════════════════════════════════════ */
+
+/** NFD-fold + lowercase. Length-stable for Croatian, so offsets map 1:1. */
+const fold = (v) => String(v || '')
+  .normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('hr');
+
+const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const nf = new Intl.NumberFormat('hr-HR');
+const dfShort = new Intl.DateTimeFormat('hr-HR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+const dfLong = new Intl.DateTimeFormat('hr-HR', { dateStyle: 'long' });
+
+const terms = (q) => fold(q).split(/\s+/).filter((t) => t.length > 0);
+
+/* ═══════════════════════════════════════════════════════════
+   3 · PROCEDURAL CHART PLATES
+   Documents without an image get a deterministic depth-contour
+   plate derived from their id — so every card is distinct.
+   ═══════════════════════════════════════════════════════════ */
+
+function seedFrom(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* ── Primitivi tehničkog crteža ─────────────────────────────
+   Sve je izvedeno iz `id`-a dokumenta, pa je crtež uvijek isti
+   za isti alat, a različit među alatima. Bez ijedne slike. */
+
+const pt = (cx, cy, r, a) => `${(cx + Math.cos(a) * r).toFixed(1)},${(cy + Math.sin(a) * r).toFixed(1)}`;
+
+/** Zupčanik: n zubaca između korijenske i tjemene kružnice. */
+function gearPath(cx, cy, tip, root, teeth) {
+  const step = (Math.PI * 2) / teeth;
+  const flank = step * 0.19;
+  let d = '';
+  for (let i = 0; i < teeth; i++) {
+    const a = i * step;
+    d += (i ? 'L' : 'M') + pt(cx, cy, root, a - step / 2 + flank * 0.5);
+    d += 'L' + pt(cx, cy, tip, a - flank);
+    d += 'L' + pt(cx, cy, tip, a + flank);
+    d += 'L' + pt(cx, cy, root, a + step / 2 - flank * 0.5);
+  }
+  return `${d}Z`;
+}
+
+/** Rupe raspoređene po kružnici — vijčani krug. */
+function boltCircle(cx, cy, r, count, hole, stroke) {
+  let out = '';
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * Math.PI * 2 - Math.PI / 2;
+    const [x, y] = pt(cx, cy, r, a).split(',');
+    out += `<circle cx="${x}" cy="${y}" r="${hole}" fill="none" stroke="${stroke}" stroke-width="1"/>`;
+  }
+  return out;
+}
+
+/** Crta-točka os, kako se osi crtaju na nacrtu. */
+function centreMark(cx, cy, len, stroke) {
+  return `<path d="M${cx - len} ${cy}H${cx + len}M${cx} ${cy - len}V${cy + len}"`
+    + ` stroke="${stroke}" stroke-width=".7" stroke-dasharray="9 3 2 3" opacity=".65"/>`;
+}
+
+/** Kotna linija sa strelicama i mjerom. */
+function dimension(x1, x2, y, label, stroke) {
+  const arrow = (x, dir) => `<path d="M${x} ${y}l${dir * 5} -2.4v4.8Z" fill="${stroke}"/>`;
+  return `<path d="M${x1} ${y - 5}v10M${x2} ${y - 5}v10M${x1} ${y}H${x2}" stroke="${stroke}" stroke-width=".7"/>`
+    + arrow(x1, 1) + arrow(x2, -1)
+    + `<text x="${((x1 + x2) / 2).toFixed(0)}" y="${y - 6}" fill="${stroke}" text-anchor="middle"`
+    + ` font-family="ui-monospace,Menlo,monospace" font-size="8">${label}</text>`;
+}
+
+/** Šrafura pod 45° unutar pravokutnika — presjek materijala. */
+function hatch(x, y, w, h, gap, stroke) {
+  let out = `<clipPath id="h${x}${y}${w}"><rect x="${x}" y="${y}" width="${w}" height="${h}"/></clipPath><g clip-path="url(#h${x}${y}${w})">`;
+  for (let i = -h; i < w; i += gap) {
+    out += `<path d="M${x + i} ${y + h}L${x + i + h} ${y}" stroke="${stroke}" stroke-width=".6" opacity=".5"/>`;
+  }
+  return `${out}</g>`;
+}
+
+const PLATE_INKS = ['var(--accent)', 'var(--beacon)', 'var(--sand)', 'var(--plate-ink)'];
+
+/**
+ * Ploča kartice: nacrt dijela umjesto slike.
+ *
+ * Četiri obitelji — zupčanik, prirubnica, vratilo, nosač — biraju se
+ * iz sjemena, pa katalog izgleda kao stranica iz kataloga dijelova,
+ * a ne kao dvanaest istih ukrasa.
+ */
+function chartPlate(item) {
+  const rand = rng(seedFrom(item.id));
+  const W = 400, H = 200;
+  const ink = PLATE_INKS[Math.floor(rand() * PLATE_INKS.length)];
+  const family = Math.floor(rand() * 4);
+  const cx = W * (0.36 + rand() * 0.2);
+  const cy = H * 0.5;
+
+  let out = '';
+
+  // milimetarska podloga
+  for (let x = 10; x < W; x += 10) out += `<path d="M${x} 0V${H}" stroke="currentColor" stroke-width=".4" opacity=".07"/>`;
+  for (let y = 10; y < H; y += 10) out += `<path d="M0 ${y}H${W}" stroke="currentColor" stroke-width=".4" opacity=".07"/>`;
+
+  if (family === 0) {                                   // zupčanik
+    const tip = 52 + rand() * 22;
+    const teeth = 12 + Math.floor(rand() * 12);
+    out += `<path d="${gearPath(cx, cy, tip, tip * 0.82, teeth)}" fill="${ink}" fill-opacity=".14" stroke="${ink}" stroke-width="1.6"/>`;
+    out += `<circle cx="${cx}" cy="${cy}" r="${(tip * 0.3).toFixed(1)}" fill="none" stroke="${ink}" stroke-width="1.4"/>`;
+    out += boltCircle(cx, cy, tip * 0.55, 6, 4, ink);
+    out += centreMark(cx, cy, tip + 16, 'currentColor');
+    out += dimension(cx - tip, cx + tip, H - 18, `⌀${(tip * 2).toFixed(0)}`, 'currentColor');
+  } else if (family === 1) {                            // prirubnica
+    const r = 48 + rand() * 20;
+    out += `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(1)}" fill="${ink}" fill-opacity=".12" stroke="${ink}" stroke-width="1.6"/>`;
+    out += `<circle cx="${cx}" cy="${cy}" r="${(r * 0.42).toFixed(1)}" fill="none" stroke="${ink}" stroke-width="1.4"/>`;
+    out += boltCircle(cx, cy, r * 0.74, 4 + Math.floor(rand() * 5), 5, ink);
+    out += centreMark(cx, cy, r + 18, 'currentColor');
+    out += dimension(cx - r, cx + r, H - 18, `⌀${(r * 2).toFixed(0)}`, 'currentColor');
+  } else if (family === 2) {                            // vratilo s navojem
+    const y0 = cy - 16, h = 32;
+    const x0 = 60, x1 = 300;
+    const head = 34;
+    out += `<path d="M${x0} ${cy - head / 2}h${head}v${head}h${-head}Z" fill="${ink}" fill-opacity=".16" stroke="${ink}" stroke-width="1.6"/>`;
+    out += `<rect x="${x0 + head}" y="${y0}" width="${x1 - x0 - head}" height="${h}" fill="none" stroke="${ink}" stroke-width="1.6"/>`;
+    out += hatch(x0 + head, y0, x1 - x0 - head, h, 9, ink);
+    out += centreMark((x0 + x1) / 2, cy, 0, 'currentColor').replace(`V${cy}`, `V${cy}`);
+    out += `<path d="M${x0 - 14} ${cy}H${x1 + 14}" stroke="currentColor" stroke-width=".7" stroke-dasharray="9 3 2 3" opacity=".65"/>`;
+    out += dimension(x0, x1, H - 18, `${x1 - x0}`, 'currentColor');
+  } else {                                              // nosač s prorezima
+    const x0 = 92, y0 = 44, w = 150, h = 112;
+    out += `<path d="M${x0} ${y0}h${w}v${h * 0.42}h${-w * 0.52}v${h * 0.58}h${-w * 0.48}Z" fill="${ink}" fill-opacity=".12" stroke="${ink}" stroke-width="1.6"/>`;
+    for (let i = 0; i < 3; i++) {
+      const sy = y0 + 22 + i * 30;
+      out += `<rect x="${x0 + 16}" y="${sy}" width="34" height="9" rx="4.5" fill="none" stroke="${ink}" stroke-width="1.1"/>`;
+    }
+    out += `<circle cx="${x0 + w - 30}" cy="${y0 + 24}" r="7" fill="none" stroke="${ink}" stroke-width="1.2"/>`;
+    out += dimension(x0, x0 + w, H - 18, `${w}`, 'currentColor');
+  }
+
+  // oznake za montažu u kutovima lista
+  for (const [mx, my] of [[10, 10], [W - 10, 10], [10, H - 10], [W - 10, H - 10]]) {
+    out += `<path d="M${mx - 6} ${my}h12M${mx} ${my - 6}v12" stroke="currentColor" stroke-width=".8" opacity=".3"/>`;
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" role="img"`
+    + ` aria-label="${t('plate')}" style="color:var(--plate-ink)">${out}</svg>`;
+}
+
+/* Zupčanik uz naslov i veliki shematski crtež u pozadini. */
+function drawGear(svg, size) {
+  const c = size / 2;
+  const tip = c - 4;
+  let out = `<path d="${gearPath(c, c, tip, tip * 0.85, 24)}" fill="none" stroke="currentColor" stroke-width="2"/>`;
+  out += `<circle cx="${c}" cy="${c}" r="${(tip * 0.62).toFixed(1)}" fill="none" stroke="currentColor" stroke-width="1.2"/>`;
+  out += `<circle cx="${c}" cy="${c}" r="${(tip * 0.22).toFixed(1)}" fill="none" stroke="currentColor" stroke-width="2"/>`;
+  out += boltCircle(c, c, tip * 0.43, 6, tip * 0.055, 'currentColor');
+  out += centreMark(c, c, tip, 'currentColor');
+  svg.innerHTML = out;
+}
+
+function drawSchematic(svg) {
+  const c = 300;
+  let out = `<path d="${gearPath(c, c, 250, 214, 30)}" fill="none" stroke="currentColor" stroke-width="3"/>`;
+  out += `<circle cx="${c}" cy="${c}" r="150" fill="none" stroke="currentColor" stroke-width="1.6"/>`;
+  out += `<circle cx="${c}" cy="${c}" r="58" fill="none" stroke="currentColor" stroke-width="3"/>`;
+  out += boltCircle(c, c, 104, 8, 15, 'currentColor');
+  out += centreMark(c, c, 285, 'currentColor');
+  svg.innerHTML = out;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   4 · SCORING + SNIPPETS
+   ═══════════════════════════════════════════════════════════ */
+
+function prepare(raw) {
+  return raw.map((item, i) => {
+    const content = item.content || '';
+    const words = content ? content.split(/\s+/).filter(Boolean).length : 0;
+    return {
+      ...item,
+      content,
+      words,
+      minutes: Math.max(1, Math.round(words / 200)),
+      when: new Date(item.modifiedAt),
+      day: String(item.modifiedAt).slice(0, 10),
+      no: String(i + 1).padStart(3, '0'),
+      fTitle: fold(item.title),
+      fDesc: fold(item.description),
+      fTags: fold((item.tags || []).join(' ')),
+      fContent: fold(content)
+    };
+  });
+}
+
+/** AND semantics across terms; weighted by where each term lands. */
+function score(doc, ts) {
+  if (!ts.length) return 0;
+  let total = 0;
+  for (const t of ts) {
+    let s = 0;
+    const ti = doc.fTitle.indexOf(t);
+    if (ti === 0) s += 160;
+    else if (ti > 0) s += 110;
+    if (doc.fTags.includes(t)) s += 55;
+    if (doc.fDesc.includes(t)) s += 32;
+    let hits = 0, at = doc.fContent.indexOf(t);
+    while (at !== -1 && hits < 40) { hits++; at = doc.fContent.indexOf(t, at + t.length); }
+    if (hits) s += 8 + Math.min(hits, 25) * 2.5;
+    if (!s) return -1;              // one term missing → not a match
+    total += s;
+  }
+  return total;
+}
+
+/** Context snippet around the earliest hit, with every term marked. */
+function snippet(doc, ts) {
+  if (!ts.length) return '';
+  let at = -1;
+  for (const t of ts) {
+    const i = doc.fContent.indexOf(t);
+    if (i !== -1 && (at === -1 || i < at)) at = i;
+  }
+  if (at === -1) return '';
+
+  const raw = doc.content;
+  let from = Math.max(0, at - 90);
+  let to = Math.min(raw.length, at + 190);
+  if (from > 0) { const sp = raw.indexOf(' ', from); if (sp !== -1 && sp < at) from = sp + 1; }
+  if (to < raw.length) { const sp = raw.lastIndexOf(' ', to); if (sp > at) to = sp; }
+
+  // collect + merge match ranges inside the window
+  const ranges = [];
+  for (const t of ts) {
+    let i = doc.fContent.indexOf(t, from);
+    while (i !== -1 && i < to) { ranges.push([i, Math.min(i + t.length, to)]); i = doc.fContent.indexOf(t, i + t.length); }
+  }
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged = [];
+  for (const r of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]);
+    else merged.push([...r]);
+  }
+
+  let html = '', pos = from;
+  for (const [a, b] of merged) {
+    html += esc(raw.slice(pos, a)) + '<mark>' + esc(raw.slice(a, b)) + '</mark>';
+    pos = b;
+  }
+  html += esc(raw.slice(pos, to));
+  return (from > 0 ? '…' : '') + html + (to < raw.length ? '…' : '');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   5 · FILTER + SORT
+   ═══════════════════════════════════════════════════════════ */
+
+function compute() {
+  const ts = terms(state.q);
+  let list = [];
+  let hiddenArchive = 0;
+
+  for (const doc of docs) {
+    if (state.tag && !(doc.tags || []).includes(state.tag)) continue;
+    const s = score(doc, ts);
+    if (s < 0) continue;
+    if (doc.isArchive && !state.archive) { hiddenArchive++; continue; }
+    list.push({ doc, s });
+  }
+
+  // Uspoređuje se dan, ne trenutak: datum upisan u dokument nema sate
+  // (stoji na podne UTC), pa bi inače izgubio od svake datoteke dirnute
+  // isti dan poslijepodne. Unutar dana prednost ima eksplicitniji izvor.
+  const SOURCE_RANK = { meta: 0, git: 1, mtime: 2 };
+  const newestFirst = (a, b) => {
+    if (a.day !== b.day) return b.day.localeCompare(a.day);
+    const rank = (SOURCE_RANK[a.dateSource] ?? 3) - (SOURCE_RANK[b.dateSource] ?? 3);
+    return rank || (b.when - a.when) || a.title.localeCompare(b.title, 'hr');
+  };
+
+  const by = {
+    relevance: (a, b) => (b.s - a.s) || newestFirst(a.doc, b.doc),
+    recent:    (a, b) => newestFirst(a.doc, b.doc),
+    oldest:    (a, b) => newestFirst(b.doc, a.doc),
+    title:     (a, b) => a.doc.title.localeCompare(b.doc.title, 'hr'),
+    size:      (a, b) => b.doc.words - a.doc.words
+  };
+  const mode = (state.sort === 'relevance' && !ts.length) ? 'recent' : state.sort;
+  list.sort(by[mode] || by.recent);
+
+  return { list: list.map((x) => x.doc), ts, hiddenArchive };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   6 · RENDER
+   ═══════════════════════════════════════════════════════════ */
+
+const ICON_COPY = '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4.6" y="4.6" width="8.2" height="8.2"/><path d="M9.4 4.6V1.2H1.2v8.2h3.4"/></svg>';
+const ICON_OUT = '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 10 10 4M5 4h5v5"/></svg>';
+
+function chartCard(doc, i, ts) {
+  const media = doc.image
+    ? `<img src="${esc(doc.image)}" alt="" loading="lazy" decoding="async" data-fallback="1">`
+    : chartPlate(doc);
+  const snip = snippet(doc, ts);
+  return `<article class="card" data-id="${esc(doc.id)}" style="animation-delay:${Math.min(i * 34, 300)}ms">
+    <div class="plate">${media}<span class="plate-scan"></span>
+      <span class="plate-no">№ ${doc.no}</span>
+      ${doc.isArchive ? '<span class="plate-flag">Arhiva</span>' : ''}
+    </div>
+    <div class="card-body">
+      <div class="card-tags">${(doc.tags || []).slice(0, 3).map((t) => `<span class="t">${esc(t)}</span>`).join('')}</div>
+      <h2><a class="card-link" href="${esc(doc.url)}" target="_blank" rel="noopener" title="${esc(doc.title)}">${esc(doc.title)}</a></h2>
+      <p>${esc(doc.description)}</p>
+      ${snip ? `<p class="snippet"><span>${snip}</span></p>` : ''}
+    </div>
+    <div class="card-foot">
+      <span>${dfShort.format(doc.when)}<i class="sep">·</i>${nf.format(doc.words)} ${t('words')}<i class="sep">·</i>${doc.minutes} ${t('minutes')}</span>
+      <span>
+        <button class="mini" type="button" data-copy="${esc(doc.url)}" aria-label="${t('copyLink')}" title="${t('copy')}">${ICON_COPY}</button>
+        <a class="mini" href="${esc(doc.url)}" target="_blank" rel="noopener" aria-label="${t('openTabAria')}" title="${t('openTab')}">${ICON_OUT}</a>
+      </span>
+    </div>
+  </article>`;
+}
+
+function registerRow(doc, i) {
+  return `<article class="card" data-id="${esc(doc.id)}" style="animation-delay:${Math.min(i * 16, 220)}ms">
+    <span class="r-no">№ ${doc.no}</span>
+    <span class="r-title"><a class="card-link" href="${esc(doc.url)}" target="_blank" rel="noopener">${esc(doc.title)}</a>${doc.isArchive ? ' <span class="r-tags">· ARH</span>' : ''}</span>
+    <span class="r-desc">${esc(doc.description)}</span>
+    <span class="r-tags">${esc((doc.tags || []).slice(0, 2).join(' · '))}</span>
+    <span class="r-meta">${nf.format(doc.words)} ${t('words')}</span>
+    <span class="r-meta">${dfShort.format(doc.when)}</span>
+    <span class="r-act">
+      <button class="mini" type="button" data-copy="${esc(doc.url)}" aria-label="${t('copyLink')}" title="${t('copy')}">${ICON_COPY}</button>
+    </span>
+  </article>`;
+}
+
+function renderFilters() {
+  const counts = new Map();
+  for (const doc of docs) {
+    if (doc.isArchive && !state.archive) continue;
+    for (const t of doc.tags || []) counts.set(t, (counts.get(t) || 0) + 1);
+  }
+  const top = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'hr'))
+    .slice(0, 10);
+
+  els.filters.innerHTML = [['', docs.filter((d) => state.archive || !d.isArchive).length], ...top]
+    .map(([tag, n]) => {
+      const on = (!tag && !state.tag) || tag === state.tag;
+      // Prazan tag je „sve" — naziv mu dolazi iz rječnika, kategorije ne.
+      return `<button class="chip" type="button" data-tag="${esc(tag)}" aria-pressed="${on}">${esc(tag || t('all'))} <i>${n}</i></button>`;
+    }).join('');
+}
+
+function render() {
+  if (!index) return;
+  const { list, ts, hiddenArchive } = compute();
+  visible = list;
+  cursor = -1;
+
+  els.results.dataset.view = state.view;
+  els.results.innerHTML = list.length
+    ? list.map((doc, i) => state.view === 'chart' ? chartCard(doc, i, ts) : registerRow(doc, i)).join('')
+    : `<div class="notice">
+        <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="17" cy="17" r="12"/><path d="m26 26 11 11"/><path d="M12 17h10" opacity=".5"/></svg>
+        <h2>${t('noHitsHint')}</h2>
+        <p>${t('noHitsTip')}${state.archive ? '' : t('noHitsArchive')}</p>
+      </div>`;
+
+  // image fallback → procedural plate
+  for (const img of els.results.querySelectorAll('img[data-fallback]')) {
+    img.addEventListener('error', () => {
+      const doc = docs.find((d) => d.id === img.closest('.card')?.dataset.id);
+      if (doc) img.outerHTML = chartPlate(doc);
+    }, { once: true });
+  }
+
+  const bits = [`<b>${list.length}</b> ${t(list.length === 1 ? 'tools1' : 'toolsN')}`];
+  if (ts.length) bits.push(`za „${esc(state.q.trim())}”`);
+  if (state.tag) bits.push(`${t('inCategory')} <b>${esc(state.tag)}</b>`);
+  bits.push(`· ${els.sort.selectedOptions[0].text}`);
+  els.tally.innerHTML = bits.join(' ') +
+    (hiddenArchive ? ` <button class="tally-hint" type="button" id="showArchive">+${hiddenArchive} u arhivi</button>` : '');
+
+  const hint = $('#showArchive');
+  if (hint) hint.addEventListener('click', () => { state.archive = true; syncArchive(); renderFilters(); render(); });
+
+  els.clear.classList.toggle('on', Boolean(state.q));
+  // keep the collapsed icon signalling that a query is still filtering
+  els.searchToggle.classList.toggle('filtering', Boolean(state.q.trim()));
+  syncUrl();
+}
+
+/* On phones the search bar is collapsed behind a masthead icon.
+   On desktop it is always visible and this only tracks focus. */
+function setSearchOpen(open) {
+  document.documentElement.dataset.search = open ? 'open' : 'closed';
+  els.searchToggle.setAttribute('aria-expanded', String(open));
+  if (open) requestAnimationFrame(() => { els.search.focus(); els.search.select(); });
+}
+
+function focusSearch() {
+  setSearchOpen(true);
+}
+
+function syncArchive() {
+  els.archiveBtn.setAttribute('aria-pressed', String(state.archive));
+  els.archiveCount.textContent = docs.filter((d) => d.isArchive).length || '';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   7 · URL STATE
+   ═══════════════════════════════════════════════════════════ */
+
+let urlTimer;
+function syncUrl() {
+  clearTimeout(urlTimer);
+  urlTimer = setTimeout(() => {
+    const p = new URLSearchParams();
+    if (state.q.trim()) p.set('q', state.q.trim());
+    if (state.tag) p.set('tag', state.tag);
+    if (state.sort !== 'relevance') p.set('sort', state.sort);
+    if (state.archive) p.set('arh', '1');
+    const hash = p.toString();
+    history.replaceState(null, '', hash ? `#${hash}` : location.pathname + location.search);
+  }, 260);
+}
+
+function readUrl() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  state.q = p.get('q') || '';
+  state.tag = p.get('tag') || null;
+  state.sort = p.get('sort') || 'relevance';
+  state.archive = p.get('arh') === '1';
+  els.search.value = state.q;
+  els.sort.value = state.sort;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   8 · DRAWER
+   ═══════════════════════════════════════════════════════════ */
+
+function openDrawer(id) {
+  const doc = docs.find((d) => d.id === id);
+  if (!doc) return;
+  lastFocus = document.activeElement;
+  activeDoc = doc;
+  els.drawerTitle.textContent = doc.title;
+  els.drawerMeta.textContent = `№ ${doc.no} · ${(doc.tags || []).join(' · ')} · ${nf.format(doc.words)} riječi · ${dfLong.format(doc.when)}`;
+  els.drawerOpen.href = doc.url;
+  els.drawerCopy.dataset.copy = doc.url;
+  els.drawerFrame.classList.remove('ready');
+  els.drawerIframe.src = doc.url;
+
+  const versions = doc.versions || [];
+  els.drawerVersions.hidden = versions.length < 2;
+  els.drawerVersionCount.textContent = versions.length;
+  if (versions.length > 1) renderTimeline(doc);
+  showTimeline(false);
+  els.drawer.classList.add('on');
+  els.drawer.setAttribute('aria-hidden', 'false');
+  els.drawerScrim.tabIndex = 0;
+  document.body.classList.add('locked');
+  requestAnimationFrame(() => els.drawerClose.focus());
+}
+
+function closeDrawer() {
+  if (!els.drawer.classList.contains('on')) return;
+  els.drawer.classList.remove('on');
+  els.drawer.setAttribute('aria-hidden', 'true');
+  els.drawerScrim.tabIndex = -1;
+  document.body.classList.remove('locked');
+  setTimeout(() => { els.drawerIframe.src = 'about:blank'; }, 460);
+  if (lastFocus && lastFocus.isConnected) lastFocus.focus();
+}
+
+els.drawerIframe.addEventListener('load', () => els.drawerFrame.classList.add('ready'));
+els.drawerClose.addEventListener('click', closeDrawer);
+els.drawerScrim.addEventListener('click', closeDrawer);
+
+els.drawerVersions.addEventListener('click', () => showTimeline(els.timeline.hidden));
+els.diffClose.addEventListener('click', () => { els.diff.hidden = true; });
+
+els.timelineList.addEventListener('click', (event) => {
+  const show = event.target.closest('[data-show]');
+  if (show && activeDoc) {
+    const version = activeDoc.versions[Number(show.dataset.show)];
+    els.drawerFrame.classList.remove('ready');
+    els.drawerIframe.src = version.url;
+    showTimeline(false);
+    return;
+  }
+  const diff = event.target.closest('[data-diff]');
+  if (diff && activeDoc) showDiff(activeDoc, Number(diff.dataset.diff));
+});
+
+/* ═══════════════════════════════════════════════════════════
+   8b · VERSION TIMELINE + DIFF
+   ═══════════════════════════════════════════════════════════ */
+
+const BLOCK_SELECTOR = 'p,li,h1,h2,h3,h4,h5,h6,td,th,dt,dd,blockquote,figcaption,summary,caption,button,label';
+const versionTextCache = new Map();
+
+/** Isti izbor string literala kao u buildu — sadržaj je često u JS-u. */
+function scriptProse(html) {
+  const found = new Set();
+  for (const block of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)) {
+    if (/\bsrc\s*=/i.test(block[1])) continue;
+    const source = block[2].replace(/data:[a-z0-9/.+-]+;base64,[A-Za-z0-9+/=\s]*/gi, ' ');
+    for (const literal of source.matchAll(/"((?:[^"\\\n]|\\.)*)"(\s*:)?|'((?:[^'\\\n]|\\.)*)'(\s*:)?/g)) {
+      if (literal[2] || literal[4]) continue;
+      const value = (literal[1] ?? literal[3] ?? '').replace(/\\[nrt]/g, ' ').trim();
+      if (value.length < 12 || !/\s/.test(value)) continue;
+      const letters = (value.match(/\p{L}/gu) || []).length;
+      if (letters / value.length > 0.45) found.add(value);
+    }
+  }
+  return [...found];
+}
+
+/**
+ * Dokument → odlomci za usporedbu.
+ *
+ * Diff se radi nad čitljivim tekstom, ne nad HTML-om: promjena razmaka
+ * ili redoslijeda atributa inače bi zatrpala stvarne izmjene sadržaja.
+ */
+function textBlocks(html) {
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  for (const node of parsed.querySelectorAll('script,style,svg,canvas,noscript,template')) node.remove();
+
+  const blocks = [];
+  const seen = new WeakSet();
+  for (const element of parsed.querySelectorAll(BLOCK_SELECTOR)) {
+    if (element.querySelector(BLOCK_SELECTOR)) continue;   // samo najdublji
+    seen.add(element);
+    const text = (element.textContent || '').replace(/\s+/g, ' ').trim();
+    if (text) blocks.push(text);
+  }
+  if (!blocks.length) {
+    const all = (parsed.body?.textContent || '').replace(/\s+/g, ' ').trim();
+    if (all) blocks.push(...all.split(/(?<=[.!?])\s+/).filter(Boolean));
+  }
+  return [...blocks, ...scriptProse(html)];
+}
+
+async function versionText(version) {
+  if (versionTextCache.has(version.slug)) return versionTextCache.get(version.slug);
+  const response = await fetch(version.url);
+  if (!response.ok) throw new Error(`Verzija nije dostupna (${response.status}).`);
+  const blocks = textBlocks(await response.text());
+  versionTextCache.set(version.slug, blocks);
+  return blocks;
+}
+
+const MAX_DIFF_CELLS = 4_000_000;
+
+/** LCS nad odlomcima, uz odsijecanje zajedničkog početka i kraja. */
+function diffBlocks(older, newer) {
+  let start = 0;
+  while (start < older.length && start < newer.length && older[start] === newer[start]) start++;
+  let endOld = older.length;
+  let endNew = newer.length;
+  while (endOld > start && endNew > start && older[endOld - 1] === newer[endNew - 1]) { endOld--; endNew--; }
+
+  const head = older.slice(0, start).map((value) => ({ mark: '=', value }));
+  const tail = older.slice(endOld).map((value) => ({ mark: '=', value }));
+  const a = older.slice(start, endOld);
+  const b = newer.slice(start, endNew);
+
+  if (!a.length && !b.length) return [...head, ...tail];
+  if ((a.length + 1) * (b.length + 1) > MAX_DIFF_CELLS) return null;
+
+  const width = b.length + 1;
+  const table = new Uint32Array((a.length + 1) * width);
+  for (let i = a.length - 1; i >= 0; i--) {
+    for (let j = b.length - 1; j >= 0; j--) {
+      table[i * width + j] = a[i] === b[j]
+        ? table[(i + 1) * width + j + 1] + 1
+        : Math.max(table[(i + 1) * width + j], table[i * width + j + 1]);
+    }
+  }
+
+  const middle = [];
+  let i = 0;
+  let j = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) { middle.push({ mark: '=', value: a[i] }); i++; j++; }
+    else if (table[(i + 1) * width + j] >= table[i * width + j + 1]) { middle.push({ mark: '-', value: a[i] }); i++; }
+    else { middle.push({ mark: '+', value: b[j] }); j++; }
+  }
+  while (i < a.length) middle.push({ mark: '-', value: a[i++] });
+  while (j < b.length) middle.push({ mark: '+', value: b[j++] });
+
+  return [...head, ...middle, ...tail];
+}
+
+const CONTEXT = 2;
+
+function renderDiff(rows) {
+  if (!rows) return `<p class="diff-note">${t('diffBig')}</p>`;
+  if (!rows.some((row) => row.mark !== '=')) return `<p class="diff-note">${t('diffNone')}</p>`;
+
+  // prikazuje se samo okolina promjena — sve ostalo se sažima
+  const keep = new Set();
+  rows.forEach((row, index) => {
+    if (row.mark === '=') return;
+    for (let k = Math.max(0, index - CONTEXT); k <= Math.min(rows.length - 1, index + CONTEXT); k++) keep.add(k);
+  });
+
+  const out = [];
+  let skipped = 0;
+  rows.forEach((row, index) => {
+    if (!keep.has(index)) { skipped++; return; }
+    if (skipped) { out.push(`<p class="diff-skip">… ${skipped} nepromijenjenih odlomaka …</p>`); skipped = 0; }
+    const kind = row.mark === '+' ? 'add' : row.mark === '-' ? 'del' : 'same';
+    const sign = row.mark === '=' ? '' : row.mark;
+    out.push(`<div class="diff-row ${kind}"><span>${sign}</span><span>${esc(row.value)}</span></div>`);
+  });
+  if (skipped) out.push(`<p class="diff-skip">… ${skipped} nepromijenjenih odlomaka …</p>`);
+  return out.join('');
+}
+
+function showTimeline(show) {
+  els.timeline.hidden = !show;
+  els.drawerFrame.hidden = show;
+  els.drawerVersions.setAttribute('aria-pressed', String(show));
+  if (!show) els.diff.hidden = true;
+}
+
+function renderTimeline(doc) {
+  els.timelineList.innerHTML = doc.versions.map((version, index) => {
+    const when = version.current
+      ? `Trenutna · ${dfLong.format(new Date(version.modifiedAt))}`
+      : `Arhivirano ${dfLong.format(new Date(version.archivedAt || version.modifiedAt))}`;
+    const older = doc.versions[index + 1];
+    return `<li class="tl-item${version.current ? ' current' : ''}">
+      <div class="tl-when">${esc(when)}${version.current ? '<span class="tl-badge">Live</span>' : ''}</div>
+      <p class="tl-title">${esc(version.title)}</p>
+      <div class="tl-acts">
+        <button class="act" type="button" data-show="${index}">${t('show')}</button>
+        ${older ? `<button class="act" type="button" data-diff="${index}">${t('diffPrev')}</button>` : ''}
+        <a class="act" href="${esc(version.url)}" target="_blank" rel="noopener">U novoj kartici</a>
+      </div>
+    </li>`;
+  }).join('');
+}
+
+async function showDiff(doc, newerIndex) {
+  const newer = doc.versions[newerIndex];
+  const older = doc.versions[newerIndex + 1];
+  if (!older) return;
+
+  els.diff.hidden = false;
+  els.diffTitle.textContent = 'Učitavam obje verzije…';
+  els.diffBody.innerHTML = `<p class="diff-note">${t('comparing')}</p>`;
+
+  try {
+    const [olderBlocks, newerBlocks] = await Promise.all([versionText(older), versionText(newer)]);
+    const rows = diffBlocks(olderBlocks, newerBlocks);
+    const added = rows?.filter((row) => row.mark === '+').length || 0;
+    const removed = rows?.filter((row) => row.mark === '-').length || 0;
+    const olderWhen = dfShort.format(new Date(older.archivedAt || older.modifiedAt));
+    const newerWhen = newer.current ? 'trenutna' : dfShort.format(new Date(newer.archivedAt || newer.modifiedAt));
+    els.diffTitle.textContent = `${olderWhen} → ${newerWhen} · +${added} / −${removed}`;
+    els.diffBody.innerHTML = renderDiff(rows);
+  } catch (error) {
+    els.diffTitle.textContent = 'Greška';
+    els.diffBody.innerHTML = `<p class="diff-note">${esc(error.message)}</p>`;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   9 · COMMAND PALETTE
+   ═══════════════════════════════════════════════════════════ */
+
+/** Subsequence fuzzy match — "klk" finds "Kalkulator". */
+function fuzzy(needle, hay) {
+  if (!needle) return 0;
+  let i = 0, s = 0, streak = 0;
+  for (let j = 0; j < hay.length && i < needle.length; j++) {
+    if (hay[j] === needle[i]) {
+      streak++; s += 1 + streak * 2 + (j === 0 ? 12 : 0);
+      i++;
+    } else streak = 0;
+  }
+  return i === needle.length ? s : -1;
+}
+
+function paletteRender() {
+  const q = fold(els.paletteInput.value.trim());
+  paletteHits = (!q ? docs.slice(0, 40) : docs
+    .map((d) => {
+      const a = fuzzy(q, d.fTitle);
+      const b = fuzzy(q, d.fTags);
+      const best = Math.max(a, b === -1 ? -1 : b * 0.6);
+      return { d, best };
+    })
+    .filter((x) => x.best > 0)
+    .sort((a, b) => b.best - a.best)
+    .slice(0, 40)
+    .map((x) => x.d));
+
+  paletteCursor = 0;
+  els.paletteList.innerHTML = paletteHits.length
+    ? paletteHits.map((d, i) => `<button class="p-item" type="button" role="option" data-i="${i}" aria-selected="${i === 0}">
+        <span class="p-no">${d.no}</span>
+        <span class="p-name">${esc(d.title)}</span>
+        <span class="p-tags">${esc((d.tags || []).slice(0, 2).join(' · '))}</span>
+      </button>`).join('')
+    : `<p class="palette-empty">${t('noHits')}</p>`;
+}
+
+function paletteMove(step) {
+  if (!paletteHits.length) return;
+  paletteCursor = (paletteCursor + step + paletteHits.length) % paletteHits.length;
+  const items = els.paletteList.querySelectorAll('.p-item');
+  items.forEach((el, i) => el.setAttribute('aria-selected', String(i === paletteCursor)));
+  items[paletteCursor]?.scrollIntoView({ block: 'nearest' });
+}
+
+function paletteOpen() {
+  lastFocus = document.activeElement;
+  els.palette.classList.add('on');
+  els.palette.setAttribute('aria-hidden', 'false');
+  els.paletteInput.value = '';
+  document.body.classList.add('locked');
+  paletteRender();
+  requestAnimationFrame(() => els.paletteInput.focus());
+}
+
+function paletteClose() {
+  els.palette.classList.remove('on');
+  els.palette.setAttribute('aria-hidden', 'true');
+  if (!els.drawer.classList.contains('on')) document.body.classList.remove('locked');
+  if (lastFocus && lastFocus.isConnected) lastFocus.focus();
+}
+
+function paletteChoose(preview) {
+  const doc = paletteHits[paletteCursor];
+  if (!doc) return;
+  paletteClose();
+  if (preview) openDrawer(doc.id);
+  else window.open(doc.url, '_blank', 'noopener');
+}
+
+els.paletteInput.addEventListener('input', paletteRender);
+els.paletteList.addEventListener('click', (e) => {
+  const btn = e.target.closest('.p-item');
+  if (!btn) return;
+  paletteCursor = Number(btn.dataset.i);
+  paletteChoose(e.shiftKey);
+});
+els.palette.addEventListener('mousedown', (e) => { if (e.target === els.palette) paletteClose(); });
+
+/* ═══════════════════════════════════════════════════════════
+   10 · CLIPBOARD + TOAST
+   ═══════════════════════════════════════════════════════════ */
+
+let toastTimer;
+function toast(msg) {
+  els.toast.textContent = msg;
+  els.toast.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => els.toast.classList.remove('on'), 1900);
+}
+
+async function copy(text, btn) {
+  const url = new URL(text, location.href).href;
+  try {
+    await navigator.clipboard.writeText(url);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.append(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch { /* ignore */ }
+    ta.remove();
+  }
+  toast('Link kopiran');
+  if (btn) {
+    btn.classList.add('ok');
+    setTimeout(() => btn.classList.remove('ok'), 1400);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   11 · KEYBOARD NAVIGATION
+   ═══════════════════════════════════════════════════════════ */
+
+function moveCursor(step) {
+  if (!visible.length) return;
+  cursor = Math.max(0, Math.min(visible.length - 1, cursor + step));
+  const cards = els.results.querySelectorAll('.card');
+  const card = cards[cursor];
+  if (!card) return;
+  card.querySelector('.card-link')?.focus({ preventScroll: true });
+  card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+const typing = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
+
+document.addEventListener('keydown', (e) => {
+  const mod = e.metaKey || e.ctrlKey;
+  const key = e.key.toLowerCase();
+
+  if (mod && key === 'k') { e.preventDefault(); els.palette.classList.contains('on') ? paletteClose() : paletteOpen(); return; }
+
+  if (els.palette.classList.contains('on')) {
+    if (e.key === 'Escape') { e.preventDefault(); paletteClose(); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); paletteMove(1); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); paletteMove(-1); }
+    if (e.key === 'Enter') { e.preventDefault(); paletteChoose(e.shiftKey); }
+    return;
+  }
+
+  if (e.key === 'Escape') {
+    if (els.drawer.classList.contains('on')) { e.preventDefault(); closeDrawer(); return; }
+    if (document.activeElement === els.search) {
+      e.preventDefault();
+      if (els.search.value) { els.search.value = ''; state.q = ''; render(); }
+      else setSearchOpen(false);
+      return;
+    }
+  }
+
+  if (els.drawer.classList.contains('on')) return;
+
+  if (e.key === '/' && !typing(document.activeElement)) { e.preventDefault(); focusSearch(); return; }
+  if (typing(document.activeElement) || mod || e.altKey) return;
+
+  if (key === 'j') { e.preventDefault(); moveCursor(1); }
+  else if (key === 'k') { e.preventDefault(); moveCursor(cursor < 0 ? 0 : -1); }
+  else if (key === 'g') { e.preventDefault(); setView('chart'); }
+  else if (key === 'l') { e.preventDefault(); setView('register'); }
+  else if (key === 't') { e.preventDefault(); toggleTheme(); }
+  else if (e.key === 'Enter' && cursor >= 0 && visible[cursor]) { e.preventDefault(); window.open(visible[cursor].url, '_blank', 'noopener'); }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   12 · VIEW + THEME
+   ═══════════════════════════════════════════════════════════ */
+
+function setView(view) {
+  state.view = view;
+  localStorage.setItem('workshop.view', view);
+  for (const b of document.querySelectorAll('[data-view]')) {
+    if (b.tagName === 'BUTTON') b.setAttribute('aria-pressed', String(b.dataset.view === view));
+  }
+  render();
+}
+
+function setTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem('workshop.theme', theme);
+}
+
+function toggleTheme() {
+  setTheme(document.documentElement.dataset.theme === 'night' ? 'day' : 'night');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   13 · WIRING
+   ═══════════════════════════════════════════════════════════ */
+
+let searchTimer;
+els.search.addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { state.q = els.search.value; render(); }, 90);
+});
+
+els.clear.addEventListener('click', () => {
+  els.search.value = ''; state.q = ''; els.search.focus(); render();
+});
+
+els.searchToggle.addEventListener('click', () => {
+  const open = document.documentElement.dataset.search !== 'open';
+  setSearchOpen(open);
+  if (!open) els.search.blur();
+});
+
+els.sort.addEventListener('change', () => { state.sort = els.sort.value; render(); });
+
+els.filters.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-tag]');
+  if (!btn) return;
+  state.tag = btn.dataset.tag || null;
+  renderFilters();
+  render();
+});
+
+els.archiveBtn.addEventListener('click', () => {
+  state.archive = !state.archive;
+  syncArchive();
+  renderFilters();
+  render();
+});
+
+els.results.addEventListener('click', (e) => {
+  const copyBtn = e.target.closest('[data-copy]');
+  if (copyBtn) { e.preventDefault(); copy(copyBtn.dataset.copy, copyBtn); return; }
+
+  // Alat se otvara u vlastitoj kartici. Panel je ostao samo za starije
+  // verzije iz vremenske crte, kojima nema smisla trošiti karticu.
+});
+
+els.drawerCopy.addEventListener('click', () => copy(els.drawerCopy.dataset.copy, els.drawerCopy));
+
+for (const b of document.querySelectorAll('.segmented [data-view]')) {
+  b.addEventListener('click', () => setView(b.dataset.view));
+}
+els.themeBtn.addEventListener('click', toggleTheme);
+
+/* ── Jezik ── */
+
+els.langMenu.innerHTML = Object.entries(LANGS).map(([code, name]) =>
+  `<button type="button" role="menuitem" data-lang="${code}" aria-pressed="${code === lang}">${name}</button>`).join('');
+
+const closeLangMenu = () => { els.langMenu.hidden = true; els.langBtn.setAttribute('aria-expanded', 'false'); };
+
+els.langBtn.addEventListener('click', (event) => {
+  event.stopPropagation();
+  els.langMenu.hidden = !els.langMenu.hidden;
+  els.langBtn.setAttribute('aria-expanded', String(!els.langMenu.hidden));
+});
+
+els.langMenu.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-lang]');
+  if (!button) return;
+  setLang(button.dataset.lang);
+  closeLangMenu();
+});
+
+document.addEventListener('click', (event) => {
+  if (!event.target.closest('.lang-wrap')) closeLangMenu();
+});
+
+window.addEventListener('hashchange', () => {
+  readUrl();
+  renderFilters();
+  syncArchive();
+  render();
+});
+
+/* ═══════════════════════════════════════════════════════════
+   14 · BOOT
+   ═══════════════════════════════════════════════════════════ */
+
+function hydrate(data) {
+  index = data;
+  docs = prepare(data.items || []);
+
+  const words = docs.reduce((n, d) => n + d.words, 0);
+  const tags = new Set(docs.flatMap((d) => d.tags || []));
+  els.stDocs.textContent = docs.length;
+  els.stWords.textContent = words >= 1000 ? `${Math.round(words / 1000)}k` : words;
+  els.stTags.textContent = tags.size;
+  els.sysline.innerHTML = `<b>${docs.length}</b> ${t('toolsN')} · <b>${tags.size}</b>`;
+  els.stamp.textContent = `${t('rev')} · ${dfLong.format(new Date(data.generatedAt))}`;
+
+  syncArchive();
+  renderFilters();
+  render();
+}
+
+function boot() {
+  setTheme(localStorage.getItem('workshop.theme') || 'day');
+  applyLang();
+  drawGear(els.specGear, 400);
+  drawSchematic(els.bgSchematic);
+  setView(state.view);
+
+  if (!index) {
+    els.tally.textContent = 'Indeks nije generiran';
+    els.sysline.textContent = 'BEZ INDEKSA';
+    els.results.dataset.view = 'chart';
+    els.results.innerHTML = `<div class="notice">
+      <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h32v22H4Z"/><path d="M4 12 9 5h22l5 7M14 22h12"/></svg>
+      <h2>${t('noIndex')}</h2>
+      <p>${t('noIndexHint')}</p>
+    </div>`;
+    return;
+  }
+
+  readUrl();
+  // a query arriving via #q= must not be hidden behind the collapsed icon
+  document.documentElement.dataset.search = state.q.trim() ? 'open' : 'closed';
+  hydrate(index);
+
+  // dev live-reload
+  if (index.dev && location.protocol.startsWith('http')) {
+    const es = new EventSource('/__workshop_events');
+    es.addEventListener('index-updated', async () => {
+      try {
+        const res = await fetch(`search-index.json?t=${Date.now()}`);
+        hydrate(await res.json());
+        toast('Indeks osvježen');
+      } catch { /* keep the working index */ }
+    });
+  }
+}
+
+boot();
+})();
+</script>
+</body>
+</html>

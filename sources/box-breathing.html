@@ -1,0 +1,1654 @@
+<!doctype html>
+<html lang="hr" data-theme="svjetlo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Vođeno box disanje — kvadrat koji se obrubljuje, udah i izdah sa zvučnim signalom, odbrojavanje faza i tajmer seanse.">
+<meta name="date" content="2026-08-18">
+<meta name="keywords" content="Vrijeme, Vježbanje">
+<title>Box disanje — vođeni ritam 4-4-4-4</title>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   BOX DISANJE
+
+   Sve je smireno namjerno: meki tonovi, spori prijelazi, ništa
+   što trza. Jedina stvar koja se kreće je točka po kvadratu.
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --sans: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+  --num: "DIN Alternate", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  --r: 16px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+  --ctl: 44px;
+  --ease: cubic-bezier(.4, 0, .2, 1);
+}
+
+/* ── Svjetlo (zadano): papir i kadulja ── */
+html[data-theme="svjetlo"] {
+  --bg: #f4f6f2; --bg-2: #eaeee6; --panel: #ffffff; --panel-2: #f0f3ec;
+  --fg: #1e2620; --fg-2: #55625a; --fg-3: #8b968f;
+  --line: #dde3d9; --line-2: #c6d0c2;
+  --accent: #4e8c66;
+  --track: #dfe6da;
+  --inhale: #3f8f6b; --hold: #6a9c86; --exhale: #4a7fa0; --done: #b06a3f;
+  --on-accent: #ffffff;
+  --shadow: 0 18px 44px -28px rgba(30, 38, 32, .5);
+}
+
+/* ── Tamno: kasna večer ── */
+html[data-theme="tamno"] {
+  --bg: #121614; --bg-2: #181d1a; --panel: #1d2320; --panel-2: #252c28;
+  --fg: #e8eee9; --fg-2: #9daba3; --fg-3: #6d7a72;
+  --line: #29312d; --line-2: #3a443e;
+  --accent: #6fc196;
+  --track: #29312d;
+  --inhale: #6fc196; --hold: #86ae9d; --exhale: #7fb3d0; --done: #d9926a;
+  --on-accent: #10201a;
+  --shadow: 0 18px 44px -26px rgba(0, 0, 0, .7);
+}
+
+/* ── Zeleno: puna boja, najmirnije ── */
+html[data-theme="zeleno"] {
+  --bg: #17352a; --bg-2: #1d4033; --panel: #22493a; --panel-2: #2a5644;
+  --fg: #eaf5ef; --fg-2: #a9cbba; --fg-3: #7ba895;
+  --line: #2c5b48; --line-2: #3a6e58;
+  --accent: #8ad8ac;
+  --track: #2c5b48;
+  --inhale: #8ad8ac; --hold: #9fd0bd; --exhale: #8fc9dd; --done: #e0a87e;
+  --on-accent: #123026;
+  --shadow: 0 18px 44px -26px rgba(0, 0, 0, .45);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* Atribut `hidden` mora nadjačati svaki `display` iz ovih pravila —
+   inače se skriveni redak seanse i dalje crta. */
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
+body {
+  overflow: hidden;
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  transition: background .6s var(--ease), color .6s var(--ease);
+}
+
+button { font: inherit; color: inherit; cursor: pointer; }
+
+/* ═══ RASPORED ═════════════════════════════════════════════ */
+
+.app {
+  display: grid;
+  height: 100dvh;
+  padding: calc(var(--sp-4) + env(safe-area-inset-top)) var(--sp-4)
+           calc(var(--sp-6) + env(safe-area-inset-bottom));
+  gap: var(--sp-3);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* ── gornji red ── */
+
+.top { display: flex; gap: var(--sp-2); align-items: center; }
+.patterns { display: flex; flex: 1; gap: var(--sp-1); min-width: 0; }
+
+.pattern {
+  flex: 1;
+  min-width: 0;
+  height: var(--ctl);
+  padding: 0 var(--sp-1);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--panel);
+  font-size: .78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background .3s var(--ease), border-color .3s var(--ease), color .3s var(--ease);
+}
+
+.pattern[aria-pressed="true"] { border-color: var(--accent); color: var(--on-accent); background: var(--accent); }
+
+.icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: var(--ctl);
+  height: var(--ctl);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  color: var(--fg-2);
+  background: var(--panel);
+  place-items: center;
+}
+
+.icon svg { width: 19px; height: 19px; }
+
+/* ── kvadrat ── */
+
+.stage {
+  container-type: size;
+  display: grid;
+  min-height: 0;
+  place-items: center;
+}
+
+.box-wrap {
+  position: relative;
+  width: min(92cqw, 78cqh);
+  aspect-ratio: 1;
+}
+
+.box { display: block; width: 100%; height: 100%; overflow: visible; }
+
+.box-track { fill: none; stroke: var(--track); stroke-width: 2.4; stroke-linejoin: round; }
+
+.box-trace {
+  fill: none;
+  stroke: var(--phase, var(--accent));
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke .8s var(--ease);
+}
+
+.box-dot {
+  fill: var(--phase, var(--accent));
+  transition: fill .8s var(--ease);
+}
+
+/* Natpis i brojka stoje u sredini kvadrata. */
+.readout {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  gap: var(--sp-1);
+  align-content: center;
+  justify-items: center;
+  pointer-events: none;
+}
+
+.phase-name {
+  color: var(--fg-2);
+  font-size: clamp(.8rem, 4.5cqw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  transition: color .5s var(--ease);
+}
+
+.phase-count {
+  color: var(--phase, var(--accent));
+  font-family: var(--num);
+  font-size: clamp(2.4rem, 17cqw, 6rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  transition: color .8s var(--ease);
+}
+
+.cycles {
+  color: var(--fg-3);
+  font-size: clamp(.62rem, 2.6cqw, .78rem);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+/* ── donji red ── */
+
+.bottom { display: grid; gap: var(--sp-3); }
+
+/* Trajanje seanse se bira ovdje, dodirom — nije postavka nego odluka
+   koja se donosi pred samu vježbu. */
+.session {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: center;
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--panel);
+  text-align: left;
+}
+
+/* Sat u traci kontrola pokazuje je li seansa uopće postavljena. */
+#sessionBtn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
+.session-label { color: var(--fg-3); font-size: .62rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.session-time { font-family: var(--num); font-size: 1.1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.session-bar { display: block; flex: 1; height: 5px; border-radius: 99px; background: var(--track); overflow: hidden; }
+.session-bar i { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width .3s linear; }
+
+.controls { display: flex; gap: var(--sp-2); align-items: stretch; }
+
+.go {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  padding: var(--sp-4) var(--sp-3);
+  border: 0;
+  border-radius: var(--r);
+  color: var(--on-accent);
+  background: var(--accent);
+  font-size: 1.02rem;
+  font-weight: 700;
+  transition: background .4s var(--ease), transform .1s;
+}
+
+.go:active { transform: scale(.99); }
+.go svg { width: 22px; height: 22px; }
+
+.controls .icon { flex: 0 0 auto; width: 58px; height: auto; }
+
+/* ═══ POSTAVKE ═════════════════════════════════════════════ */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  padding: var(--sp-4);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  visibility: hidden;
+  opacity: 0;
+  place-items: center;
+  transition: opacity .3s var(--ease), visibility .3s;
+}
+
+.sheet.on { visibility: visible; opacity: 1; }
+
+.sheet-box {
+  width: min(440px, 100%);
+  max-height: calc(100dvh - var(--sp-6));
+  overflow-y: auto;
+  border: 1px solid var(--line-2);
+  border-radius: 20px;
+  background: var(--bg-2);
+  box-shadow: var(--shadow);
+}
+
+.sheet-head { display: flex; align-items: center; justify-content: space-between; padding: var(--sp-4) var(--sp-4) var(--sp-2); }
+.sheet-head h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+
+.field { padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--line); }
+.field-row { display: flex; gap: var(--sp-3); align-items: center; justify-content: space-between; }
+.field-row + .field-row { margin-top: var(--sp-3); }
+.field label { font-size: .9rem; }
+.field small { display: block; margin-top: 2px; color: var(--fg-3); font-size: .74rem; line-height: 1.4; }
+.field-title { margin: 0 0 var(--sp-3); font-size: .9rem; font-weight: 600; }
+
+.picks { display: grid; gap: var(--sp-2); grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); }
+
+/* ── bench za ugađanje tona (privremeno) ──────────────────── */
+
+/* Bench je jedini modal kojem treba širina — graf se puno bolje čita
+   razvučen, a kontrole onda stanu jedna uz drugu. */
+#labSheet .sheet-box { width: min(900px, 100%); }
+
+.lab-body { display: grid; grid-template-columns: 1fr; }
+.lab-body > .full { grid-column: 1 / -1; }
+
+@media (min-width: 720px) {
+  .lab-body { grid-template-columns: 1fr 1fr; }
+  .lab-body > .field:nth-of-type(odd):not(.full) { border-right: 1px solid var(--line); }
+}
+
+.lab-tabs { display: flex; gap: var(--sp-1); margin-bottom: var(--sp-3); }
+.lab-tabs .pick { flex: 1; }
+
+.lab-plot {
+  display: block;
+  width: 100%;
+  aspect-ratio: 5 / 3;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--panel);
+  touch-action: none;
+}
+
+.lab-grid { stroke: var(--line); stroke-width: .4; }
+.lab-curve { fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linecap: round; }
+.lab-fill { fill: var(--accent); opacity: .12; }
+.lab-handle { fill: var(--panel); stroke: var(--accent); stroke-width: 2; cursor: grab; }
+.lab-handle.mid { stroke-dasharray: 3 2; }
+.lab-axis { fill: var(--fg-3); font-family: var(--num); font-size: 4px; }
+
+/* Razvučen graf: na širokom ekranu niži i širi, da se vrijeme vidi
+   kao vrijeme. Mora doći nakon osnovnog pravila da ga nadjača. */
+@media (min-width: 720px) { .lab-plot { aspect-ratio: 16 / 5; } }
+
+.lab-legend { display: flex; justify-content: space-between; margin-top: var(--sp-2); color: var(--fg-3); font-size: .72rem; }
+.lab-legend b { color: var(--fg-2); font-family: var(--num); font-weight: 600; }
+
+.lab-line { display: grid; gap: var(--sp-2); align-items: center; grid-template-columns: 5.5em 1fr 4.4em; margin-top: var(--sp-2); }
+.lab-line > span:first-child { color: var(--fg-2); font-size: .78rem; }
+.lab-line .lab-val { color: var(--fg-3); font-family: var(--num); font-size: .82rem; text-align: right; }
+
+.lab-line input[type="range"] { width: 100%; height: 26px; margin: 0; background: none; appearance: none; cursor: pointer; }
+.lab-line input[type="range"]::-webkit-slider-runnable-track { height: 5px; border-radius: 99px; background: var(--track); }
+.lab-line input[type="range"]::-webkit-slider-thumb { width: 20px; height: 20px; margin-top: -7px; border: 0; border-radius: 50%; background: var(--accent); appearance: none; }
+.lab-line input[type="range"]::-moz-range-track { height: 5px; border-radius: 99px; background: var(--track); }
+.lab-line input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: var(--accent); }
+
+/* Sviranje mora biti nadohvat bez obzira dokle si doskrolao. */
+.lab-foot {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  border-top: 1px solid var(--line);
+  background: var(--bg-2);
+  grid-template-columns: 1fr auto auto auto;
+}
+
+.lab-foot .btn { width: auto; }
+.lab-foot .btn.play { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
+.lab-foot .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
+.lab-out {
+  width: 100%; min-height: 84px; margin: var(--sp-3) 0 0; padding: var(--sp-2);
+  border: 1px solid var(--line-2); border-radius: 10px;
+  color: var(--fg-2); background: var(--panel);
+  font-family: ui-monospace, Menlo, monospace; font-size: .7rem; line-height: 1.45;
+  resize: vertical;
+}
+
+
+.pick {
+  padding: var(--sp-2);
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--panel);
+  font-size: .76rem;
+  font-weight: 600;
+}
+
+.pick[aria-pressed="true"] { border-color: var(--accent); color: var(--on-accent); background: var(--accent); }
+
+.sw { position: relative; flex: 0 0 auto; width: 50px; height: 30px; padding: 0; border: 0; border-radius: 99px; background: var(--track); transition: background .3s; }
+.sw::after {
+  position: absolute; top: 3px; left: 3px; width: 24px; height: 24px;
+  border-radius: 50%; background: var(--fg-3); content: "";
+  transition: transform .3s var(--ease), background .3s;
+}
+.sw[aria-checked="true"] { background: color-mix(in srgb, var(--accent) 40%, transparent); }
+.sw[aria-checked="true"]::after { background: var(--accent); transform: translateX(20px); }
+
+.btn { width: 100%; padding: 12px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--panel); font-size: .86rem; font-weight: 600; }
+.btn:active { background: var(--panel-2); }
+.hint { margin: var(--sp-2) 0 0; color: var(--fg-3); font-size: .74rem; line-height: 1.5; }
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .app { grid-template-columns: minmax(0, 1fr) minmax(240px, 300px); grid-template-rows: auto minmax(0, 1fr); }
+  .top { grid-column: 1 / -1; }
+  .stage { grid-row: 2; }
+  .bottom { grid-row: 2; align-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+</style>
+</head>
+<body data-theme="svjetlo">
+
+<div class="app">
+
+  <div class="top">
+    <div class="patterns" id="patterns"></div>
+    <button class="icon" id="setupBtn" type="button" data-i18n-attr="aria-label:settings,title:settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+        <path id="gear" d=""/><circle cx="12" cy="12" r="3.3"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="stage">
+    <div class="box-wrap">
+      <svg class="box" viewBox="-4 -4 108 108" aria-hidden="true">
+        <path class="box-track" d="M10 90 L10 10 L90 10 L90 90 Z"/>
+        <path class="box-trace" id="trace" d="M10 90 L10 10 L90 10 L90 90 L10 90"
+              stroke-dasharray="320" stroke-dashoffset="320"/>
+        <circle class="box-dot" id="dot" cx="10" cy="90" r="4.6"/>
+      </svg>
+      <div class="readout">
+        <div class="phase-name" id="phaseName">Spremno</div>
+        <div class="phase-count" id="phaseCount">4</div>
+        <div class="cycles" id="cycles">0 krugova</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="session" id="sessionRow" hidden>
+      <span class="session-label" id="sessionLabel">Seansa</span>
+      <span class="session-bar"><i id="sessionFill" style="width:0%"></i></span>
+      <span class="session-time" id="sessionTime">0:00</span>
+    </div>
+
+    <div class="controls">
+      <button class="go" id="go" type="button">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path id="goIcon" d="M8 5v14l11-7z"/></svg>
+        <span id="goLabel">Kreni</span>
+      </button>
+      <button class="icon" id="sessionBtn" type="button" data-i18n-attr="aria-label:session,title:session">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 2.1"/>
+        </svg>
+      </button>
+      <button class="icon" id="labBtn" type="button" aria-label="Ugađanje tona" title="Ugađanje tona">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9v6h3.5L13 19V5L7.5 9Z"/><path d="M17 9.5a4 4 0 0 1 0 5"/><path d="M19.5 7a7.5 7.5 0 0 1 0 10"/>
+        </svg>
+      </button>
+      <button class="reset icon" id="resetBtn" type="button" data-i18n-attr="aria-label:reset,title:reset">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20.4 4.2v4.6h-4.6"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SEANSA ═════════════════════════════════════════════ -->
+<div class="sheet" id="sessionSheet" role="dialog" aria-modal="true" data-i18n-attr="aria-label:session" aria-hidden="true">
+  <div class="sheet-box">
+    <div class="sheet-head">
+      <h2 data-i18n="session">Trajanje seanse</h2>
+      <button class="icon" id="sessionSheetClose" type="button" data-i18n-attr="aria-label:close">✕</button>
+    </div>
+    <div class="field">
+      <div class="picks" id="sessionPick"></div>
+      <p class="hint" data-i18n="sessionHint">Bez kraja: vježbaš dok sam ne staneš, bez trake napretka.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BENCH ZA UGAĐANJE TONA (privremeno) ════════════════ -->
+<div class="sheet" id="labSheet" role="dialog" aria-modal="true" aria-label="Ugađanje tona" aria-hidden="true">
+  <div class="sheet-box">
+    <div class="sheet-head">
+      <h2>Ugađanje tona</h2>
+      <button class="icon" id="labClose" type="button" data-i18n-attr="aria-label:close">✕</button>
+    </div>
+
+    <div class="lab-body">
+      <div class="field full">
+        <p class="field-title">Polazište</p>
+        <div class="picks" id="labPresets"></div>
+      </div>
+
+      <div class="field full">
+        <div class="lab-tabs" id="labTabs"></div>
+        <svg class="lab-plot" id="labPlot" viewBox="0 0 100 60"></svg>
+        <div class="lab-legend">
+          <span>Početak <b id="labA">—</b></span>
+          <span>Zavoj <b id="labBend">—</b></span>
+          <span>Kraj <b id="labB">—</b></span>
+        </div>
+      </div>
+
+      <div class="field">
+        <p class="field-title">Val</p>
+        <div class="picks" id="labWave"></div>
+        <div class="lab-line"><span>Trajanje</span><input id="labDur" type="range" min="0.2" max="20" step="0.1"><span class="lab-val" id="labDurV"></span></div>
+      </div>
+
+      <div class="field">
+        <p class="field-title">Filtar</p>
+        <div class="picks" id="labFilter"></div>
+        <div class="lab-line"><span>Q</span><input id="labQ" type="range" min="0.1" max="20" step="0.1"><span class="lab-val" id="labQV"></span></div>
+        <p class="hint">Krivulja filtra se ugađa u kartici „Filtar" gore.</p>
+      </div>
+
+      <div class="field full">
+        <textarea class="lab-out" id="labOut" readonly spellcheck="false"></textarea>
+        <p class="hint">Privremeno, za ugađanje. Pošalji mi sadržaj ovog polja.</p>
+      </div>
+    </div>
+
+    <div class="lab-foot">
+      <button class="btn play" id="labPlayBtn" type="button">▶ Sviraj</button>
+      <button class="btn" id="labAuto" type="button" aria-pressed="false" title="Sviraj pri svakoj promjeni">Auto</button>
+      <button class="btn" id="labSwap" type="button">⇄ Obrni</button>
+      <button class="btn" id="labCopy" type="button">Kopiraj</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ POSTAVKE ═══════════════════════════════════════════ -->
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" data-i18n-attr="aria-label:settings" aria-hidden="true">
+  <div class="sheet-box">
+
+    <div class="sheet-head">
+      <h2 data-i18n="settings">Postavke</h2>
+      <button class="icon" id="sheetClose" type="button" data-i18n-attr="aria-label:close">✕</button>
+    </div>
+
+    <div class="field">
+      <p class="field-title" data-i18n="voice">Zvuk</p>
+      <div class="picks" id="voicePick"></div>
+    </div>
+
+    <div class="field">
+      <p class="field-title" data-i18n="theme">Tema</p>
+      <div class="picks" id="themePick"></div>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <label><span data-i18n="sound">Zvučni signal</span>
+          <small data-i18n="soundHint">Uzlazni ton na udah, silazni na izdah.</small>
+        </label>
+        <button class="sw" id="soundSw" type="button" role="switch" aria-checked="true"></button>
+      </div>
+      <div class="field-row">
+        <label><span data-i18n="vibrate">Vibracija</span>
+          <small data-i18n="vibrateHint">Kratki dodir na svaku promjenu faze.</small>
+        </label>
+        <button class="sw" id="vibrateSw" type="button" role="switch" aria-checked="true"></button>
+      </div>
+      <div class="field-row">
+        <label><span data-i18n="countdown">Odbrojavanje sekundi</span>
+          <small data-i18n="countdownHint">Brojka u sredini kvadrata.</small>
+        </label>
+        <button class="sw" id="countSw" type="button" role="switch" aria-checked="true"></button>
+      </div>
+      <div class="field-row">
+        <label><span data-i18n="keepAwake">Drži ekran upaljen</span></label>
+        <button class="sw" id="awakeSw" type="button" role="switch" aria-checked="true"></button>
+      </div>
+      <button class="btn" id="testSound" type="button" style="margin-top:12px" data-i18n="testSound">Provjeri zvuk</button>
+      <p class="hint" data-i18n="audioHint">Na mobitelu se zvuk otključava tek prvim dodirom — pritisni ovo jednom prije početka.</p>
+    </div>
+
+    <div class="field">
+      <p class="field-title" data-i18n="language">Jezik</p>
+      <div class="picks" id="langPick"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+const $ = (id) => document.getElementById(id);
+const els = {
+  root: document.documentElement, body: document.body,
+  patterns: $('patterns'), trace: $('trace'), dot: $('dot'),
+  phaseName: $('phaseName'), phaseCount: $('phaseCount'), cycles: $('cycles'),
+  sessionLabel: $('sessionLabel'), sessionFill: $('sessionFill'), sessionTime: $('sessionTime'),
+  go: $('go'), goIcon: $('goIcon'), goLabel: $('goLabel'), resetBtn: $('resetBtn'),
+  setupBtn: $('setupBtn'), sheet: $('sheet'), sheetClose: $('sheetClose'),
+  sessionBtn: $('sessionBtn'), sessionRow: $('sessionRow'),
+  sessionSheet: $('sessionSheet'), sessionSheetClose: $('sessionSheetClose'), sessionPick: $('sessionPick'),
+  voicePick: $('voicePick'),
+  themePick: $('themePick'), langPick: $('langPick'),
+  soundSw: $('soundSw'), vibrateSw: $('vibrateSw'), countSw: $('countSw'), awakeSw: $('awakeSw'),
+  testSound: $('testSound'), gear: $('gear')
+};
+
+/* ═══════════════════════════════════════════════════════════
+   1 · Postavke
+   ═══════════════════════════════════════════════════════════ */
+
+const STORE = 'workshop.box';
+const DEFAULTS = {
+  phases: [4, 4, 4, 4], session: 0, theme: 'svjetlo', lang: null, voice: 'dah',
+  sound: true, vibrate: true, countdown: true, keepAwake: true
+};
+
+let cfg = { ...DEFAULTS };
+try { cfg = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORE) || '{}') }; } catch { /* prvi put */ }
+if (!Array.isArray(cfg.phases) || cfg.phases.length !== 4) cfg.phases = [...DEFAULTS.phases];
+
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(cfg)); } catch { /* privatni način */ } };
+
+/* ═══════════════════════════════════════════════════════════
+   2 · Jezici
+   ═══════════════════════════════════════════════════════════ */
+
+const LANGS = { hr: 'Hrvatski', en: 'English', de: 'Deutsch' };
+
+const STRINGS = {
+  hr: {
+    title: 'Box disanje — vođeni ritam 4-4-4-4',
+    ready: 'Spremno', inhale: 'Udah', hold: 'Zadrži', exhale: 'Izdah', done: 'Gotovo',
+    start: 'Kreni', pause: 'Pauza', resume: 'Nastavi', reset: 'Vrati na početak',
+    cycles1: 'krug', cycles2: 'kruga', cyclesN: 'krugova',
+    session: 'Trajanje seanse',
+    voice: 'Zvuk', voice_gong: 'Gong', voice_zdjela: 'Zdjela', voice_sinus: 'Sinus', voice_zvono: 'Zvono', voice_dah: 'Dah', voice_meki: 'Meki', voice_val: 'Val',
+    sessionHint: 'Bez kraja: vježbaš dok sam ne staneš, bez trake napretka.', sessionShort: 'Seansa', unlimited: 'Bez kraja',
+    settings: 'Postavke', close: 'Zatvori', theme: 'Tema', language: 'Jezik',
+    themeLight: 'Svjetlo', themeDark: 'Tamno', themeGreen: 'Zeleno',
+    sound: 'Zvučni signal', soundHint: 'Uzlazni ton na udah, silazni na izdah.',
+    vibrate: 'Vibracija', vibrateHint: 'Kratki dodir na svaku promjenu faze.',
+    countdown: 'Odbrojavanje sekundi', countdownHint: 'Brojka u sredini kvadrata.',
+    keepAwake: 'Drži ekran upaljen', testSound: 'Provjeri zvuk',
+    audioHint: 'Na mobitelu se zvuk otključava tek prvim dodirom — pritisni ovo jednom prije početka.'
+  },
+  en: {
+    title: 'Box breathing — guided 4-4-4-4 rhythm',
+    ready: 'Ready', inhale: 'Inhale', hold: 'Hold', exhale: 'Exhale', done: 'Done',
+    start: 'Start', pause: 'Pause', resume: 'Resume', reset: 'Back to the start',
+    cycles1: 'cycle', cycles2: 'cycles', cyclesN: 'cycles',
+    session: 'Session length',
+    voice: 'Sound', voice_gong: 'Gong', voice_zdjela: 'Bowl', voice_sinus: 'Sine', voice_zvono: 'Bell', voice_dah: 'Breath', voice_meki: 'Soft', voice_val: 'Wave',
+    sessionHint: 'No end: you breathe until you stop, with no progress bar.', sessionShort: 'Session', unlimited: 'No end',
+    settings: 'Settings', close: 'Close', theme: 'Theme', language: 'Language',
+    themeLight: 'Light', themeDark: 'Dark', themeGreen: 'Green',
+    sound: 'Sound', soundHint: 'A rising tone on the inhale, a falling one on the exhale.',
+    vibrate: 'Vibration', vibrateHint: 'A short buzz on every phase change.',
+    countdown: 'Second countdown', countdownHint: 'The number inside the square.',
+    keepAwake: 'Keep the screen on', testSound: 'Test the sound',
+    audioHint: 'On a phone the sound unlocks only on the first tap — press this once before you begin.'
+  },
+  de: {
+    title: 'Box-Atmung — geführter 4-4-4-4-Rhythmus',
+    ready: 'Bereit', inhale: 'Einatmen', hold: 'Halten', exhale: 'Ausatmen', done: 'Fertig',
+    start: 'Start', pause: 'Pause', resume: 'Weiter', reset: 'Zurück zum Anfang',
+    cycles1: 'Runde', cycles2: 'Runden', cyclesN: 'Runden',
+    session: 'Dauer der Einheit',
+    voice: 'Klang', voice_gong: 'Gong', voice_zdjela: 'Klangschale', voice_sinus: 'Sinus', voice_zvono: 'Glocke', voice_dah: 'Atem', voice_meki: 'Weich', voice_val: 'Welle',
+    sessionHint: 'Ohne Ende: du atmest, bis du selbst aufhörst, ohne Fortschrittsbalken.', sessionShort: 'Einheit', unlimited: 'Ohne Ende',
+    settings: 'Einstellungen', close: 'Schließen', theme: 'Design', language: 'Sprache',
+    themeLight: 'Hell', themeDark: 'Dunkel', themeGreen: 'Grün',
+    sound: 'Ton', soundHint: 'Ein steigender Ton beim Einatmen, ein fallender beim Ausatmen.',
+    vibrate: 'Vibration', vibrateHint: 'Ein kurzer Impuls bei jedem Phasenwechsel.',
+    countdown: 'Sekunden zählen', countdownHint: 'Die Zahl in der Mitte des Quadrats.',
+    keepAwake: 'Bildschirm anlassen', testSound: 'Ton prüfen',
+    audioHint: 'Am Handy wird der Ton erst mit der ersten Berührung freigegeben — drücke das einmal vor dem Beginn.'
+  }
+};
+
+function detectLang() {
+  for (const tag of navigator.languages || [navigator.language || '']) {
+    const code = String(tag).slice(0, 2).toLowerCase();
+    if (LANGS[code]) return code;
+  }
+  return 'en';
+}
+
+const t = (key) => (STRINGS[cfg.lang] || STRINGS.en)[key] ?? STRINGS.en[key] ?? key;
+
+function applyLang() {
+  els.root.lang = cfg.lang;
+  document.title = t('title');
+  for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n);
+  for (const el of document.querySelectorAll('[data-i18n-attr]')) {
+    for (const pair of el.dataset.i18nAttr.split(',')) {
+      const [attr, key] = pair.split(':');
+      el.setAttribute(attr, t(key));
+    }
+  }
+  els.sessionLabel.textContent = t('sessionShort');
+  els.sessionBtn.title = t('session');
+  renderPatterns();
+  renderPicks();
+  paint();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   3 · Zvuk
+
+   Ton klizi gore na udahu i dolje na izdahu — visina prati smjer
+   daha, pa se ritam može držati i zatvorenih očiju. Zadržavanje
+   dobiva jedan tih, ravan ton.
+   ═══════════════════════════════════════════════════════════ */
+
+let audio = null;
+
+function wakeAudio() {
+  if (!audio) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    audio = new Ctx();
+  }
+  if (audio.state === 'suspended') audio.resume();
+  return audio;
+}
+
+/**
+ * Klizni ton koji traje točno koliko i faza.
+ *
+ * Na udahu glasnoća raste od tišine do vrhunca na kraju, na izdahu
+ * pada obrnuto — ton tako sam vodi dah, a ne samo najavljuje promjenu.
+ * Zadržavanje dobiva kratak, tih i ravan ton.
+ */
+/**
+ * Glasovi.
+ *
+ * Svaki je opisan putanjom od početka do kraja: `gain` je glasnoća,
+ * `freq` je visina tona ili, kod šuma, granica filtra. Udah svira
+ * putanju naprijed, izdah unatrag — isti materijal, obrnut smjer.
+ *
+ * Vrijednosti za „dah" došle su iz bencha za ugađanje.
+ */
+const VOICES = ['gong', 'zdjela', 'dah', 'meki', 'sinus', 'zvono', 'val'];
+
+/**
+ * Udareni glasovi.
+ *
+ * Gong nije naraslica nego udarac koji odzvanja, pa se ne gradi od
+ * jednog izvora s ovojnicom, nego od više parcijala odjednom. Ključno
+ * je da odnosi među njima **nisu** cijeli brojevi — kod harmoničnog
+ * niza uho čuje orgulje, a tek neharmoničan daje metal. Viši parcijali
+ * se gase brže, zbog čega udarac s vremenom potamni.
+ */
+const STRUCK = {
+  gong: {
+    partials: [
+      { ratio: 1,    gain: 1,    decay: 1    },
+      { ratio: 1.52, gain: 0.55, decay: 0.72 },
+      { ratio: 2.13, gain: 0.38, decay: 0.55 },
+      { ratio: 2.85, gain: 0.26, decay: 0.42 },
+      { ratio: 3.46, gain: 0.18, decay: 0.32 },
+      { ratio: 4.36, gain: 0.12, decay: 0.24 }
+    ],
+    tail: 11, detune: 4, peak: 0.16
+  },
+  zdjela: {
+    partials: [
+      { ratio: 1,    gain: 1,    decay: 1    },
+      { ratio: 2.02, gain: 0.5,  decay: 0.78 },
+      { ratio: 3.01, gain: 0.28, decay: 0.6  },
+      { ratio: 4.07, gain: 0.16, decay: 0.45 },
+      { ratio: 5.12, gain: 0.09, decay: 0.32 }
+    ],
+    tail: 15, detune: 2, peak: 0.14
+  }
+};
+
+const VOICE_SPECS = {
+  dah:   { wave: 'noise',    filter: 'lowpass', q: 2.3, gain: [0.0102, 0.0973], freq: [550, 1413] },
+  meki:  { wave: 'pink',     filter: 'lowpass', q: 1.1, gain: [0.03, 0.22],     freq: [420, 1250] },
+  // Udareni: `freq` je osnovna visina udaha odnosno izdaha — izdah niže,
+  // pa se smjer daha čuje i bez klizanja.
+  gong:   { struck: 'gong',   freq: [147, 110] },
+  zdjela: { struck: 'zdjela', freq: [294, 220] },
+  sinus: { wave: 'sine',     filter: 'off',     q: 1,   gain: [0.04, 0.13],     freq: [220, 330] },
+  zvono: { wave: 'triangle', filter: 'off',     q: 1,   gain: [0.04, 0.12],     freq: [220, 330] },
+  val:   { wave: 'sine',     filter: 'off',     q: 1,   gain: [0.04, 0.13],     freq: [275, 275] }
+};
+
+let tone = null;
+const noiseCache = {};
+
+/**
+ * Šum, napravljen jednom po vrsti i posuđivan.
+ *
+ * Bijeli ima jednaku snagu na svim frekvencijama pa siče; ružičasti
+ * pada 3 dB po oktavi, što je raspodjela kakvu imaju vjetar, more i
+ * dah. Za disanje je gotovo uvijek ružičasti bliži cilju.
+ */
+function noiseBuffer(ctx, kind = 'white') {
+  if (noiseCache[kind]) return noiseCache[kind];
+  const frames = ctx.sampleRate * 2;
+  const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  if (kind === 'pink') {
+    // Paul Kellet, filtar u nizu — jeftina i dovoljno vjerna ružičasta.
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+    for (let i = 0; i < frames; i++) {
+      const w = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + w * 0.0555179;
+      b1 = 0.99332 * b1 + w * 0.0750759;
+      b2 = 0.96900 * b2 + w * 0.1538520;
+      b3 = 0.86650 * b3 + w * 0.3104856;
+      b4 = 0.55000 * b4 + w * 0.5329522;
+      b5 = -0.7616 * b5 - w * 0.0168980;
+      data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+      b6 = w * 0.115926;
+    }
+  } else {
+    for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
+  }
+
+  noiseCache[kind] = buffer;
+  return buffer;
+}
+
+function stopTone() {
+  if (!tone) return;
+  const source = tone;
+  tone = null;
+  try { source.stop(); } catch { /* već gotov */ }
+}
+
+/* Udarci se ne prekidaju sljedećom fazom — gong koji se presiječe na
+   promjeni zvuči prekratko, a u stvarnosti odzvanja preko nje. Gase se
+   samo na pauzu, reset i kraj. */
+let strikes = [];
+
+function stopStrikes() {
+  for (const strike of strikes) strike();
+  strikes = [];
+}
+
+const stopAll = () => { stopTone(); stopStrikes(); };
+
+/**
+ * Odsvira glas kroz zadano trajanje.
+ *
+ * `reverse` obrće i glasnoću i putanju filtra — izdah je udah unatrag.
+ * `level` skalira glasnoću, za tiho zadržavanje.
+ */
+/**
+ * Jedan udarac: svi parcijali krenu zajedno i gase se svaki svojim
+ * tempom. Kratak napad je ono što ga čini udarcem, a ne puhanjem.
+ */
+function playStruck(name, freq, seconds, level) {
+  const ctx = wakeAudio();
+  if (!ctx) return;
+  const kit = STRUCK[name];
+  const at = ctx.currentTime;
+  // Rep je svojstvo instrumenta, ne faze — ne skraćuje se na njezinu duljinu.
+  const tail = kit.tail;
+  const nodes = [];
+
+  for (const [index, partial] of kit.partials.entries()) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    // Blagi razmak od čiste visine daje treperenje pravog metala.
+    osc.frequency.setValueAtTime(freq * partial.ratio, at);
+    osc.detune.setValueAtTime((index % 2 ? 1 : -1) * kit.detune * index, at);
+
+    const peak = Math.max(0.0002, kit.peak * partial.gain * level);
+    const life = Math.max(0.25, tail * partial.decay);
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.linearRampToValueAtTime(peak, at + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + life);
+
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(at);
+    osc.stop(at + life + 0.05);
+    nodes.push(osc);
+  }
+
+  // Sve parcijale gasi jedan potez, ali tek kad se to izrijekom zatraži.
+  const kill = () => { for (const osc of nodes) { try { osc.stop(); } catch { /* gotov */ } } };
+  strikes.push(kill);
+  nodes[0].addEventListener('ended', () => { strikes = strikes.filter((item) => item !== kill); });
+}
+
+function playVoice(seconds, reverse, level = 1) {
+  const ctx = wakeAudio();
+  if (!ctx || seconds <= 0) return;
+  stopTone();
+
+  const spec = VOICE_SPECS[cfg.voice] || VOICE_SPECS.dah;
+
+  if (spec.struck) {
+    // Prethodni udarac se pušta da odzvoni; presijeca ga samo novi na
+    // istoj visini, da se isti ton ne gomila preko sebe.
+    playStruck(spec.struck, reverse ? spec.freq[1] : spec.freq[0], seconds, level);
+    return;
+  }
+
+  const at = ctx.currentTime;
+  const [g0, g1] = reverse ? [spec.gain[1], spec.gain[0]] : spec.gain;
+  const [f0, f1] = reverse ? [spec.freq[1], spec.freq[0]] : spec.freq;
+
+  let source;
+  let out;
+  if (spec.wave === 'noise' || spec.wave === 'pink') {
+    source = ctx.createBufferSource();
+    source.buffer = noiseBuffer(ctx, spec.wave === 'pink' ? 'pink' : 'white');
+    source.loop = true;
+    out = source;
+  } else {
+    const osc = ctx.createOscillator();
+    osc.type = spec.wave;
+    osc.frequency.setValueAtTime(f0, at);
+    if (f1 !== f0) osc.frequency.linearRampToValueAtTime(f1, at + seconds);
+    source = osc;
+    out = osc;
+  }
+
+  if (spec.filter !== 'off') {
+    const filter = ctx.createBiquadFilter();
+    filter.type = spec.filter;
+    filter.Q.value = spec.q;
+    filter.frequency.setValueAtTime(f0, at);
+    if (f1 !== f0) filter.frequency.linearRampToValueAtTime(f1, at + seconds);
+    out.connect(filter);
+    out = filter;
+  }
+
+  // Kratki rubovi da ton ne pukne na početku i kraju.
+  const edge = Math.min(0.09, seconds * 0.06);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.linearRampToValueAtTime(g0 * level, at + edge);
+  gain.gain.linearRampToValueAtTime(g1 * level, at + Math.max(edge, seconds - edge));
+  gain.gain.linearRampToValueAtTime(0.0001, at + seconds);
+
+  out.connect(gain).connect(ctx.destination);
+  source.start(at);
+  source.stop(at + seconds + 0.05);
+  tone = source;
+}
+
+/** Udah ide naprijed, izdah unatrag, zadržavanje kratko i tiho. */
+function phaseSound(index, seconds) {
+  if (index === 0) playVoice(seconds, false);
+  else if (index === 2) playVoice(seconds, true);
+  else playVoice(Math.min(0.3, seconds), false, 0.45);
+}
+
+const endSound = () => {
+  stopTone();
+  playVoice(1.4, false, 1.2);
+};
+
+// Zatvaranje modala i kraj seanse ne smiju ostaviti gong da visi.
+window.addEventListener('pagehide', stopAll);
+
+/* ═══════════════════════════════════════════════════════════
+   4 · Obrasci i seansa
+   ═══════════════════════════════════════════════════════════ */
+
+const PATTERNS = [
+  { id: 'box4', phases: [4, 4, 4, 4], label: '4·4·4·4' },
+  { id: 'box5', phases: [5, 5, 5, 5], label: '5·5·5·5' },
+  { id: 'box6', phases: [6, 6, 6, 6], label: '6·6·6·6' },
+  { id: 'relax', phases: [4, 7, 8, 0], label: '4·7·8' }
+];
+
+// Redom kojim ih gumb obilazi: bez kraja pa sve dulje seanse.
+const SESSIONS = [0, 60, 120, 180, 300];
+
+const samePhases = (a, b) => a.every((n, i) => n === b[i]);
+
+function renderPatterns() {
+  els.patterns.innerHTML = PATTERNS.map((p) =>
+    `<button class="pattern" type="button" data-pattern="${p.id}" aria-pressed="${samePhases(p.phases, cfg.phases)}">${p.label}</button>`
+  ).join('');
+}
+
+function renderPicks() {
+  els.sessionPick.innerHTML = SESSIONS.map((secs) =>
+    `<button class="pick" type="button" data-session="${secs}" aria-pressed="${secs === cfg.session}">${secs ? `${secs / 60} min` : t('unlimited')}</button>`
+  ).join('');
+
+  els.voicePick.innerHTML = VOICES.map((id) =>
+    `<button class="pick" type="button" data-voice="${id}" aria-pressed="${id === cfg.voice}">${t('voice_' + id)}</button>`
+  ).join('');
+
+  els.themePick.innerHTML = [['svjetlo', 'themeLight'], ['tamno', 'themeDark'], ['zeleno', 'themeGreen']].map(([id, key]) =>
+    `<button class="pick" type="button" data-theme="${id}" aria-pressed="${id === cfg.theme}">${t(key)}</button>`
+  ).join('');
+
+  els.langPick.innerHTML = Object.entries(LANGS).map(([code, name]) =>
+    `<button class="pick" type="button" data-lang="${code}" aria-pressed="${code === cfg.lang}">${name}</button>`
+  ).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   5 · Vođenje
+
+   Točka putuje po kvadratu, jedna stranica po fazi, i to od dna
+   prema vrhu na udahu — smjer kretanja tako prati smjer daha.
+   Vrijeme se čita iz sata; `requestAnimationFrame` samo crta.
+   ═══════════════════════════════════════════════════════════ */
+
+const SIDE = 80;                    // duljina stranice u koordinatama SVG-a
+const PERIMETER = SIDE * 4;
+
+// Redom: udah (lijevo, gore), zadrži (vrh, desno), izdah (desno, dolje), zadrži (dno, lijevo).
+const CORNERS = [[10, 90], [10, 10], [90, 10], [90, 90], [10, 90]];
+const PHASE_COLOR = ['var(--inhale)', 'var(--hold)', 'var(--exhale)', 'var(--hold)'];
+const PHASE_KEY = ['inhale', 'hold', 'exhale', 'hold'];
+
+let running = false;
+let phase = 0;
+let phaseStart = 0;                 // trenutak početka faze, ms
+let sessionElapsed = 0;             // sekunde odrađene seanse
+let sessionStart = 0;
+let cycles = 0;
+let frame = 0;
+let phaseTimer = 0;
+
+const phaseLength = (index) => Math.max(0, Number(cfg.phases[index]) || 0);
+
+/** Prva sljedeća faza koja uopće traje — preskače zadržavanja od 0. */
+function nextPhase(from) {
+  for (let step = 1; step <= 4; step++) {
+    const index = (from + step) % 4;
+    if (phaseLength(index) > 0) return index;
+  }
+  return from;
+}
+
+function dotAt(index, progress) {
+  const [x0, y0] = CORNERS[index];
+  const [x1, y1] = CORNERS[index + 1];
+  return [x0 + (x1 - x0) * progress, y0 + (y1 - y0) * progress];
+}
+
+function paint() {
+  const length = phaseLength(phase);
+  const progress = running && length > 0 ? Math.min(1, (Date.now() - phaseStart) / (length * 1000)) : 0;
+
+  els.root.style.setProperty('--phase', running ? PHASE_COLOR[phase] : 'var(--accent)');
+  els.phaseName.textContent = running ? t(PHASE_KEY[phase]) : (sessionDone() ? t('done') : t('ready'));
+
+  const left = Math.max(0, Math.ceil(length - (Date.now() - phaseStart) / 1000));
+  els.phaseCount.textContent = cfg.countdown ? (running ? left : length) : '';
+  els.phaseCount.style.visibility = cfg.countdown ? 'visible' : 'hidden';
+
+  const done = (phase + progress) * SIDE;
+  els.trace.setAttribute('stroke-dashoffset', String(PERIMETER - done));
+  const [x, y] = dotAt(phase, progress);
+  els.dot.setAttribute('cx', x.toFixed(2));
+  els.dot.setAttribute('cy', y.toFixed(2));
+
+  const plural = cycles === 1 ? 'cycles1' : (cycles >= 2 && cycles <= 4 ? 'cycles2' : 'cyclesN');
+  els.cycles.textContent = `${cycles} ${t(plural)}`;
+
+  // Traka napretka postoji samo kad seansa ima kraj — inače nema što mjeriti.
+  const spent = sessionElapsed + (running ? (Date.now() - sessionStart) / 1000 : 0);
+  els.sessionRow.hidden = !cfg.session;
+  els.sessionBtn.setAttribute('aria-pressed', String(Boolean(cfg.session)));
+  if (cfg.session) {
+    els.sessionTime.textContent = clock(Math.max(0, cfg.session - spent));
+    els.sessionFill.style.width = `${Math.min(100, (spent / cfg.session) * 100)}%`;
+  }
+
+  // Nakon odrađene seanse gumb kreće ispočetka, pa i piše tako.
+  els.goLabel.textContent = t(running ? 'pause' : (spent > 0 && !sessionDone() ? 'resume' : 'start'));
+  els.goIcon.setAttribute('d', running ? 'M7 5h3.5v14H7zM13.5 5H17v14h-3.5z' : 'M8 5v14l11-7z');
+}
+
+function clock(seconds) {
+  const s = Math.max(0, Math.round(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+const sessionDone = () => Boolean(cfg.session) && sessionElapsed >= cfg.session;
+
+function enterPhase(index) {
+  phase = index;
+  phaseStart = Date.now();
+  if (index === 0) cycles += 1;
+  if (cfg.sound) phaseSound(index, phaseLength(index));
+  if (cfg.vibrate && navigator.vibrate) navigator.vibrate(index % 2 === 0 ? 40 : 18);
+  clearTimeout(phaseTimer);
+  phaseTimer = window.setTimeout(advance, phaseLength(index) * 1000);
+}
+
+function advance() {
+  if (!running) return;
+  const spent = sessionElapsed + (Date.now() - sessionStart) / 1000;
+  if (cfg.session && spent >= cfg.session) { finish(); return; }
+  enterPhase(nextPhase(phase));
+}
+
+function tick() {
+  if (!running) return;
+  paint();
+  frame = requestAnimationFrame(tick);
+}
+
+function start() {
+  wakeAudio();
+  if (sessionDone()) reset();
+  running = true;
+  sessionStart = Date.now();
+  requestWakeLock();
+  enterPhase(phaseLength(phase) > 0 ? phase : nextPhase(phase));
+  if (cycles === 0) cycles = 1;
+  paint();
+  frame = requestAnimationFrame(tick);
+}
+
+function pause() {
+  running = false;
+  cancelAnimationFrame(frame);
+  clearTimeout(phaseTimer);
+  stopAll();
+  sessionElapsed += (Date.now() - sessionStart) / 1000;
+  releaseWakeLock();
+  paint();
+}
+
+function finish() {
+  running = false;
+  cancelAnimationFrame(frame);
+  clearTimeout(phaseTimer);
+  sessionElapsed = cfg.session || sessionElapsed;
+  releaseWakeLock();
+  if (cfg.sound) endSound();
+  if (cfg.vibrate && navigator.vibrate) navigator.vibrate([120, 80, 120]);
+  paint();
+}
+
+function reset() {
+  running = false;
+  cancelAnimationFrame(frame);
+  clearTimeout(phaseTimer);
+  stopAll();
+  phase = 0;
+  cycles = 0;
+  sessionElapsed = 0;
+  phaseStart = Date.now();
+  releaseWakeLock();
+  paint();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   6 · Ekran ostaje upaljen
+   ═══════════════════════════════════════════════════════════ */
+
+let lock = null;
+
+async function requestWakeLock() {
+  if (!cfg.keepAwake || !navigator.wakeLock || lock) return;
+  try { lock = await navigator.wakeLock.request('screen'); } catch { /* nema podrške */ }
+}
+
+function releaseWakeLock() {
+  if (lock) { lock.release().catch(() => {}); lock = null; }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !running) return;
+  requestWakeLock();
+  paint();
+  cancelAnimationFrame(frame);
+  frame = requestAnimationFrame(tick);
+});
+
+/* ═══════════════════════════════════════════════════════════
+   7 · Veze sučelja
+   ═══════════════════════════════════════════════════════════ */
+
+els.go.addEventListener('click', () => (running ? pause() : start()));
+els.resetBtn.addEventListener('click', reset);
+
+const openSession = () => { els.sessionSheet.classList.add('on'); els.sessionSheet.setAttribute('aria-hidden', 'false'); };
+const closeSession = () => { els.sessionSheet.classList.remove('on'); els.sessionSheet.setAttribute('aria-hidden', 'true'); };
+
+els.sessionBtn.addEventListener('click', openSession);
+els.sessionSheetClose.addEventListener('click', closeSession);
+els.sessionSheet.addEventListener('click', (event) => { if (event.target === els.sessionSheet) closeSession(); });
+
+els.sessionPick.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-session]');
+  if (!button) return;
+  cfg.session = Number(button.dataset.session);
+  save();
+  renderPicks();
+  reset();
+  closeSession();
+});
+
+els.voicePick.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-voice]');
+  if (!button) return;
+  cfg.voice = VOICES.includes(button.dataset.voice) ? button.dataset.voice : 'sinus';
+  save();
+  renderPicks();
+  wakeAudio();
+  phaseSound(0, 1.6);              // odmah se čuje što je odabrano
+});
+
+els.patterns.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-pattern]');
+  if (!button) return;
+  const found = PATTERNS.find((p) => p.id === button.dataset.pattern);
+  if (!found) return;
+  cfg.phases = [...found.phases];
+  save();
+  renderPatterns();
+  reset();
+});
+
+els.themePick.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-theme]');
+  if (button) applyTheme(button.dataset.theme);
+});
+
+els.langPick.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-lang]');
+  if (button) { cfg.lang = button.dataset.lang; save(); applyLang(); }
+});
+
+function applyTheme(id) {
+  cfg.theme = ['svjetlo', 'tamno', 'zeleno'].includes(id) ? id : 'svjetlo';
+  els.root.dataset.theme = cfg.theme;
+  els.body.dataset.theme = cfg.theme;
+  save();
+  renderPicks();
+}
+
+function bindSwitch(el, key, after) {
+  el.setAttribute('aria-checked', String(Boolean(cfg[key])));
+  el.addEventListener('click', () => {
+    cfg[key] = el.getAttribute('aria-checked') !== 'true';
+    el.setAttribute('aria-checked', String(cfg[key]));
+    save();
+    if (after) after();
+  });
+}
+
+bindSwitch(els.soundSw, 'sound');
+bindSwitch(els.vibrateSw, 'vibrate');
+bindSwitch(els.countSw, 'countdown', paint);
+bindSwitch(els.awakeSw, 'keepAwake', () => { if (!cfg.keepAwake) releaseWakeLock(); else if (running) requestWakeLock(); });
+
+els.testSound.addEventListener('click', () => { wakeAudio(); phaseSound(0, 2.5); window.setTimeout(() => phaseSound(2, 2.5), 2700); });
+
+const openSheet = () => { els.sheet.classList.add('on'); els.sheet.setAttribute('aria-hidden', 'false'); };
+const closeSheet = () => { els.sheet.classList.remove('on'); els.sheet.setAttribute('aria-hidden', 'true'); };
+
+els.setupBtn.addEventListener('click', openSheet);
+els.sheetClose.addEventListener('click', closeSheet);
+els.sheet.addEventListener('click', (event) => { if (event.target === els.sheet) closeSheet(); });
+
+document.addEventListener('keydown', (event) => {
+  if (event.target.matches('input')) return;
+  if (event.key === 'Escape') { closeSheet(); closeSession(); labClose(); return; }
+  if (event.code === 'Space') { event.preventDefault(); running ? pause() : start(); return; }
+  if (event.key === 'r' || event.key === 'R') reset();
+});
+
+/* ═══════════════════════════════════════════════════════════
+   8 · Bench za ugađanje tona  ·  PRIVREMENO
+
+   Odvojen od produkcijskih zvukova. Svaka od tri krivulje —
+   glasnoća, visina, filtar — ima početak, kraj i zavoj, i vuče
+   se izravno po grafu. Zavoj zamjenjuje izbor linearno/eksponencijalno:
+   umjesto dva stanja daje cijeli raspon između.
+   ═══════════════════════════════════════════════════════════ */
+
+const LAB_STORE = 'workshop.box.lab';
+const LAB_WAVES = ['sine', 'triangle', 'square', 'sawtooth', 'noise', 'pink'];
+const LAB_FILTERS = ['off', 'lowpass', 'bandpass', 'highpass'];
+
+// Raspon osi i način ispisa za svaku krivulju.
+const LAB_AXES = {
+  gain:   { name: 'Glasnoća', min: 0,  max: 0.3,  fmt: (v) => v.toFixed(3) },
+  pitch:  { name: 'Visina',   min: 40, max: 1200, fmt: (v) => `${Math.round(v)} Hz` },
+  filter: { name: 'Filtar',   min: 80, max: 8000, fmt: (v) => `${Math.round(v)} Hz` }
+};
+
+/**
+ * Gotovi polazišni setovi.
+ *
+ * Dah nije ton nego šum kroz filtar koji putuje: pri udahu se spektar
+ * otvara prema gore, pri izdahu zatvara. Zato svaki od ovih kreće od
+ * šuma, a razlikuju se po tome koji dio spektra propuštaju i koliko
+ * usko — to je ono što razdvaja nos od usta i šapat od vala.
+ */
+const LAB_PRESETS = [
+  { id: 'nos', name: 'Nos', set: {
+    wave: 'noise', dur: 4, filterType: 'bandpass', q: 2.6,
+    gain:   { a: 0.02, b: 0.24, bend: 0.35 },
+    filter: { a: 520,  b: 1500, bend: 0.15 }
+  } },
+  { id: 'usta', name: 'Usta', set: {
+    wave: 'noise', dur: 4, filterType: 'lowpass', q: 0.8,
+    gain:   { a: 0.03, b: 0.28, bend: 0.25 },
+    filter: { a: 700,  b: 1900, bend: 0 }
+  } },
+  { id: 'more', name: 'More', set: {
+    wave: 'noise', dur: 5, filterType: 'lowpass', q: 1.6,
+    gain:   { a: 0.05, b: 0.26, bend: -0.2 },
+    filter: { a: 300,  b: 950,  bend: -0.3 }
+  } },
+  { id: 'sapat', name: 'Šapat', set: {
+    wave: 'noise', dur: 4, filterType: 'highpass', q: 0.7,
+    gain:   { a: 0.02, b: 0.18, bend: 0.4 },
+    filter: { a: 1300, b: 3600, bend: 0.1 }
+  } },
+  { id: 'meki', name: 'Meki', set: {
+    wave: 'pink', dur: 4, filterType: 'lowpass', q: 1.1,
+    gain:   { a: 0.03, b: 0.22, bend: 0.2 },
+    filter: { a: 420,  b: 1250, bend: 0 }
+  } },
+  { id: 'vjetar', name: 'Vjetar', set: {
+    wave: 'pink', dur: 5, filterType: 'bandpass', q: 0.9,
+    gain:   { a: 0.04, b: 0.26, bend: -0.15 },
+    filter: { a: 380,  b: 1100, bend: 0.2 }
+  } },
+  { id: 'ton', name: 'Ton', set: {
+    wave: 'sine', dur: 4, filterType: 'off', q: 1.2,
+    gain:   { a: 0.04, b: 0.13, bend: 0 },
+    pitch:  { a: 220,  b: 330,  bend: 0 }
+  } }
+];
+
+const LAB_DEFAULTS = {
+  wave: 'sine', dur: 4, q: 1.2, filterType: 'off', tab: 'gain', auto: false,
+  gain:   { a: 0.04, b: 0.13, bend: 0 },
+  pitch:  { a: 220,  b: 330,  bend: 0 },
+  filter: { a: 800,  b: 2400, bend: 0 }
+};
+
+let lab = { ...LAB_DEFAULTS };
+try {
+  const stored = JSON.parse(localStorage.getItem(LAB_STORE) || '{}');
+  lab = { ...LAB_DEFAULTS, ...stored };
+  for (const key of ['gain', 'pitch', 'filter']) lab[key] = { ...LAB_DEFAULTS[key], ...(stored[key] || {}) };
+} catch { /* prvi put */ }
+
+const labEls = {
+  sheet: $('labSheet'), open: $('labBtn'), close: $('labClose'),
+  tabs: $('labTabs'), plot: $('labPlot'), wave: $('labWave'), filter: $('labFilter'),
+  a: $('labA'), bend: $('labBend'), b: $('labB'),
+  play: $('labPlayBtn'), swap: $('labSwap'), copy: $('labCopy'), out: $('labOut'), auto: $('labAuto'),
+  presets: $('labPresets')
+};
+
+const labSave = () => { try { localStorage.setItem(LAB_STORE, JSON.stringify(lab)); } catch { /* privatni način */ } };
+
+/** Vrijednost krivulje u trenutku t (0–1) — kvadratna Bézierova. */
+function labValue(curve, axis, t) {
+  const span = axis.max - axis.min;
+  const mid = (curve.a + curve.b) / 2 + curve.bend * span * 0.4;
+  const c = Math.min(axis.max, Math.max(axis.min, mid));
+  const u = 1 - t;
+  return u * u * curve.a + 2 * u * t * c + t * t * curve.b;
+}
+
+function labChips(host, list, get, set) {
+  host.innerHTML = list.map((id) =>
+    `<button class="pick" type="button" data-v="${id}" aria-pressed="${id === get()}">${id}</button>`).join('');
+  host.onclick = (event) => {
+    const button = event.target.closest('[data-v]');
+    if (!button) return;
+    set(button.dataset.v);
+    labSave();
+    labRender();
+    labAuto();
+  };
+}
+
+/* Širina crtaće plohe prati stvarni omjer elementa, pa se krivulja
+   razvuče preko cijelog grafa, a ručke ostanu okrugle. */
+const PLOT_H = 60, PAD = 6, PAD_B = 12;   // dolje više mjesta za oznake
+const plotArea = PLOT_H - PAD - PAD_B;
+let PLOT_W = 100;
+
+function labSyncViewBox() {
+  const box = labEls.plot.getBoundingClientRect();
+  if (box.height > 0) PLOT_W = Math.max(60, Math.round(PLOT_H * (box.width / box.height)));
+  labEls.plot.setAttribute('viewBox', `0 0 ${PLOT_W} ${PLOT_H}`);
+}
+const plotX = (t) => PAD + t * (PLOT_W - PAD * 2);
+const plotY = (value, axis) => PLOT_H - PAD_B - ((value - axis.min) / (axis.max - axis.min)) * plotArea;
+const fromPlotY = (y, axis) => axis.min + ((PLOT_H - PAD_B - y) / plotArea) * (axis.max - axis.min);
+
+function labDrawPlot() {
+  labSyncViewBox();
+  const curve = lab[lab.tab];
+  const axis = LAB_AXES[lab.tab];
+
+  let path = '';
+  for (let i = 0; i <= 60; i++) {
+    const t = i / 60;
+    path += `${i ? 'L' : 'M'}${plotX(t).toFixed(2)} ${plotY(labValue(curve, axis, t), axis).toFixed(2)}`;
+  }
+
+  const grid = [0.25, 0.5, 0.75].map((f) =>
+    `<path class="lab-grid" d="M${plotX(f)} ${PAD}V${PLOT_H - PAD_B}"/>` +
+    `<path class="lab-grid" d="M${PAD} ${PAD + f * plotArea}H${PLOT_W - PAD}"/>`).join('');
+
+  const bendY = plotY(labValue(curve, axis, 0.5), axis);
+
+  labEls.plot.innerHTML = grid
+    + `<path class="lab-fill" d="${path}L${plotX(1)} ${PLOT_H - PAD_B}L${plotX(0)} ${PLOT_H - PAD_B}Z"/>`
+    + `<path class="lab-curve" d="${path}"/>`
+    + `<circle class="lab-handle mid" data-h="bend" cx="${plotX(0.5)}" cy="${bendY}" r="3.2"/>`
+    + `<circle class="lab-handle" data-h="a" cx="${plotX(0)}" cy="${plotY(curve.a, axis)}" r="3.6"/>`
+    + `<circle class="lab-handle" data-h="b" cx="${plotX(1)}" cy="${plotY(curve.b, axis)}" r="3.6"/>`
+    + `<text class="lab-axis" x="${PAD}" y="${PLOT_H - 3}">0 s</text>`
+    + `<text class="lab-axis" x="${PLOT_W - PAD}" y="${PLOT_H - 3}" text-anchor="end">${Number(lab.dur).toFixed(1)} s</text>`
+    + `<text class="lab-axis" x="${PAD}" y="${PAD + 3}">${LAB_AXES[lab.tab].fmt(LAB_AXES[lab.tab].max)}</text>`;
+
+  labEls.a.textContent = axis.fmt(curve.a);
+  labEls.b.textContent = axis.fmt(curve.b);
+  labEls.bend.textContent = curve.bend.toFixed(2);
+}
+
+function labRender() {
+  labChips(labEls.tabs, Object.keys(LAB_AXES), () => lab.tab, (v) => { lab.tab = v; });
+  labEls.tabs.querySelectorAll('.pick').forEach((b) => { b.textContent = LAB_AXES[b.dataset.v].name; });
+  labChips(labEls.wave, LAB_WAVES, () => lab.wave, (v) => { lab.wave = v; });
+  labChips(labEls.filter, LAB_FILTERS, () => lab.filterType, (v) => { lab.filterType = v; });
+  labEls.presets.innerHTML = LAB_PRESETS.map((preset) =>
+    `<button class="pick" type="button" data-preset="${preset.id}">${preset.name}</button>`).join('');
+  labEls.auto.setAttribute('aria-pressed', String(Boolean(lab.auto)));
+  $('labDur').value = lab.dur;
+  $('labDurV').textContent = `${Number(lab.dur).toFixed(1)} s`;
+  $('labQ').value = lab.q;
+  $('labQV').textContent = Number(lab.q).toFixed(1);
+  labDrawPlot();
+  labEls.out.value = JSON.stringify(lab, null, 2);
+}
+
+/* ── vučenje po grafu ── */
+
+let dragging = null;
+
+function labPointValue(event) {
+  const box = labEls.plot.getBoundingClientRect();
+  const y = ((event.clientY - box.top) / box.height) * PLOT_H;
+  return fromPlotY(y, LAB_AXES[lab.tab]);
+}
+
+// Promjena veličine prozora mijenja omjer, pa i koordinatni prostor.
+window.addEventListener('resize', () => { if (labEls.sheet.classList.contains('on')) labDrawPlot(); });
+
+labEls.plot.addEventListener('pointerdown', (event) => {
+  const handle = event.target.closest('[data-h]');
+  if (!handle) return;
+  dragging = handle.dataset.h;
+  labEls.plot.setPointerCapture(event.pointerId);
+  event.preventDefault();
+});
+
+labEls.plot.addEventListener('pointermove', (event) => {
+  if (!dragging) return;
+  const curve = lab[lab.tab];
+  const axis = LAB_AXES[lab.tab];
+  const value = Math.min(axis.max, Math.max(axis.min, labPointValue(event)));
+  if (dragging === 'bend') {
+    // Zavoj je odmak sredine od ravne crte, u dijelovima raspona osi.
+    const straight = (curve.a + curve.b) / 2;
+    curve.bend = Math.min(1, Math.max(-1, (value - straight) / ((axis.max - axis.min) * 0.4)));
+  } else {
+    curve[dragging] = value;
+  }
+  labDrawPlot();
+  labEls.out.value = JSON.stringify(lab, null, 2);
+});
+
+for (const type of ['pointerup', 'pointercancel']) {
+  labEls.plot.addEventListener(type, () => {
+    if (!dragging) return;
+    dragging = null;
+    labSave();
+    labAuto();
+  });
+}
+
+$('labDur').addEventListener('input', () => {
+  lab.dur = Number($('labDur').value);
+  $('labDurV').textContent = `${lab.dur.toFixed(1)} s`;
+  labDrawPlot();
+  labEls.out.value = JSON.stringify(lab, null, 2);
+  labSave();
+});
+$('labDur').addEventListener('change', labAuto);
+
+$('labQ').addEventListener('input', () => {
+  lab.q = Number($('labQ').value);
+  $('labQV').textContent = lab.q.toFixed(1);
+  labEls.out.value = JSON.stringify(lab, null, 2);
+  labSave();
+});
+$('labQ').addEventListener('change', labAuto);
+
+/* ── sviranje ── */
+
+let labTone = null;
+
+function labButton() {
+  labEls.play.textContent = labTone ? '■ Stani' : '▶ Sviraj';
+}
+
+function labStop() {
+  if (!labTone) return;
+  const source = labTone;
+  labTone = null;
+  source.onended = null;
+  try { source.stop(); } catch { /* već gotov */ }
+  labButton();
+}
+
+/** Svira pri promjeni samo ako je „auto" uključen. */
+function labAuto() {
+  if (lab.auto) labPlay();
+}
+
+/** Krivulja u obliku koji AudioParam prihvaća. */
+function labSamples(which, floor) {
+  const curve = lab[which];
+  const axis = LAB_AXES[which];
+  const out = new Float32Array(128);
+  for (let i = 0; i < out.length; i++) {
+    out[i] = Math.max(floor, labValue(curve, axis, i / (out.length - 1)));
+  }
+  return out;
+}
+
+function labPlay() {
+  const ctx = wakeAudio();
+  if (!ctx) return;
+  labStop();
+
+  const at = ctx.currentTime + 0.02;
+  const dur = Math.max(0.05, Number(lab.dur));
+
+  let source;
+  let out;
+  if (lab.wave === 'noise' || lab.wave === 'pink') {
+    source = ctx.createBufferSource();
+    source.buffer = noiseBuffer(ctx, lab.wave === 'pink' ? 'pink' : 'white');
+    source.loop = true;
+    out = source;
+  } else {
+    const osc = ctx.createOscillator();
+    osc.type = lab.wave;
+    osc.frequency.setValueCurveAtTime(labSamples('pitch', 20), at, dur);
+    source = osc;
+    out = osc;
+  }
+
+  if (lab.filterType !== 'off') {
+    const filter = ctx.createBiquadFilter();
+    filter.type = lab.filterType;
+    filter.Q.value = Number(lab.q);
+    filter.frequency.setValueCurveAtTime(labSamples('filter', 20), at, dur);
+    out.connect(filter);
+    out = filter;
+  }
+
+  const gain = ctx.createGain();
+  gain.gain.setValueCurveAtTime(labSamples('gain', 0.0001), at, dur);
+  out.connect(gain).connect(ctx.destination);
+  source.start(at);
+  source.stop(at + dur + 0.05);
+  source.onended = () => { if (labTone === source) { labTone = null; labButton(); } };
+  labTone = source;
+  labButton();
+}
+
+// Isti gumb pokreće i zaustavlja — dugi tonovi inače nemaju izlaz.
+labEls.play.addEventListener('click', () => (labTone ? labStop() : labPlay()));
+
+labEls.swap.addEventListener('click', () => {
+  for (const key of ['gain', 'pitch', 'filter']) {
+    const curve = lab[key];
+    [curve.a, curve.b] = [curve.b, curve.a];
+    curve.bend = -curve.bend;
+  }
+  labSave();
+  labRender();
+  labAuto();
+});
+
+labEls.copy.addEventListener('click', async () => {
+  labEls.out.select();
+  try { await navigator.clipboard.writeText(labEls.out.value); } catch { document.execCommand('copy'); }
+  labEls.copy.textContent = 'Kopirano';
+  window.setTimeout(() => { labEls.copy.textContent = 'Kopiraj'; }, 1400);
+});
+
+labEls.presets.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-preset]');
+  if (!button) return;
+  const preset = LAB_PRESETS.find((item) => item.id === button.dataset.preset);
+  if (!preset) return;
+  // Polazište prepisuje samo ono što nosi; ostalo ostaje kako je bilo.
+  for (const [key, value] of Object.entries(preset.set)) {
+    lab[key] = (value && typeof value === 'object') ? { ...lab[key], ...value } : value;
+  }
+  labSave();
+  labRender();
+  labPlay();
+});
+
+labEls.auto.addEventListener('click', () => {
+  lab.auto = labEls.auto.getAttribute('aria-pressed') !== 'true';
+  labEls.auto.setAttribute('aria-pressed', String(lab.auto));
+  labSave();
+});
+
+labEls.open.addEventListener('click', () => {
+  wakeAudio();
+  labEls.sheet.classList.add('on');
+  labEls.sheet.setAttribute('aria-hidden', 'false');
+  labRender();
+});
+
+const labClose = () => { labStop(); labButton(); labEls.sheet.classList.remove('on'); labEls.sheet.setAttribute('aria-hidden', 'true'); };
+labEls.close.addEventListener('click', labClose);
+labEls.sheet.addEventListener('click', (event) => { if (event.target === labEls.sheet) labClose(); });
+
+/* ═══════════════════════════════════════════════════════════
+   9 · Start
+   ═══════════════════════════════════════════════════════════ */
+
+// Zupčanik iste geometrije kao u ostatku Workshopa.
+els.gear.setAttribute('d', 'M9.6 4.7L10.5 2.1L13.5 2.1L14.4 4.7L15.5 5.1L17.9 4.0L20.0 6.1L18.9 8.5L19.3 9.6L21.9 10.5L21.9 13.5L19.3 14.4L18.9 15.5L20.0 17.9L17.9 20.0L15.5 18.9L14.4 19.3L13.5 21.9L10.5 21.9L9.6 19.3L8.5 18.9L6.1 20.0L4.0 17.9L5.1 15.5L4.7 14.4L2.1 13.5L2.1 10.5L4.7 9.6L5.1 8.5L4.0 6.1L6.1 4.0L8.5 5.1Z');
+
+cfg.lang = LANGS[cfg.lang] ? cfg.lang : detectLang();
+applyTheme(cfg.theme);
+phaseStart = Date.now();
+applyLang();
+
+})();
+</script>
+</body>
+</html>

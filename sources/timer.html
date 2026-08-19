@@ -1,0 +1,1826 @@
+<!doctype html>
+<html lang="hr" data-theme="noc">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Timer za vježbanje sa zvučnim signalom, odbrojavanjem zadnjih sekundi, brojačem setova, kliznikom za vlastito vrijeme i podijeljenim ekranom sa slikom ili YouTube videom.">
+<meta name="date" content="2026-08-18">
+<meta name="keywords" content="Vrijeme, Vježbanje">
+<title data-i18n="title">Timer za vježbanje — odmor, serije i odbrojavanje</title>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   TIMER
+
+   Vlastita paleta, neovisna o katalogu. Boja stanja (mirno, u
+   tijeku, zadnje sekunde, gotovo) jedina je jaka boja i ista je
+   u svim temama — mijenja se podloga, ne značenje.
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --sans: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+  --num: "DIN Alternate", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  --r: 14px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+  --ctl: 44px;                       /* meta za prst, ne za miš */
+  --ease: cubic-bezier(.2, .8, .25, 1);
+
+  --media-share: 55%;                /* omjer podjele, s razdjelnika */
+}
+
+/* ── Noć (zadano) ── */
+html[data-theme="noc"] {
+  --bg: #0d1012; --bg-2: #151a1d; --panel: #1b2124; --panel-2: #232b2f;
+  --fg: #eef2f3; --fg-2: #9aa6ab; --fg-3: #667279;
+  --line: #2c3538; --line-2: #3c474b;
+  --idle: #7c8a91; --run: #35d67f; --warn: #ffb01f; --done: #ff4a37;
+  --on-state: #06231a;
+  --spent: #2b3438;
+}
+
+/* ── Dan: za svijetlu dvoranu ── */
+html[data-theme="dan"] {
+  --bg: #f4f5f6; --bg-2: #e9ebed; --panel: #ffffff; --panel-2: #eef0f2;
+  --fg: #14181a; --fg-2: #4c565b; --fg-3: #7b868c;
+  --line: #d9dde0; --line-2: #c2c8cc;
+  --idle: #78848a; --run: #0f9d58; --warn: #b26a00; --done: #cf2a17;
+  --on-state: #ffffff;
+  --spent: #c9ced2;
+}
+
+/* ── Ugljen: prava crna, za OLED i jako svjetlo ── */
+html[data-theme="ugljen"] {
+  --bg: #000000; --bg-2: #0a0a0a; --panel: #131313; --panel-2: #1c1c1c;
+  --fg: #ffffff; --fg-2: #a8a8a8; --fg-3: #6e6e6e;
+  --line: #232323; --line-2: #343434;
+  --idle: #8a8a8a; --run: #00e676; --warn: #ffc400; --done: #ff5252;
+  --on-state: #000000;
+  --spent: #242424;
+}
+
+/* ── Jantar: topla, za polumrak ── */
+html[data-theme="jantar"] {
+  --bg: #17120c; --bg-2: #1f1810; --panel: #261d13; --panel-2: #312517;
+  --fg: #f6e8d5; --fg-2: #bfa88a; --fg-3: #8a7358;
+  --line: #33261a; --line-2: #4a3826;
+  --idle: #9c8467; --run: #7fd67f; --warn: #ffb454; --done: #ff6b4a;
+  --on-state: #1a1208;
+  --spent: #3a2c1d;
+}
+
+/* ── More: hladna, smirena ── */
+html[data-theme="more"] {
+  --bg: #071319; --bg-2: #0c1c24; --panel: #11242e; --panel-2: #172f3b;
+  --fg: #e4f1f6; --fg-2: #93aeba; --fg-3: #63808d;
+  --line: #1b3644; --line-2: #2a4b5c;
+  --idle: #7c9aa6; --run: #2fd6c6; --warn: #ffc247; --done: #ff5d6c;
+  --on-state: #04181b;
+  --spent: #1a3946;
+}
+
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; }
+
+body {
+  overflow: hidden;                  /* ništa se nikad ne skrola */
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button { font: inherit; color: inherit; cursor: pointer; }
+
+/* ═══ RASPORED ═════════════════════════════════════════════
+   Traka podjele ide preko cijele širine, ispod nje medij i
+   ploča. Svaka ćelija ima `min-height: 0` pa se sadržaj skuplja
+   umjesto da prelije stranicu.
+   ═══════════════════════════════════════════════════════════ */
+
+.app {
+  position: relative;                /* sidro za traku podjele */
+  display: grid;
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  grid-template-columns: minmax(0, 1fr);
+  /* Bez podjele je samo jedan redak. S `auto` retkom za skrivenu traku
+     ploča bi upala u redak koji se mjeri po sadržaju, pa bi se znamenke
+     — koje se mjere po ploči — srušile na najmanju vrijednost. */
+  grid-template-rows: minmax(0, 1fr);
+}
+
+/* Okomita podjela — medij i ploča jedno uz drugo.
+   Ploča ima donju granicu širine: bez nje bi kod velikog omjera
+   pala ispod svojih gumba i sadržaj bi se prelio preko medija. */
+body[data-media="on"][data-orient="side"] .app {
+  grid-template-columns: minmax(0, var(--media-share)) minmax(min(210px, 100%), 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+body[data-media="on"][data-orient="side"][data-side="b"] .app {
+  grid-template-columns: minmax(min(210px, 100%), 1fr) minmax(0, var(--media-share));
+}
+
+/* Vodoravna podjela — medij iznad ili ispod ploče. */
+body[data-media="on"][data-orient="stack"] .app {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, var(--media-share)) minmax(min(210px, 100%), 1fr);
+}
+
+body[data-media="on"][data-orient="stack"][data-side="b"] .app {
+  grid-template-rows: minmax(min(210px, 100%), 1fr) minmax(0, var(--media-share));
+}
+
+/* Zamjena strana — medij prvi ili drugi. */
+body[data-side="b"] .media { order: 2; }
+body[data-side="b"] .pane { order: 1; }
+
+/* ── traka podjele ── */
+
+/* Razdjelnik ─────────────────────────────────────────────
+   Omjer se ne bira klizačem nego povlačenjem same granice —
+   ista kretnja kao razvlačenje prozora, bez ijedne kontrole
+   koja zauzima prostor. Granice drže obje strane upotrebljivima. */
+
+.divider {
+  position: absolute;
+  z-index: 14;
+  display: none;
+  touch-action: none;
+  place-items: center;
+}
+
+body[data-media="on"] .divider { display: grid; }
+
+body[data-orient="side"] .divider {
+  top: 0;
+  bottom: 0;
+  width: 34px;
+  margin-left: -17px;
+  left: var(--media-share);
+  cursor: col-resize;
+}
+
+body[data-orient="side"][data-side="b"] .divider { left: calc(100% - var(--media-share)); }
+
+body[data-orient="stack"] .divider {
+  right: 0;
+  left: 0;
+  height: 34px;
+  margin-top: -17px;
+  top: var(--media-share);
+  cursor: row-resize;
+}
+
+body[data-orient="stack"][data-side="b"] .divider { top: calc(100% - var(--media-share)); }
+
+/* Hvatište — dovoljno veliko za prst, dovoljno tiho za oko. */
+.divider::after {
+  border-radius: 99px;
+  background: var(--line-2);
+  content: "";
+  transition: background .14s, transform .14s;
+}
+
+body[data-orient="side"] .divider::after { width: 6px; height: 84px; }
+body[data-orient="stack"] .divider::after { width: 84px; height: 6px; }
+
+.divider:hover::after,
+.divider.dragging::after { background: var(--state); transform: scale(1.12); }
+
+/* ── medij ── */
+
+/* Reže se sve što ne stane — pri najmanjem omjeru poruka za unos
+   inače prelijeva preko granice na stranu timera. */
+.media { display: none; position: relative; overflow: hidden; min-width: 0; min-height: 0; background: var(--bg-2); }
+body[data-media="on"] .media { display: block; }
+
+/* Sadržaj u vlastitom sloju — kutne ikone su mu sestre, pa ih
+   ponovno iscrtavanje medija ne briše. */
+.media-body { width: 100%; height: 100%; }
+
+.media-body img,
+.media-body iframe { display: block; width: 100%; height: 100%; border: 0; }
+.media-body img { object-fit: contain; background: #000; }
+
+/* Adresa se mijenja češće od svega ostalog, pa joj kontrole stoje u
+   kutu samog medija — bez ploče koja bi ih morala držati. */
+.media-tools {
+  position: absolute;
+  top: var(--sp-2);
+  left: var(--sp-2);
+  z-index: 12;
+  display: none;
+  gap: var(--sp-1);
+  flex-wrap: wrap;                   /* na uskom mediju se slože u stupac */
+  max-width: calc(100% - var(--sp-4));
+}
+
+body[data-media="on"] .media-tools { display: flex; }
+
+.media-tools .icon {
+  width: 34px;
+  height: 34px;
+  border-color: transparent;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg) 62%, transparent);
+  backdrop-filter: blur(6px);
+  opacity: .55;
+  transition: opacity .14s;
+}
+
+.media-tools .icon svg { width: 15px; height: 15px; }
+.media-tools .icon:hover, .media-tools .icon:focus-visible { opacity: 1; }
+
+/* Prazna strana nosi unos adrese — medij se mijenja češće od postavki. */
+.drop {
+  display: grid;
+  gap: var(--sp-3);
+  align-content: center;
+  height: 100%;
+  padding: var(--sp-5);
+  text-align: center;
+}
+
+/* Dio sajtova zabranjuje ugradnju zaglavljem, a to se izvana ne može
+   provjeriti — okvir samo ostane prazan. Zato uz svaku ugrađenu
+   stranicu stoji objašnjenje i izlaz. */
+.frame-note {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  color: var(--fg-3);
+  font-size: .7rem;
+  line-height: 1.4;
+}
+
+.frame-note a { color: var(--fg-2); }
+
+.drop h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+.drop p { margin: 0; color: var(--fg-3); font-size: .8rem; line-height: 1.45; }
+.drop-form { display: flex; gap: var(--sp-2); margin: 0 auto; width: min(420px, 100%); }
+
+/* ── ploča s kontrolama ── */
+
+.pane {
+  container-type: size;              /* znamenke se mjere po ovoj ćeliji */
+  display: grid;
+  overflow: hidden;                  /* sadržaj nikad ne smije preko medija */
+  min-width: 0;
+  min-height: 0;
+  /* Donji razmak je veći od gornjeg: ispod često sjedi traka
+     preglednika ili gesta, pa setovi ne smiju biti uz sam rub. */
+  padding: var(--sp-4) var(--sp-4) var(--sp-6);
+  gap: var(--sp-3);
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "top   top"
+    "time  time"
+    "read  read"
+    "ctrl  sets";
+}
+
+.top { grid-area: top; }
+#timeBox { grid-area: time; }
+.readout { grid-area: read; }
+.controls { grid-area: ctrl; }
+.sets { grid-area: sets; }
+
+/* Tri razine, po visini ploče.
+
+   0 — sve stane: predlošci i klizač u ploči.
+   1 — trajanje seli u modal, ostalo isto.
+   2 — brojka i tipke dijele redak, setovi dobivaju svoj cijeli, gumb
+       ostaje bez riječi. Zadnja razina je za pejzažni mobitel uz
+       podjelu, gdje visine jednostavno nema. */
+
+body[data-tier="2"] .pane {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "top   top"
+    "read  ctrl"
+    "sets  sets";
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-2) var(--sp-4);
+}
+
+body[data-tier="2"] .controls { flex-direction: column; justify-content: center; width: 88px; }
+body[data-tier="2"] .go { flex: 1; padding: var(--sp-2); }
+body[data-tier="2"] .controls .reset { width: 100%; height: 44px; }
+body[data-tier="2"] .sets { min-height: 44px; }
+body[data-tier="2"] .sets-add { flex: 1; justify-content: center; }
+body[data-tier="2"] .phase { display: none; }
+body[data-tier="2"] .top .icon { width: 38px; height: 38px; }
+
+body[data-media="on"][data-orient="side"] .pane { border-left: 1px solid var(--line); }
+body[data-media="on"][data-orient="side"][data-side="b"] .pane { border-right: 1px solid var(--line); border-left: 0; }
+body[data-media="on"][data-orient="stack"] .pane { border-top: 1px solid var(--line); }
+body[data-media="on"][data-orient="stack"][data-side="b"] .pane { border-top: 0; border-bottom: 1px solid var(--line); }
+
+/* ── gornji red ── */
+
+.top { display: flex; gap: var(--sp-2); align-items: center; }
+.presets { display: flex; flex: 1; gap: var(--sp-1); min-width: 0; }
+
+.preset {
+  flex: 1;
+  min-width: 0;
+  height: var(--ctl);
+  padding: 0 var(--sp-1);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--panel);
+  font-size: .82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background .12s, border-color .12s, color .12s;
+}
+
+.preset[aria-pressed="true"] { border-color: var(--state); color: var(--on-state); background: var(--state); }
+
+.icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: var(--ctl);
+  height: var(--ctl);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  color: var(--fg-2);                /* i za <a>, koji bi inače bio plav */
+  background: var(--panel);
+  place-items: center;
+  text-decoration: none;
+}
+
+.icon svg { width: 19px; height: 19px; }
+.icon[aria-pressed="true"] { border-color: var(--state); color: var(--state); }
+.icon.sm { width: 34px; height: 34px; border-radius: 10px; }
+.icon.sm svg { width: 15px; height: 15px; }
+
+/* ── klizač vremena ─────────────────────────────────────────
+   Vlastito vrijeme se bira ovdje, na glavnom ekranu, a ne u
+   postavkama. Klizač ne ide po sekundi nego po popisu okruglih
+   vrijednosti — gušće na kratkom kraju, gdje se i bira.
+   ═══════════════════════════════════════════════════════════ */
+
+#timeBox { display: grid; gap: var(--sp-3); }
+
+/* Kad je ploča niska (pejzažni mobitel uz podjelu), predlošci i klizač
+   se sele u modal, a u gornjem redu ostaje samo gumb s trajanjem —
+   inače bi brojka ostala bez prostora. Prebacivanje radi ResizeObserver,
+   jer se element mora fizički premjestiti, a ne samo sakriti. */
+#timeBtn { display: none; }
+body[data-tier="1"] #timeBtn, body[data-tier="2"] #timeBtn { display: grid; width: auto; padding: 0 var(--sp-3); gap: var(--sp-2); grid-auto-flow: column; align-items: center; }
+#timeBtn b { font-family: var(--num); font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.dial-row { display: flex; gap: var(--sp-3); align-items: center; }
+
+.dial-val {
+  flex: 0 0 auto;
+  min-width: 4.2em;
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--panel);
+  cursor: pointer;
+  color: var(--fg-2);
+  font-family: var(--num);
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  height: var(--ctl);
+  margin: 0;
+  background: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+input[type="range"]:disabled { cursor: default; opacity: .38; }
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 99px;
+  background: var(--panel-2);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  width: 30px;
+  height: 30px;
+  margin-top: -10px;                 /* centriranje na stazu */
+  border: 3px solid var(--bg);
+  border-radius: 50%;
+  background: var(--state);
+  appearance: none;
+  transition: background .3s var(--ease);
+}
+
+input[type="range"]::-moz-range-track { height: 10px; border-radius: 99px; background: var(--panel-2); }
+input[type="range"]::-moz-range-thumb {
+  width: 30px; height: 30px; border: 3px solid var(--bg); border-radius: 50%;
+  background: var(--state);
+}
+
+/* ── sredina: brojka ── */
+
+.readout { display: grid; min-height: 0; gap: var(--sp-3); align-content: center; justify-items: center; }
+
+/* Znamenke se mjere po ploči, ne po prozoru — pa su jednako velike
+   i kad ploča zauzima cijeli ekran i kad dijeli mjesto sa slikom.
+
+   Napredak se ne prikazuje trakom nego samim znamenkama: boja se
+   povlači odozgo prema dolje kako vrijeme curi, pa je jedan pogled
+   dovoljan i kad se brojka ne stigne pročitati. */
+.time {
+  background-image: linear-gradient(to top, var(--state) 100%, var(--spent) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  font-family: var(--num);
+  font-size: clamp(2.6rem, min(32cqw, 30cqh), 15rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: .92;
+  letter-spacing: -.02em;
+  transition: color .3s var(--ease);
+}
+
+/* Natpis se mijenja („Spremno" → „Zadnje sekunde") i time mijenja
+   širinu. Fiksna visina i puna širina drže ga na mjestu, pa se pri
+   pokretanju timera ništa oko njega ne pomakne. */
+/* Traka se prikazuje samo u svom načinu; ostala dva boje same znamenke. */
+.bar { display: none; overflow: hidden; width: min(100%, 520px); height: 8px; border-radius: 99px; background: var(--panel-2); }
+body[data-progress="bar"] .bar { display: block; }
+.bar i { display: block; height: 100%; border-radius: 99px; background: var(--state); transition: background .3s var(--ease); }
+
+.phase {
+  width: 100%;
+  height: 1.4em;
+  color: var(--fg-3);
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Zadnje sekunde: cijela ploča tiho pulsira, da se vidi i postrance. */
+body[data-phase="warn"] .pane { animation: pulse 1s steps(1) infinite; }
+@keyframes pulse {
+  0%, 50% { background: transparent; }
+  50.01%, 100% { background: color-mix(in srgb, var(--warn) 9%, transparent); }
+}
+
+body[data-phase="done"] .pane { animation: flash .5s steps(1) 6; }
+@keyframes flash {
+  0%, 50% { background: color-mix(in srgb, var(--done) 16%, transparent); }
+  50.01%, 100% { background: transparent; }
+}
+
+/* ── donji red ── */
+
+.controls { display: flex; gap: var(--sp-2); align-items: stretch; }
+.controls .go { flex: 1; }
+
+.go {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  padding: var(--sp-4) var(--sp-3);
+  border: 0;
+  border-radius: var(--r);
+  color: var(--on-state);
+  background: var(--state);
+  font-size: 1.06rem;
+  font-weight: 700;
+  transition: background .2s var(--ease), transform .08s;
+}
+
+.go:active { transform: scale(.98); }
+.go-icon { display: none; width: 26px; height: 26px; }
+
+/* U užim rasporedima ostaje samo znak — riječ nema gdje stati. */
+body[data-tier="2"] .go-icon { display: block; }
+body[data-tier="2"] .go-label { display: none; }
+
+.reset { flex: 0 0 auto; width: 56px; height: auto; border: 1px solid var(--line-2); border-radius: var(--r); background: var(--panel); }
+.reset svg { width: 20px; height: 20px; }
+
+/* Brojač setova: veliko polje za +1 i vlastiti gumb za nulu, jer
+   dugi pritisak nitko ne pogodi ako mu se ne kaže. */
+.sets {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.sets-add {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: center;
+  padding: 0 var(--sp-3) 0 var(--sp-4);
+  border: 0;
+  background: none;
+}
+
+.sets-add:active { background: var(--panel-2); }
+.sets-label { color: var(--fg-3); font-size: .6rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.sets-n { font-family: var(--num); font-size: 1.7rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; }
+
+.sets-zero {
+  width: 40px;
+  border: 0;
+  border-left: 1px solid var(--line-2);
+  background: none;
+  color: var(--fg-3);
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+.sets-zero:active { background: var(--panel-2); color: var(--done); }
+.sets-zero:hover { color: var(--fg-2); }
+
+/* ═══ POSTAVKE ═════════════════════════════════════════════ */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  padding: var(--sp-4);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  visibility: hidden;
+  opacity: 0;
+  place-items: center;
+  transition: opacity .18s, visibility .18s;
+}
+
+.sheet.on { visibility: visible; opacity: 1; }
+
+.sheet-box {
+  width: min(430px, 100%);
+  max-height: calc(100dvh - var(--sp-6));
+  overflow-y: auto;                  /* jedino mjesto koje smije skrolati */
+  border: 1px solid var(--line-2);
+  border-radius: 18px;
+  background: var(--bg-2);
+  transform: translateY(10px);
+  transition: transform .2s var(--ease);
+}
+
+.sheet.on .sheet-box { transform: none; }
+
+.sheet-head { display: flex; align-items: center; justify-content: space-between; padding: var(--sp-4) var(--sp-4) var(--sp-2); }
+.sheet-head h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+
+.field { padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--line); }
+.field-row { display: flex; gap: var(--sp-3); align-items: center; justify-content: space-between; }
+.field-row + .field-row { margin-top: var(--sp-3); }
+.field label { font-size: .88rem; }
+.field small { display: block; margin-top: 2px; color: var(--fg-3); font-size: .72rem; line-height: 1.35; }
+.field-title { margin: 0 0 var(--sp-3); font-size: .88rem; }
+
+.custom-row { display: flex; gap: var(--sp-2); align-items: flex-end; }
+.custom-row label { display: grid; gap: 4px; font-size: .72rem; color: var(--fg-3); }
+.custom-row input { width: 76px; }
+
+/* ── izbor teme ── */
+
+.themes { display: grid; gap: var(--sp-2); grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); }
+
+.theme {
+  display: grid;
+  gap: 6px;
+  padding: var(--sp-2);
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--panel);
+  font-size: .72rem;
+  font-weight: 600;
+  justify-items: center;
+}
+
+.theme[aria-pressed="true"] { border-color: var(--run); box-shadow: inset 0 0 0 1px var(--run); }
+.theme-chip { display: flex; width: 100%; height: 22px; border-radius: 6px; overflow: hidden; }
+.theme-chip i { flex: 1; }
+
+input[type="text"], input[type="number"] {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  color: var(--fg);
+  background: var(--panel);
+  font: inherit;
+  font-size: .9rem;
+}
+
+input[type="number"] { width: 82px; text-align: center; }
+input:focus { border-color: var(--run); outline: 0; }
+
+.sw { position: relative; flex: 0 0 auto; width: 50px; height: 30px; padding: 0; border: 0; border-radius: 99px; background: var(--panel-2); transition: background .16s; }
+.sw::after {
+  position: absolute; top: 3px; left: 3px; width: 24px; height: 24px;
+  border-radius: 50%; background: var(--fg-3); content: "";
+  transition: transform .16s var(--ease), background .16s;
+}
+.sw[aria-checked="true"] { background: color-mix(in srgb, var(--run) 34%, transparent); }
+.sw[aria-checked="true"]::after { background: var(--run); transform: translateX(20px); }
+
+.btn { width: 100%; padding: 11px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel); font-size: .85rem; font-weight: 600; }
+.btn:active { background: var(--panel-2); }
+.btn.wide { margin-top: var(--sp-2); }
+.btn.inline { width: auto; flex: 0 0 auto; padding: 11px 16px; }
+
+.hint { margin: var(--sp-2) 0 0; color: var(--fg-3); font-size: .72rem; line-height: 1.45; }
+
+/* ═══ USKI EKRAN ═══════════════════════════════════════════ */
+
+@media (max-height: 540px) and (orientation: landscape) {
+  /* I ovdje ostaje veći donji razmak — rub ekrana je na dohvat palca. */
+  .pane { padding: var(--sp-2) var(--sp-2) var(--sp-4); gap: var(--sp-2); }
+  .go { padding: var(--sp-3); }
+  .dial-row { gap: var(--sp-2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+</style>
+</head>
+<body data-media="off" data-orient="side" data-side="a" data-phase="idle">
+
+<div class="app">
+
+  <!-- traka podjele: omjer, strana, promjena adrese -->
+  <div class="media" id="media">
+    <div class="media-tools">
+      <button class="icon" id="editMedia" type="button" data-i18n-attr="aria-label:editUrl,title:editUrl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 20h4L19 9l-4-4L4 16Z"/>
+        </svg>
+      </button>
+      <button class="icon" id="orientBtn" type="button" data-i18n-attr="aria-label:orientation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+          <rect x="2.5" y="4.5" width="19" height="15" rx="2"/><path id="orientLine" d="M2.5 12h19"/>
+        </svg>
+      </button>
+      <a class="icon" id="openMedia" href="#" target="_blank" rel="noopener noreferrer" data-i18n-attr="aria-label:openTab,title:openTab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>
+        </svg>
+      </a>
+      <button class="icon" id="closeSplit" type="button" data-i18n-attr="aria-label:splitOff,title:splitOff">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="media-body" id="mediaBody"></div>
+  </div>
+
+  <div class="divider" id="divider" role="separator" tabindex="0"
+       data-i18n-attr="aria-label:splitRatio" aria-valuemin="20" aria-valuemax="80" aria-valuenow="55"></div>
+
+  <div class="pane">
+
+    <div class="top">
+      <div class="presets" id="presets"></div>
+      <button class="icon" id="timeBtn" type="button" data-i18n-attr="aria-label:pickDuration,title:duration">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>
+        </svg>
+        <b id="timeBtnVal">0:30</b>
+      </button>
+      <button class="icon" id="mediaBtn" type="button" aria-pressed="false" data-i18n-attr="aria-label:split">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+          <rect x="2.5" y="4.5" width="19" height="15" rx="2"/><path id="splitLine" d="M12 4.5v15"/>
+        </svg>
+      </button>
+      <button class="icon" id="setupBtn" type="button" data-i18n-attr="aria-label:settings,title:settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+          <path d="M9.6 4.7L10.5 2.1L13.5 2.1L14.4 4.7L15.5 5.1L17.9 4.0L20.0 6.1L18.9 8.5L19.3 9.6L21.9 10.5L21.9 13.5L19.3 14.4L18.9 15.5L20.0 17.9L17.9 20.0L15.5 18.9L14.4 19.3L13.5 21.9L10.5 21.9L9.6 19.3L8.5 18.9L6.1 20.0L4.0 17.9L5.1 15.5L4.7 14.4L2.1 13.5L2.1 10.5L4.7 9.6L5.1 8.5L4.0 6.1L6.1 4.0L8.5 5.1Z"/><circle cx="12" cy="12" r="3.3"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="timeBox">
+      <div class="dial-row">
+        <input id="dial" type="range" min="0" max="0" step="1" value="0" data-i18n-attr="aria-label:duration">
+        <button class="dial-val" id="dialVal" type="button" data-i18n-attr="aria-label:customTime,title:customTime">0:30</button>
+      </div>
+    </div>
+
+    <div class="readout">
+      <div class="time" id="time">0:30</div>
+      <div class="bar"><i id="barFill" style="width:100%"></i></div>
+      <div class="phase" id="phase">Spremno</div>
+    </div>
+
+    <div class="controls">
+      <button class="go" id="go" type="button">
+        <svg class="go-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path id="goIcon" d="M8 5v14l11-7z"/></svg>
+        <span class="go-label" id="goLabel">Kreni</span>
+      </button>
+      <button class="reset icon" id="resetBtn" type="button" data-i18n-attr="aria-label:resetTime,title:resetHint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20.4 4.2v4.6h-4.6"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="sets">
+      <button class="sets-add" id="setsBtn" type="button" data-i18n-attr="aria-label:addSet">
+        <span class="sets-label" data-i18n="sets">Setovi</span>
+        <span class="sets-n" id="setsN">0</span>
+      </button>
+      <button class="sets-zero" id="setsZero" type="button" data-i18n-attr="aria-label:clearSets,title:clearSets">✕</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ TRAJANJE (samo kad je ploča niska) ═════════════════ -->
+<div class="sheet" id="timeSheet" role="dialog" aria-modal="true" aria-label="Trajanje" aria-hidden="true">
+  <div class="sheet-box">
+    <div class="sheet-head">
+      <h2 data-i18n="duration">Trajanje</h2>
+      <button class="icon sm" id="timeSheetClose" type="button" data-i18n-attr="aria-label:close">✕</button>
+    </div>
+    <div class="field" id="timeSlot"></div>
+
+    <div class="field">
+      <p class="field-title" data-i18n="customTime">Vlastito vrijeme</p>
+      <form class="custom-row" id="customForm">
+        <label><span data-i18n="minutes2">min</span>
+          <input id="customMin" type="number" min="0" max="180" step="1" value="0" inputmode="numeric">
+        </label>
+        <label><span data-i18n="seconds">sek</span>
+          <input id="customSec" type="number" min="0" max="59" step="1" value="30" inputmode="numeric">
+        </label>
+        <button class="btn inline" type="submit" data-i18n="apply">Postavi</button>
+      </form>
+      <p class="hint" data-i18n="customHint">Klizač ide do 15 minuta; dulje se upisuje ovdje.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ POSTAVKE ═══════════════════════════════════════════ -->
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Postavke" aria-hidden="true">
+  <div class="sheet-box">
+
+    <div class="sheet-head">
+      <h2 data-i18n="settings">Postavke</h2>
+      <button class="icon sm" id="sheetClose" type="button" data-i18n-attr="aria-label:close">✕</button>
+    </div>
+
+    <div class="field">
+      <p class="field-title" data-i18n="theme">Tema</p>
+      <div class="themes" id="themes"></div>
+    </div>
+
+    <div class="field">
+      <p class="field-title" data-i18n="progress">Prikaz napretka</p>
+      <div class="themes" id="progressPick"></div>
+      <p class="hint" data-i18n="progressHint">Na najužem rasporedu se uvijek prazne znamenke.</p>
+    </div>
+
+    <div class="field">
+      <p class="field-title" data-i18n="orientation">Smjer podjele</p>
+      <div class="themes" id="orientPick"></div>
+      <p class="hint" data-i18n="orientHint">Automatski: na uskim ekranima okomito, na širokima vodoravno.</p>
+    </div>
+
+    <div class="field">
+      <p class="field-title" data-i18n="language">Jezik</p>
+      <div class="themes" id="langPick"></div>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <label><span data-i18n="soundEnd">Zvuk na kraju</span>
+          <small data-i18n="soundEndHint">Signal kad vrijeme istekne.</small>
+        </label>
+        <button class="sw" id="soundEnd" type="button" role="switch" aria-checked="true"></button>
+      </div>
+      <div class="field-row">
+        <label><span data-i18n="soundTick">Odbrojavanje na kraju</span>
+          <small data-i18n="soundTickHint">Kratki signal za svaku od zadnjih sekundi.</small>
+        </label>
+        <button class="sw" id="soundTick" type="button" role="switch" aria-checked="true"></button>
+      </div>
+      <div class="field-row">
+        <label for="tickCount" data-i18n="tickCount">Koliko zadnjih sekundi</label>
+        <input id="tickCount" type="number" min="1" max="15" step="1" value="3" inputmode="numeric">
+      </div>
+      <button class="btn wide" id="testSound" type="button" data-i18n="testSound">Provjeri zvuk</button>
+      <p class="hint" data-i18n="soundHint">Na mobitelu zvuk se otključava tek prvim dodirom ekrana — pritisni ovo jednom prije vježbe.</p>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <label><span data-i18n="swapSides">Medij s druge strane</span>
+          <small data-i18n="swapSidesHint">Zamijeni mjesta slici i timeru.</small>
+        </label>
+        <button class="sw" id="sideSw" type="button" role="switch" aria-checked="false"></button>
+      </div>
+      <div class="field-row">
+        <label><span data-i18n="keepAwake">Drži ekran upaljen</span>
+          <small data-i18n="keepAwakeHint">Dok timer radi.</small>
+        </label>
+        <button class="sw" id="keepAwake" type="button" role="switch" aria-checked="true"></button>
+      </div>
+      <p class="hint"><span data-i18n="keysHint">Vrijeme se bira klizačem na glavnom ekranu.</span><br>
+        <span data-i18n-html="keys">Tipkovnica: <b>razmak</b> kreni/pauza · <b>R</b> reset · <b>S</b> set.</span></p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+const $ = (id) => document.getElementById(id);
+const els = {
+  root: document.documentElement, body: document.body, app: document.querySelector('.app'),
+  time: $('time'), bar: $('barFill'), phase: $('phase'), goIcon: $('goIcon'), goLabel: $('goLabel'),
+  go: $('go'), reset: $('resetBtn'), sets: $('setsBtn'), setsZero: $('setsZero'), setsN: $('setsN'),
+  presets: $('presets'), dial: $('dial'), dialVal: $('dialVal'),
+  media: $('media'), mediaBtn: $('mediaBtn'),
+  editMedia: $('editMedia'), openMedia: $('openMedia'),
+  customForm: $('customForm'), customMin: $('customMin'), customSec: $('customSec'),
+  progressPick: $('progressPick'), langPick: $('langPick'), orientPick: $('orientPick'),
+  orientBtn: $('orientBtn'), orientLine: $('orientLine'), closeSplit: $('closeSplit'),
+  divider: $('divider'), splitLine: $('splitLine'), sideSw: $('sideSw'), mediaBody: $('mediaBody'), timeBox: $('timeBox'), timeBtn: $('timeBtn'), timeBtnVal: $('timeBtnVal'),
+  timeSheet: $('timeSheet'), timeSheetClose: $('timeSheetClose'), timeSlot: $('timeSlot'),
+  top: document.querySelector('.top'), pane: document.querySelector('.pane'), readout: document.querySelector('.readout'),
+  setupBtn: $('setupBtn'), sheet: $('sheet'), sheetClose: $('sheetClose'), themes: $('themes'),
+  soundEnd: $('soundEnd'), soundTick: $('soundTick'), tickCount: $('tickCount'),
+  testSound: $('testSound'), keepAwake: $('keepAwake')
+};
+
+/* ═══════════════════════════════════════════════════════════
+   1 · Postavke — sve preživi zatvaranje kartice
+   ═══════════════════════════════════════════════════════════ */
+
+const STORE = 'workshop.timer';
+const DEFAULTS = {
+  theme: 'noc', secs: 30, soundEnd: true, soundTick: true, tickCount: 3,
+  media: '', mediaOn: false, ratio: 55, side: 'a', orient: 'auto',
+  progress: 'deflate', keepAwake: true, sets: 0, lang: null
+};
+
+let cfg = { ...DEFAULTS };
+try { cfg = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORE) || '{}') }; } catch { /* prvi put */ }
+
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(cfg)); } catch { /* privatni način */ } };
+
+/**
+ * Kako se prikazuje napredak.
+ *
+ *   bar      — zasebna traka ispod brojke
+ *   deflate  — boja se povlači iz znamenki
+ *   fill     — znamenke se odozdo pune upozoravajućom bojom
+ *
+ * Na najužoj razini se uvijek prazni: traka bi pojela redak, a punjenje
+ * je na maloj brojci teže čitati od praznjenja.
+ */
+const PROGRESS_MODES = ['bar', 'deflate', 'fill'];
+
+/* ═══════════════════════════════════════════════════════════
+   Jezici
+
+   Zadani se bira iz preglednika; izbor u postavkama ga nadjača i
+   pamti se. Ključevi su engleski jer su kratki i stabilni.
+   ═══════════════════════════════════════════════════════════ */
+
+const LANGS = { hr: 'Hrvatski', en: 'English', de: 'Deutsch' };
+
+const STRINGS = {
+  hr: {
+    title: 'Timer za vježbanje — odmor, serije i odbrojavanje',
+    ready: 'Spremno', running: 'U tijeku', last: 'Zadnje sekunde', done: 'Gotovo',
+    start: 'Kreni', pause: 'Pauza', resume: 'Nastavi',
+    sets: 'Setovi', addSet: 'Dodaj set', clearSets: 'Poništi brojač setova',
+    resetTime: 'Vrati vrijeme na početak', resetHint: 'Reset (R)',
+    duration: 'Trajanje', pickDuration: 'Odaberi trajanje',
+    split: 'Podjela ekrana', splitOn: 'Podijeli ekran',
+    splitOff: 'Isključi podjelu', customTime: 'Vlastito vrijeme', customHint: 'Klizač ide do 15 minuta; dulje se upisuje ovdje.', minutes2: 'min', seconds: 'sek', apply: 'Postavi',
+    orientation: 'Smjer podjele', orientAuto: 'Automatski', orientVertical: 'Okomito', orientHorizontal: 'Vodoravno',
+    orientHint: 'Automatski: na uskim ekranima okomito, na širokima vodoravno.',
+    splitRatio: 'Omjer podjele',
+    editUrl: 'Promijeni adresu', openTab: 'Otvori u novoj kartici',
+    mediaTitle: 'Slika, video ili stranica',
+    mediaHint: 'Zalijepi adresu slike, YouTube videa ili bilo koje stranice.',
+    mediaBad: 'Ta se slika ne može učitati. Provjeri vodi li adresa izravno na sliku.',
+    mediaShow: 'Prikaži', mediaAddress: 'Adresa za prikaz',
+    frameNote: 'Ostane li prazno, stranica zabranjuje ugradnju — ',
+    frameLink: 'otvori u novoj kartici',
+    settings: 'Postavke', close: 'Zatvori',
+    theme: 'Tema', language: 'Jezik',
+    progress: 'Prikaz napretka', progressHint: 'Na najužem rasporedu se uvijek prazne znamenke.',
+    progressBar: 'Traka', progressDeflate: 'Praznjenje', progressFill: 'Punjenje',
+    soundEnd: 'Zvuk na kraju', soundEndHint: 'Signal kad vrijeme istekne.',
+    soundTick: 'Odbrojavanje na kraju', soundTickHint: 'Kratki signal za svaku od zadnjih sekundi.',
+    tickCount: 'Koliko zadnjih sekundi',
+    testSound: 'Provjeri zvuk',
+    soundHint: 'Na mobitelu zvuk se otključava tek prvim dodirom ekrana — pritisni ovo jednom prije vježbe.',
+    swapSides: 'Medij s druge strane', swapSidesHint: 'Zamijeni mjesta slici i timeru.',
+    keepAwake: 'Drži ekran upaljen', keepAwakeHint: 'Dok timer radi.',
+    keysHint: 'Vrijeme se bira klizačem na glavnom ekranu. Granica podjele se povlači, dvoklik je vraća na sredinu.',
+    keys: 'Tipkovnica: <b>razmak</b> kreni/pauza · <b>R</b> reset · <b>S</b> set.'
+  },
+  en: {
+    title: 'Workout timer — rest, sets and countdown',
+    ready: 'Ready', running: 'Running', last: 'Final seconds', done: 'Done',
+    start: 'Start', pause: 'Pause', resume: 'Resume',
+    sets: 'Sets', addSet: 'Add a set', clearSets: 'Reset the set counter',
+    resetTime: 'Reset the time', resetHint: 'Reset (R)',
+    duration: 'Duration', pickDuration: 'Choose duration',
+    split: 'Split screen', splitOn: 'Split the screen',
+    splitOff: 'Turn the split off', customTime: 'Custom time', customHint: 'The slider reaches 15 minutes; longer goes here.', minutes2: 'min', seconds: 'sec', apply: 'Set',
+    orientation: 'Split direction', orientAuto: 'Automatic', orientVertical: 'Vertical', orientHorizontal: 'Horizontal',
+    orientHint: 'Automatic: vertical on narrow screens, horizontal on wide ones.',
+    splitRatio: 'Split ratio',
+    editUrl: 'Change the address', openTab: 'Open in a new tab',
+    mediaTitle: 'Image, video or page',
+    mediaHint: 'Paste the address of an image, a YouTube video or any page.',
+    mediaBad: 'That image will not load. Check that the address points straight at an image.',
+    mediaShow: 'Show', mediaAddress: 'Address to show',
+    frameNote: 'If it stays blank, the page refuses embedding — ',
+    frameLink: 'open it in a new tab',
+    settings: 'Settings', close: 'Close',
+    theme: 'Theme', language: 'Language',
+    progress: 'Progress display', progressHint: 'The narrowest layout always drains the digits.',
+    progressBar: 'Bar', progressDeflate: 'Draining', progressFill: 'Filling',
+    soundEnd: 'Sound at the end', soundEndHint: 'A signal when the time runs out.',
+    soundTick: 'Countdown at the end', soundTickHint: 'A short signal for each of the final seconds.',
+    tickCount: 'How many final seconds',
+    testSound: 'Test the sound',
+    soundHint: 'On a phone the sound unlocks only on the first tap — press this once before you train.',
+    swapSides: 'Media on the other side', swapSidesHint: 'Swap the image and the timer.',
+    keepAwake: 'Keep the screen on', keepAwakeHint: 'While the timer runs.',
+    keysHint: 'The duration is set with the slider on the main screen. Drag the split border; double-click returns it to the middle.',
+    keys: 'Keyboard: <b>space</b> start/pause · <b>R</b> reset · <b>S</b> set.'
+  },
+  de: {
+    title: 'Trainingstimer — Pause, Sätze und Countdown',
+    ready: 'Bereit', running: 'Läuft', last: 'Letzte Sekunden', done: 'Fertig',
+    start: 'Start', pause: 'Pause', resume: 'Weiter',
+    sets: 'Sätze', addSet: 'Satz hinzufügen', clearSets: 'Satzzähler zurücksetzen',
+    resetTime: 'Zeit zurücksetzen', resetHint: 'Zurücksetzen (R)',
+    duration: 'Dauer', pickDuration: 'Dauer wählen',
+    split: 'Geteilter Bildschirm', splitOn: 'Bildschirm teilen',
+    splitOff: 'Teilung ausschalten', customTime: 'Eigene Zeit', customHint: 'Der Schieber reicht bis 15 Minuten; längeres wird hier eingetragen.', minutes2: 'Min', seconds: 'Sek', apply: 'Setzen',
+    orientation: 'Teilungsrichtung', orientAuto: 'Automatisch', orientVertical: 'Vertikal', orientHorizontal: 'Horizontal',
+    orientHint: 'Automatisch: vertikal auf schmalen, horizontal auf breiten Bildschirmen.',
+    splitRatio: 'Teilungsverhältnis',
+    editUrl: 'Adresse ändern', openTab: 'In neuem Tab öffnen',
+    mediaTitle: 'Bild, Video oder Seite',
+    mediaHint: 'Füge die Adresse eines Bildes, eines YouTube-Videos oder einer beliebigen Seite ein.',
+    mediaBad: 'Dieses Bild lässt sich nicht laden. Prüfe, ob die Adresse direkt auf ein Bild zeigt.',
+    mediaShow: 'Anzeigen', mediaAddress: 'Anzuzeigende Adresse',
+    frameNote: 'Bleibt es leer, verbietet die Seite das Einbetten — ',
+    frameLink: 'in neuem Tab öffnen',
+    settings: 'Einstellungen', close: 'Schließen',
+    theme: 'Design', language: 'Sprache',
+    progress: 'Fortschrittsanzeige', progressHint: 'Im schmalsten Layout leeren sich immer die Ziffern.',
+    progressBar: 'Balken', progressDeflate: 'Leeren', progressFill: 'Füllen',
+    soundEnd: 'Ton am Ende', soundEndHint: 'Ein Signal, wenn die Zeit abläuft.',
+    soundTick: 'Countdown am Ende', soundTickHint: 'Ein kurzes Signal für jede der letzten Sekunden.',
+    tickCount: 'Wie viele letzte Sekunden',
+    testSound: 'Ton prüfen',
+    soundHint: 'Am Handy wird der Ton erst mit der ersten Berührung freigegeben — drücke das einmal vor dem Training.',
+    swapSides: 'Medium auf der anderen Seite', swapSidesHint: 'Bild und Timer tauschen.',
+    keepAwake: 'Bildschirm anlassen', keepAwakeHint: 'Solange der Timer läuft.',
+    keysHint: 'Die Dauer wird mit dem Schieber auf dem Hauptbildschirm gewählt. Die Trennlinie lässt sich ziehen, ein Doppelklick stellt sie zurück in die Mitte.',
+    keys: 'Tastatur: <b>Leertaste</b> Start/Pause · <b>R</b> zurücksetzen · <b>S</b> Satz.'
+  }
+};
+
+/** Prvi jezik iz preglednika koji poznajemo; inače engleski. */
+function detectLang() {
+  for (const tag of navigator.languages || [navigator.language || '']) {
+    const code = String(tag).slice(0, 2).toLowerCase();
+    if (LANGS[code]) return code;
+  }
+  return 'en';
+}
+
+const t = (key) => (STRINGS[cfg.lang] || STRINGS.en)[key] ?? STRINGS.en[key] ?? key;
+
+/**
+ * Prevodi statični markup. Elementi nose ključ u `data-i18n`, a oni
+ * kojima treba prevesti atribut nabroje ih u `data-i18n-attr`.
+ */
+function applyLang() {
+  document.documentElement.lang = cfg.lang;
+  document.title = t('title');
+
+  for (const el of document.querySelectorAll('[data-i18n]')) {
+    el.textContent = t(el.dataset.i18n);
+  }
+  for (const el of document.querySelectorAll('[data-i18n-html]')) {
+    el.innerHTML = t(el.dataset.i18nHtml);
+  }
+  for (const el of document.querySelectorAll('[data-i18n-attr]')) {
+    for (const pair of el.dataset.i18nAttr.split(',')) {
+      const [attr, key] = pair.split(':');
+      el.setAttribute(attr, t(key));
+    }
+  }
+
+  renderLangs();
+  renderProgressPick();
+  renderOrientPick();
+  renderMedia();
+  applyOrient();
+  paint();
+}
+
+function renderLangs() {
+  els.langPick.innerHTML = Object.entries(LANGS).map(([code, name]) => `
+    <button class="theme" type="button" data-lang="${code}" aria-pressed="${code === cfg.lang}">${name}</button>`).join('');
+}
+
+function setLang(code) {
+  cfg.lang = LANGS[code] ? code : 'en';
+  save();
+  applyLang();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   2 · Teme
+   ═══════════════════════════════════════════════════════════ */
+
+const THEMES = [
+  { id: 'noc',    name: 'Noć',    chips: ['#0d1012', '#1b2124', '#35d67f'] },
+  { id: 'dan',    name: 'Dan',    chips: ['#f4f5f6', '#ffffff', '#0f9d58'] },
+  { id: 'ugljen', name: 'Ugljen', chips: ['#000000', '#131313', '#00e676'] },
+  { id: 'jantar', name: 'Jantar', chips: ['#17120c', '#261d13', '#7fd67f'] },
+  { id: 'more',   name: 'More',   chips: ['#071319', '#11242e', '#2fd6c6'] }
+];
+
+function applyTheme(id) {
+  const theme = THEMES.some((t) => t.id === id) ? id : 'noc';
+  cfg.theme = theme;
+  els.root.dataset.theme = theme;
+  for (const button of els.themes.children) {
+    button.setAttribute('aria-pressed', String(button.dataset.theme === theme));
+  }
+  save();
+}
+
+els.themes.innerHTML = THEMES.map((t) => `
+  <button class="theme" type="button" data-theme="${t.id}" aria-pressed="false">
+    <span class="theme-chip">${t.chips.map((c) => `<i style="background:${c}"></i>`).join('')}</span>
+    ${t.name}
+  </button>`).join('');
+
+els.themes.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-theme]');
+  if (button) applyTheme(button.dataset.theme);
+});
+
+/* ── Prikaz napretka ── */
+
+const PROGRESS_KEY = { bar: 'progressBar', deflate: 'progressDeflate', fill: 'progressFill' };
+
+function renderProgressPick() {
+  els.progressPick.innerHTML = PROGRESS_MODES.map((mode) => `
+    <button class="theme" type="button" data-progress="${mode}" aria-pressed="${mode === cfg.progress}">
+      ${t(PROGRESS_KEY[mode])}
+    </button>`).join('');
+}
+
+function applyProgress(mode) {
+  cfg.progress = PROGRESS_MODES.includes(mode) ? mode : 'deflate';
+  renderProgressPick();
+  save();
+  paint();
+}
+
+els.progressPick.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-progress]');
+  if (button) applyProgress(button.dataset.progress);
+});
+
+els.langPick.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-lang]');
+  if (button) setLang(button.dataset.lang);
+});
+
+/* ═══════════════════════════════════════════════════════════
+   3 · Zvuk
+
+   Tonovi se sintetiziraju u pregledniku — nema datoteke koja bi
+   se morala učitati, pa radi i bez mreže. iOS pušta zvuk tek nakon
+   dodira, zato se kontekst otvara na prvi pritisak.
+   ═══════════════════════════════════════════════════════════ */
+
+let audio = null;
+
+function wakeAudio() {
+  if (!audio) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    audio = new Ctx();
+  }
+  if (audio.state === 'suspended') audio.resume();
+  return audio;
+}
+
+function beep(freq, seconds, volume = 0.22, delay = 0) {
+  const ctx = wakeAudio();
+  if (!ctx) return [];
+  const at = ctx.currentTime + delay;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, at);
+  // Nagli početak i mekan kraj — inače se čuje škljocaj na rubovima.
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(volume, at + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + seconds);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(at);
+  osc.stop(at + seconds + 0.03);
+  return [osc];
+}
+
+const tickBeep = () => beep(880, 0.11, 0.2);
+const endBeep = () => { beep(1240, 0.22, 0.3); beep(1240, 0.22, 0.3, 0.28); beep(1660, 0.42, 0.3, 0.56); };
+
+/**
+ * Zvuk se zakazuje unaprijed, na satu zvučnog sklopa.
+ *
+ * Da se oglašava po okviru, u pozadinskoj kartici ne bi bilo ničega:
+ * preglednik ondje zaustavlja `requestAnimationFrame`. Ovako signali
+ * odu u red čim krug krene i čuju se bez obzira gdje je kartica.
+ */
+let scheduled = [];
+
+function cancelSounds() {
+  for (const osc of scheduled) { try { osc.stop(); } catch { /* već gotov */ } }
+  scheduled = [];
+}
+
+function scheduleSounds(remaining) {
+  cancelSounds();
+  if (!wakeAudio()) return;
+  if (cfg.soundTick) {
+    const last = Math.min(Number(cfg.tickCount), Math.floor(remaining));
+    for (let n = last; n >= 1; n--) scheduled.push(...beep(880, 0.11, 0.2, remaining - n));
+  }
+  if (cfg.soundEnd) {
+    scheduled.push(...beep(1240, 0.22, 0.3, remaining));
+    scheduled.push(...beep(1240, 0.22, 0.3, remaining + 0.28));
+    scheduled.push(...beep(1660, 0.42, 0.3, remaining + 0.56));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   4 · Trajanje
+
+   Klizač ne ide po sekundi nego po popisu okruglih vrijednosti —
+   gušće na kratkom kraju, gdje se i bira. Tako je i na mobitelu
+   svaka pozicija upotrebljiva, bez preciznog pogađanja.
+   ═══════════════════════════════════════════════════════════ */
+
+const STOPS = [
+  5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60,
+  70, 80, 90, 100, 110, 120, 135, 150, 165, 180,
+  210, 240, 270, 300, 360, 420, 480, 600, 720, 900
+];
+
+const PRESETS = [30, 60, 120];
+
+els.dial.max = String(STOPS.length - 1);
+
+/** Najbliža pozicija klizača za zadani broj sekundi. */
+function stopIndex(seconds) {
+  let best = 0;
+  for (let i = 1; i < STOPS.length; i++) {
+    if (Math.abs(STOPS[i] - seconds) < Math.abs(STOPS[best] - seconds)) best = i;
+  }
+  return best;
+}
+
+function format(seconds) {
+  const s = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function labelFor(seconds) {
+  if (seconds < 60) return `${seconds}s`;
+  return seconds % 60 === 0 ? `${seconds / 60}min` : format(seconds);
+}
+
+function renderPresets() {
+  els.presets.innerHTML = PRESETS.map((secs) =>
+    `<button class="preset" type="button" data-secs="${secs}" aria-pressed="${secs === total}">${labelFor(secs)}</button>`
+  ).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   5 · Odbrojavanje
+
+   Vrijeme se čita iz sata, ne zbraja po okviru — inače timer
+   zaostane kad preglednik uspori karticu u pozadini.
+   ═══════════════════════════════════════════════════════════ */
+
+let total = 30;
+let left = 30;
+let endsAt = 0;
+let running = false;
+let frame = 0;
+let endGuard = 0;
+
+function phaseOf() {
+  if (!running && left <= 0) return 'done';
+  if (running && left <= Number(cfg.tickCount)) return 'warn';
+  if (running) return 'run';
+  return 'idle';
+}
+
+function progressMode() {
+  return tier === 2 ? 'deflate' : (PROGRESS_MODES.includes(cfg.progress) ? cfg.progress : 'deflate');
+}
+
+function paintProgress(share, phase) {
+  const mode = progressMode();
+  const pct = share.toFixed(1);
+  els.body.dataset.progress = mode;
+  els.bar.style.width = `${pct}%`;
+
+  // U načinu punjenja preostali dio zadržava boju tijeka i u zadnjim
+  // sekundama. Da prati fazu, obojio bi se istom bojom kojom se puni,
+  // pa bi znamenke izgledale posve pune upravo kad je ostalo najmanje.
+  const rest = mode === 'fill' && phase === 'warn' ? 'var(--run)' : 'var(--state)';
+
+  // Na nuli nema što dijeliti — znamenke uzimaju punu boju kraja, istu
+  // koju u tom trenutku ima i traka.
+  const solid = mode === 'bar' || phase === 'done';
+  els.time.style.backgroundImage = solid
+    ? 'none'
+    : `linear-gradient(to top, ${rest} ${pct}%, ${mode === 'fill' ? 'var(--warn)' : 'var(--spent)'} ${pct}%)`;
+  els.time.style.color = solid ? 'var(--state)' : '';
+  els.time.style.webkitTextFillColor = solid ? 'var(--state)' : '';
+}
+
+const PHASE_COLOR = { idle: 'var(--idle)', run: 'var(--run)', warn: 'var(--warn)', done: 'var(--done)' };
+const PHASE_KEY = { idle: 'ready', run: 'running', warn: 'last', done: 'done' };
+
+function paint() {
+  const phase = phaseOf();
+  els.body.dataset.phase = phase;
+  els.root.style.setProperty('--state', PHASE_COLOR[phase]);
+  els.time.textContent = format(left);
+  paintProgress(total > 0 ? Math.max(0, Math.min(100, (left / total) * 100)) : 0, phase);
+  els.phase.textContent = t(PHASE_KEY[phase]);
+  els.goLabel.textContent = t(running ? 'pause' : (left > 0 && left < total ? 'resume' : 'start'));
+  els.go.setAttribute('aria-label', els.goLabel.textContent);
+  // Dvije crte za pauzu, trokut za pokretanje.
+  els.goIcon.setAttribute('d', running ? 'M7 5h3.5v14H7zM13.5 5H17v14h-3.5z' : 'M8 5v14l11-7z');
+  els.dialVal.textContent = format(total);
+  els.timeBtnVal.textContent = format(total);
+  els.customMin.value = Math.floor(total / 60);
+  els.customSec.value = total % 60;
+  els.dial.disabled = running;       // trajanje se ne mijenja usred kruga
+}
+
+/* rAF samo crta. Kraj kruga drži `setTimeout`, jer se rAF u pozadinskoj
+   kartici zaustavi, a odbrojavanje mora završiti i tada. */
+function tick() {
+  if (!running) return;
+  left = (endsAt - Date.now()) / 1000;
+  if (left <= 0) { finish(); return; }
+  paint();
+  frame = requestAnimationFrame(tick);
+}
+
+function start() {
+  wakeAudio();                       // otključavanje zvuka traži dodir
+  if (left <= 0) left = total;
+  endsAt = Date.now() + left * 1000;
+  running = true;
+  scheduleSounds(left);
+  requestWakeLock();
+  clearTimeout(endGuard);
+  endGuard = window.setTimeout(finish, left * 1000 + 40);
+  paint();
+  frame = requestAnimationFrame(tick);
+}
+
+function pause() {
+  running = false;
+  cancelAnimationFrame(frame);
+  clearTimeout(endGuard);
+  cancelSounds();
+  left = Math.max(0, (endsAt - Date.now()) / 1000);
+  releaseWakeLock();
+  paint();
+}
+
+/** Na nuli timer stane i čeka — sljedeći krug kreće na pritisak. */
+function finish() {
+  if (!running) return;
+  running = false;
+  cancelAnimationFrame(frame);
+  clearTimeout(endGuard);
+  left = 0;
+  releaseWakeLock();
+  paint();
+  if (navigator.vibrate) navigator.vibrate([120, 70, 120]);
+}
+
+function reset() {
+  running = false;
+  cancelAnimationFrame(frame);
+  clearTimeout(endGuard);
+  cancelSounds();
+  left = total;
+  releaseWakeLock();
+  paint();
+}
+
+function setTotal(seconds, fromDial) {
+  total = Math.max(1, Math.round(seconds));
+  cfg.secs = total;
+  save();
+  // Upiše li se dulje od dosega klizača, on ostaje na svom kraju;
+  // mjerodavan je upisani broj, ne položaj ručice.
+  if (!fromDial) els.dial.value = String(stopIndex(Math.min(total, STOPS[STOPS.length - 1])));
+  reset();
+  renderPresets();
+}
+
+els.presets.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-secs]');
+  if (button) setTotal(Number(button.dataset.secs));
+});
+
+els.dial.addEventListener('input', () => setTotal(STOPS[Number(els.dial.value)], true));
+
+/* ═══════════════════════════════════════════════════════════
+   6 · Ekran ostaje upaljen dok timer radi
+   ═══════════════════════════════════════════════════════════ */
+
+let lock = null;
+
+async function requestWakeLock() {
+  if (!cfg.keepAwake || !navigator.wakeLock || lock) return;
+  try { lock = await navigator.wakeLock.request('screen'); } catch { /* odbijeno ili nema podrške */ }
+}
+
+function releaseWakeLock() {
+  if (lock) { lock.release().catch(() => {}); lock = null; }
+}
+
+// Sustav otpušta bravu kad kartica ode u pozadinu; vrati je na povratak.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  if (!running) return;
+  requestWakeLock();
+  // rAF je u pozadini stao — nadoknadi prikaz i nastavi crtati.
+  left = (endsAt - Date.now()) / 1000;
+  if (left <= 0) { finish(); return; }
+  paint();
+  cancelAnimationFrame(frame);
+  frame = requestAnimationFrame(tick);
+});
+
+/* ═══════════════════════════════════════════════════════════
+   7 · Podijeljeni ekran
+
+   Adresa slike ili videa nije postavka nego dio glavnog ekrana —
+   mijenja se svaku vježbu. Prazna strana nosi polje za unos, a
+   traka na vrhu omjer i stranu.
+   ═══════════════════════════════════════════════════════════ */
+
+function youtubeId(url) {
+  const match = String(url).match(
+    /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/i
+  );
+  return match ? match[1] : null;
+}
+
+/**
+ * Što je zalijepljeno.
+ *
+ * YouTube i slika se prepoznaju da bi dobili pravo ponašanje —
+ * video ide kroz nocookie ugradnju, slika se uklapa u okvir bez
+ * rezanja. Sve ostalo je obična stranica u okviru.
+ */
+function kindOf(url) {
+  if (youtubeId(url)) return 'youtube';
+  if (/^data:image\//i.test(url)) return 'image';
+  if (/\.(avif|gif|jpe?g|png|svg|webp)(\?|#|$)/i.test(url)) return 'image';
+  return 'page';
+}
+
+function askForUrl(note) {
+  const form = document.createElement('form');
+  form.className = 'drop-form';
+  form.innerHTML = `<input type="text" inputmode="url" autocomplete="off" spellcheck="false"
+      placeholder="https://…" value="${(cfg.media || '').replace(/"/g, '&quot;')}" aria-label="${t('mediaAddress')}">
+    <button class="btn inline" type="submit">${t('mediaShow')}</button>`;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'drop';
+  wrap.innerHTML = `<h2>${t('mediaTitle')}</h2>
+    <p>${note || t('mediaHint')}</p>`;
+  wrap.append(form);
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    cfg.media = form.querySelector('input').value.trim();
+    save();
+    renderMedia();
+  });
+
+  els.mediaBody.replaceChildren(wrap);
+  return form.querySelector('input');
+}
+
+function renderMedia() {
+  const url = (cfg.media || '').trim();
+  els.openMedia.href = url || '#';
+  els.openMedia.style.visibility = url ? 'visible' : 'hidden';
+
+  if (!url) { askForUrl(); return; }
+
+  const kind = kindOf(url);
+
+  if (kind === 'image') {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Vježbe';
+    img.decoding = 'async';
+    img.addEventListener('error', () => askForUrl(t('mediaBad')));
+    els.mediaBody.replaceChildren(img);
+    return;
+  }
+
+  const frameEl = document.createElement('iframe');
+  frameEl.referrerPolicy = 'strict-origin-when-cross-origin';
+
+  if (kind === 'youtube') {
+    frameEl.src = `https://www.youtube-nocookie.com/embed/${youtubeId(url)}?rel=0&modestbranding=1&playsinline=1`;
+    frameEl.allow = 'accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+    frameEl.title = 'Video s vježbama';
+  } else {
+    // Obična stranica. Dio sajtova zabranjuje ugradnju zaglavljem, a to
+    // se izvana ne da provjeriti — zato uz okvir uvijek stoji i gumb
+    // za otvaranje u novoj kartici.
+    frameEl.src = url;
+    frameEl.title = 'Stranica s vježbama';
+    frameEl.sandbox = 'allow-scripts allow-same-origin allow-popups allow-forms';
+  }
+
+  els.mediaBody.replaceChildren(frameEl);
+
+  if (kind === 'page') {
+    const note = document.createElement('p');
+    note.className = 'frame-note';
+    note.innerHTML = t('frameNote')
+      + `<a href="${url.replace(/"/g, '&quot;')}" target="_blank" rel="noopener noreferrer">${t('frameLink')}</a>.`;
+    els.mediaBody.append(note);
+  }
+}
+
+function setMediaOn(on) {
+  cfg.mediaOn = on;
+  els.body.dataset.media = on ? 'on' : 'off';
+  els.mediaBtn.setAttribute('aria-pressed', String(on));
+  save();
+  if (on) renderMedia();
+  applyOrient();
+  syncCompact();
+}
+
+const RATIO_MIN = 20;
+const RATIO_MAX = 80;
+const PANE_MIN = 210;              // mora pratiti donju granicu iz CSS-a
+
+/**
+ * Dokle granica smije.
+ *
+ * Postotak sam nije dovoljan: ploča ima donju granicu u pikselima, pa bi
+ * se pri velikom omjeru hvatište odvojilo od stvarne granice i visjelo
+ * u zraku. Zato se gornja granica računa iz mjere, ne iz postotka.
+ */
+function maxShare() {
+  const box = els.app.getBoundingClientRect();
+  const span = els.body.dataset.orient === 'side' ? box.width : box.height;
+  if (span <= 0) return RATIO_MAX;
+  return Math.min(RATIO_MAX, Math.max(RATIO_MIN, ((span - PANE_MIN) / span) * 100));
+}
+
+function setRatio(value) {
+  cfg.ratio = Math.round(Math.min(maxShare(), Math.max(RATIO_MIN, value)));
+  els.root.style.setProperty('--media-share', `${cfg.ratio}%`);
+  els.divider.setAttribute('aria-valuenow', String(cfg.ratio));
+  save();
+  syncCompact();
+}
+
+function setSide(side) {
+  cfg.side = side === 'b' ? 'b' : 'a';
+  els.body.dataset.side = cfg.side;
+  els.sideSw.setAttribute('aria-checked', String(cfg.side === 'b'));
+  save();
+}
+
+/**
+ * Povlačenje granice.
+ *
+ * Omjer se računa iz položaja prsta unutar cijele mreže, pa je isti
+ * bez obzira gdje je granica krenula. Kad je medij s druge strane,
+ * postotak se okreće — inače bi povlačenje išlo naopako.
+ */
+function ratioFromPointer(event) {
+  const box = els.app.getBoundingClientRect();
+  const vertical = els.body.dataset.orient === 'side';
+  const along = vertical
+    ? (event.clientX - box.left) / box.width
+    : (event.clientY - box.top) / box.height;
+  const share = cfg.side === 'b' ? 1 - along : along;
+  return share * 100;
+}
+
+els.divider.addEventListener('pointerdown', (event) => {
+  els.divider.setPointerCapture(event.pointerId);
+  els.divider.classList.add('dragging');
+  event.preventDefault();
+});
+
+els.divider.addEventListener('pointermove', (event) => {
+  if (!els.divider.classList.contains('dragging')) return;
+  setRatio(ratioFromPointer(event));
+});
+
+for (const type of ['pointerup', 'pointercancel']) {
+  els.divider.addEventListener(type, (event) => {
+    els.divider.classList.remove('dragging');
+    if (els.divider.hasPointerCapture(event.pointerId)) els.divider.releasePointerCapture(event.pointerId);
+  });
+}
+
+// Dvostruki klik vraća granicu na sredinu.
+els.divider.addEventListener('dblclick', () => setRatio(50));
+
+els.divider.addEventListener('keydown', (event) => {
+  const step = { ArrowLeft: -2, ArrowRight: 2, ArrowUp: -2, ArrowDown: 2 }[event.key];
+  if (step === undefined) return;
+  event.preventDefault();
+  setRatio(cfg.ratio + step);
+});
+
+/**
+ * Smjer podjele.
+ *
+ * `auto` prati oblik ekrana: širi od visokog dijeli okomito (jedno uz
+ * drugo), viši od širokog vodoravno. Zato okretanje mobitela odmah
+ * mijenja raspored, bez diranja postavki. `v` i `h` zaključavaju izbor.
+ */
+const wideScreen = window.matchMedia('(min-aspect-ratio: 1/1)');
+
+function effectiveOrient() {
+  if (cfg.orient === 'side' || cfg.orient === 'stack') return cfg.orient;
+  return wideScreen.matches ? 'side' : 'stack';
+}
+
+/*
+ * Smjer i uključenost su dvije odvojene stvari: gumb u ploči pali i gasi
+ * podjelu, a smjer se bira u postavkama ili gumbom nad medijem.
+ */
+const ORIENT_MODES = ['auto', 'stack', 'side'];
+const ORIENT_KEY = { auto: 'orientAuto', stack: 'orientVertical', side: 'orientHorizontal' };
+
+function applyOrient() {
+  const effective = effectiveOrient();
+  els.body.dataset.orient = effective;
+  // Crta u ikonama prati stvarni smjer podjele.
+  const line = effective === 'side' ? 'M12 4.5v15' : 'M2.5 12h19';
+  els.splitLine.setAttribute('d', line);
+  els.orientLine.setAttribute('d', line);
+  els.mediaBtn.title = t('splitOn');
+  els.mediaBtn.setAttribute('aria-pressed', String(Boolean(cfg.mediaOn)));
+  els.orientBtn.title = `${t('orientation')}: ${t(ORIENT_KEY[cfg.orient] || 'orientAuto')}`;
+  els.orientBtn.setAttribute('aria-pressed', String(cfg.orient !== 'auto'));
+  renderOrientPick();
+}
+
+function renderOrientPick() {
+  els.orientPick.innerHTML = ORIENT_MODES.map((mode) => `
+    <button class="theme" type="button" data-orient="${mode}" aria-pressed="${mode === cfg.orient}">
+      ${t(ORIENT_KEY[mode])}
+    </button>`).join('');
+}
+
+function setOrient(orient) {
+  cfg.orient = ['auto', 'stack', 'side'].includes(orient) ? orient : 'auto';
+  applyOrient();
+  save();
+  syncCompact();
+}
+
+wideScreen.addEventListener('change', () => { if (cfg.orient === 'auto') { applyOrient(); syncCompact(); } });
+
+/* ── Niska ploča ────────────────────────────────────────────
+   Ispod granice se predlošci i klizač fizički sele u modal, a u
+   gornjem redu ostaje gumb s trajanjem. Mjeri se ploča, ne prozor,
+   jer je njezina visina ono što stvarno nedostaje. */
+
+/* Granice su visine ploče, ne prozora — mjeri se ono čega nedostaje. */
+const TIER_1_UNDER = 420;
+const TIER_2_UNDER = 300;
+let tier = 0;
+
+function setTier(next) {
+  els.body.dataset.tier = String(next);
+  if (next === tier) return;
+  const bio = tier;
+  tier = next;
+  els.body.dataset.tier = String(tier);
+
+  // Trajanje seli u modal od prve razine naviše.
+  if (tier >= 1 && bio === 0) {
+    els.timeSlot.append(els.presets, els.timeBox);
+  } else if (tier === 0 && bio >= 1) {
+    els.top.prepend(els.presets);
+    els.pane.insertBefore(els.timeBox, els.readout);
+    closeTimeSheet();
+  }
+  paint();
+}
+
+/** Mjeri ploču i bira razinu rasporeda. */
+function syncCompact() {
+  const height = els.pane.getBoundingClientRect().height;
+  setTier(height < TIER_2_UNDER ? 2 : height < TIER_1_UNDER ? 1 : 0);
+}
+
+/** Nakon svake promjene veličine: prvo smjer, pa mjera ploče. */
+function syncLayout() {
+  if (cfg.orient === 'auto') applyOrient();
+  syncCompact();
+  setRatio(cfg.ratio);              // granica se mijenja s veličinom
+}
+
+window.addEventListener('resize', syncLayout);
+window.addEventListener('orientationchange', () => window.setTimeout(syncLayout, 60));
+
+const openTimeSheet = () => { els.timeSheet.classList.add('on'); els.timeSheet.setAttribute('aria-hidden', 'false'); };
+const closeTimeSheet = () => { els.timeSheet.classList.remove('on'); els.timeSheet.setAttribute('aria-hidden', 'true'); };
+
+els.timeBtn.addEventListener('click', openTimeSheet);
+
+// Prikaz vremena uz klizač otvara isti modal — ondje se upisuje sve
+// dulje od onoga što klizač doseže.
+els.dialVal.addEventListener('click', openTimeSheet);
+
+els.customForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const minutes = Math.max(0, Math.min(180, Math.round(Number(els.customMin.value) || 0)));
+  const seconds = Math.max(0, Math.min(59, Math.round(Number(els.customSec.value) || 0)));
+  const total = minutes * 60 + seconds;
+  if (total < 1) return;
+  setTotal(total);
+  closeTimeSheet();
+});
+els.timeSheetClose.addEventListener('click', closeTimeSheet);
+els.timeSheet.addEventListener('click', (event) => { if (event.target === els.timeSheet) closeTimeSheet(); });
+
+// Jedan gumb: uključi → promijeni smjer → isključi.
+els.mediaBtn.addEventListener('click', () => setMediaOn(!cfg.mediaOn));
+els.closeSplit.addEventListener('click', () => setMediaOn(false));
+
+// Gumb nad medijem kruži kroz tri smjera; isto što i izbor u postavkama.
+els.orientBtn.addEventListener('click', () => {
+  setOrient(ORIENT_MODES[(ORIENT_MODES.indexOf(cfg.orient) + 1) % ORIENT_MODES.length]);
+});
+
+els.orientPick.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-orient]');
+  if (button) setOrient(button.dataset.orient);
+});
+
+els.editMedia.addEventListener('click', () => askForUrl().focus());
+
+/* ═══════════════════════════════════════════════════════════
+   8 · Setovi
+   ═══════════════════════════════════════════════════════════ */
+
+els.sets.addEventListener('click', () => {
+  cfg.sets = (Number(cfg.sets) || 0) + 1;
+  els.setsN.textContent = cfg.sets;
+  save();
+});
+
+els.setsZero.addEventListener('click', () => {
+  cfg.sets = 0;
+  els.setsN.textContent = '0';
+  save();
+  if (navigator.vibrate) navigator.vibrate(40);
+});
+
+/* ═══════════════════════════════════════════════════════════
+   9 · Ostale veze
+   ═══════════════════════════════════════════════════════════ */
+
+els.go.addEventListener('click', () => (running ? pause() : start()));
+els.reset.addEventListener('click', reset);
+
+const openSheet = () => { els.sheet.classList.add('on'); els.sheet.setAttribute('aria-hidden', 'false'); };
+const closeSheet = () => { els.sheet.classList.remove('on'); els.sheet.setAttribute('aria-hidden', 'true'); };
+
+els.setupBtn.addEventListener('click', openSheet);
+els.sheetClose.addEventListener('click', closeSheet);
+els.sheet.addEventListener('click', (event) => { if (event.target === els.sheet) closeSheet(); });
+
+function bindSwitch(el, key, after) {
+  el.setAttribute('aria-checked', String(Boolean(cfg[key])));
+  el.addEventListener('click', () => {
+    cfg[key] = el.getAttribute('aria-checked') !== 'true';
+    el.setAttribute('aria-checked', String(cfg[key]));
+    save();
+    if (after) after();
+  });
+}
+
+bindSwitch(els.soundEnd, 'soundEnd');
+bindSwitch(els.soundTick, 'soundTick');
+els.sideSw.addEventListener('click', () => setSide(cfg.side === 'a' ? 'b' : 'a'));
+
+bindSwitch(els.keepAwake, 'keepAwake', () => { if (!cfg.keepAwake) releaseWakeLock(); else if (running) requestWakeLock(); });
+
+els.tickCount.value = cfg.tickCount;
+els.tickCount.addEventListener('change', () => {
+  const n = Math.min(15, Math.max(1, Math.round(Number(els.tickCount.value) || 3)));
+  els.tickCount.value = n;
+  cfg.tickCount = n;
+  save();
+  paint();
+});
+
+els.testSound.addEventListener('click', () => { wakeAudio(); tickBeep(); window.setTimeout(endBeep, 420); });
+
+document.addEventListener('keydown', (event) => {
+  if (event.target.matches('input, textarea')) return;
+  if (event.key === 'Escape') { closeSheet(); closeTimeSheet(); return; }
+  if (event.code === 'Space') { event.preventDefault(); running ? pause() : start(); return; }
+  if (event.key === 'r' || event.key === 'R') reset();
+  if (event.key === 's' || event.key === 'S') els.sets.click();
+});
+
+/* ═══════════════════════════════════════════════════════════
+   10 · Start
+   ═══════════════════════════════════════════════════════════ */
+
+cfg.lang = LANGS[cfg.lang] ? cfg.lang : detectLang();
+applyTheme(cfg.theme);
+applyProgress(cfg.progress);
+setRatio(Number(cfg.ratio));
+setSide(cfg.side);
+// Prvi put: uski ekran dobiva vodoravnu podjelu, široki okomitu.
+// Poslije vrijedi ono što je korisnik izabrao.
+setOrient(cfg.orient);
+total = Math.max(1, Number(cfg.secs) || 30);
+left = total;
+els.dial.value = String(stopIndex(total));
+els.setsN.textContent = Number(cfg.sets) || 0;
+renderPresets();
+setMediaOn(Boolean(cfg.mediaOn));
+applyLang();
+paint();
+requestAnimationFrame(syncLayout);    // tek kad raspored sjedne
+
+})();
+</script>
+</body>
+</html>

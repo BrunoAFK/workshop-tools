@@ -1,0 +1,32 @@
+# ── Ovisnosti ───────────────────────────────────────────────
+node_modules/
+.npm/
+*.tgz
+
+# ── macOS ───────────────────────────────────────────────────
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# ── Urednici ────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Logovi i privremeno ─────────────────────────────────────
+*.log
+npm-debug.log*
+.cache/
+tmp/
+.tmp/
+
+# ── Okolina ─────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# Build izlaz — u cijelosti se regenerira iz sources/
+dist/
