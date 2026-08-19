@@ -603,6 +603,121 @@ body[data-tier="2"] .go-label { display: none; }
 .field small { display: block; margin-top: 2px; color: var(--fg-3); font-size: .72rem; line-height: 1.35; }
 .field-title { margin: 0 0 var(--sp-3); font-size: .88rem; }
 
+/* ── O alatu ────────────────────────────────────────────────
+   Ploča vodi impresumom, a upute su ponuda ispod njega: sve je
+   sklopljeno, pa se na otvaranju vidi kratka kartica umjesto zida
+   teksta. Boje odjeljaka dolaze iz palete alata, pa prate teme. */
+.head-acts { display: flex; gap: var(--sp-1); }
+.sheet.help { z-index: 21; }
+.sheet-box.wide { width: min(560px, 100%); }
+
+.impressum {
+  padding: var(--sp-5) var(--sp-4) var(--sp-4);
+  background:
+    radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--run) 15%, transparent), transparent 60%);
+}
+
+.impressum .name { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: -.01em; }
+
+.impressum .blurb {
+  margin: var(--sp-2) 0 0;
+  max-width: 44ch;
+  color: var(--fg-2);
+  font-size: .86rem;
+  line-height: 1.55;
+}
+
+.impressum .by {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-top: var(--sp-5);
+}
+
+.impressum .by b { font-size: .82rem; font-weight: 600; }
+
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border: 1px solid var(--run);
+  border-radius: var(--r);
+  color: var(--run);
+  font-size: .8rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link-btn svg { width: 13px; height: 13px; }
+.link-btn:hover, .link-btn:focus-visible { background: color-mix(in srgb, var(--run) 15%, transparent); }
+
+.impressum .note {
+  margin: var(--sp-4) 0 0;
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+  max-width: 52ch;
+  color: var(--fg-3);
+  font-size: .75rem;
+  line-height: 1.5;
+}
+
+.guide-head { padding: var(--sp-4) var(--sp-4) var(--sp-2); border-top: 1px solid var(--line); }
+.guide-head p { margin: 0; }
+.guide-head .t { font-size: .88rem; font-weight: 600; }
+.guide-head .h { margin-top: 2px; color: var(--fg-3); font-size: .74rem; }
+
+/* Sklopivi odjeljci: `details` nosi stanje sam, bez ijedne linije JS-a
+   i s ispravnim ponašanjem na tipkovnici. */
+.help-sec { border-top: 1px solid var(--line); }
+
+.help-sec > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  font-size: .88rem;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.help-sec > summary::-webkit-details-marker { display: none; }
+.help-sec > summary:hover { background: var(--panel-2); }
+
+.help-sec .dot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 3px; background: var(--tone); }
+
+.help-sec .count {
+  margin-left: auto;
+  color: var(--fg-3);
+  font-family: var(--num);
+  font-size: .74rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.help-sec .chev { flex: 0 0 auto; width: 13px; height: 13px; color: var(--fg-3); transition: transform .18s var(--ease); }
+.help-sec[open] .chev { transform: rotate(180deg); }
+.help-sec[open] > summary { color: var(--tone); }
+
+.help-body { padding: 0 var(--sp-4) var(--sp-4) calc(var(--sp-4) + 9px + var(--sp-3)); }
+
+dl.help { margin: 0; }
+dl.help dt { font-size: .82rem; font-weight: 600; }
+dl.help dd { margin: 4px 0 var(--sp-4); color: var(--fg-3); font-size: .78rem; line-height: 1.55; }
+dl.help dd:last-of-type { margin-bottom: 0; }
+
+.help-limits { margin: 0; padding: 0; list-style: none; }
+.help-limits li {
+  margin-bottom: var(--sp-4);
+  padding-left: var(--sp-3);
+  border-left: 2px solid color-mix(in srgb, var(--tone) 45%, transparent);
+  color: var(--fg-3);
+  font-size: .78rem;
+  line-height: 1.55;
+}
+.help-limits li:last-child { margin-bottom: 0; }
+
 .custom-row { display: flex; gap: var(--sp-2); align-items: flex-end; }
 .custom-row label { display: grid; gap: 4px; font-size: .72rem; color: var(--fg-3); }
 .custom-row input { width: 76px; }
@@ -720,6 +835,12 @@ input:focus { border-color: var(--run); outline: 0; }
           <rect x="2.5" y="4.5" width="19" height="15" rx="2"/><path id="splitLine" d="M12 4.5v15"/>
         </svg>
       </button>
+      <button class="icon" id="repeatBtn" type="button" aria-pressed="false" data-i18n-attr="aria-label:repeatAria,title:repeatAria">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9.5A4.5 4.5 0 0 1 8.5 5H19"/><path d="M16 2.2 19.3 5 16 7.8"/>
+          <path d="M20 14.5A4.5 4.5 0 0 1 15.5 19H5"/><path d="M8 21.8 4.7 19 8 16.2"/>
+        </svg>
+      </button>
       <button class="icon" id="setupBtn" type="button" data-i18n-attr="aria-label:settings,title:settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
           <path d="M9.6 4.7L10.5 2.1L13.5 2.1L14.4 4.7L15.5 5.1L17.9 4.0L20.0 6.1L18.9 8.5L19.3 9.6L21.9 10.5L21.9 13.5L19.3 14.4L18.9 15.5L20.0 17.9L17.9 20.0L15.5 18.9L14.4 19.3L13.5 21.9L10.5 21.9L9.6 19.3L8.5 18.9L6.1 20.0L4.0 17.9L5.1 15.5L4.7 14.4L2.1 13.5L2.1 10.5L4.7 9.6L5.1 8.5L4.0 6.1L6.1 4.0L8.5 5.1Z"/><circle cx="12" cy="12" r="3.3"/>
@@ -794,7 +915,10 @@ input:focus { border-color: var(--run); outline: 0; }
 
     <div class="sheet-head">
       <h2 data-i18n="settings">Postavke</h2>
-      <button class="icon sm" id="sheetClose" type="button" data-i18n-attr="aria-label:close">✕</button>
+      <div class="head-acts">
+        <button class="icon sm" id="helpBtn" type="button" data-i18n-attr="aria-label:help,title:help">?</button>
+        <button class="icon sm" id="sheetClose" type="button" data-i18n-attr="aria-label:close">✕</button>
+      </div>
     </div>
 
     <div class="field">
@@ -841,6 +965,17 @@ input:focus { border-color: var(--run); outline: 0; }
     </div>
 
     <div class="field">
+      <p class="field-title" data-i18n="repeat">Ponavljanje</p>
+      <div class="field-row">
+        <label><span data-i18n="repeatSets">Svaki krug broji kao set</span>
+          <small data-i18n="repeatSetsHint">Brojač setova se sam poveća na kraju kruga.</small>
+        </label>
+        <button class="sw" id="repeatSets" type="button" role="switch" aria-checked="true"></button>
+      </div>
+      <p class="hint" data-i18n="repeatHint">Ponavljanje se uključuje ikonom s petljom u gornjoj traci; timer se vrti dok ne pritisneš pauzu.</p>
+    </div>
+
+    <div class="field">
       <div class="field-row">
         <label><span data-i18n="swapSides">Medij s druge strane</span>
           <small data-i18n="swapSidesHint">Zamijeni mjesta slici i timeru.</small>
@@ -860,6 +995,19 @@ input:focus { border-color: var(--run); outline: 0; }
   </div>
 </div>
 
+<!-- ═══ UPUTE I OGRANIČENJA ════════════════════════════════ -->
+<div class="sheet help" id="helpSheet" role="dialog" aria-modal="true" data-i18n-attr="aria-label:helpTitle" aria-hidden="true">
+  <div class="sheet-box wide">
+    <div class="sheet-head">
+      <h2 data-i18n="helpTitle">O alatu</h2>
+      <div class="head-acts">
+        <button class="icon sm" id="helpClose" type="button" data-i18n-attr="aria-label:close">✕</button>
+      </div>
+    </div>
+    <div id="helpBody"></div>
+  </div>
+</div>
+
 <script>
 (() => {
 'use strict';
@@ -869,6 +1017,8 @@ const els = {
   root: document.documentElement, body: document.body, app: document.querySelector('.app'),
   time: $('time'), bar: $('barFill'), phase: $('phase'), goIcon: $('goIcon'), goLabel: $('goLabel'),
   go: $('go'), reset: $('resetBtn'), sets: $('setsBtn'), setsZero: $('setsZero'), setsN: $('setsN'),
+  repeatBtn: $('repeatBtn'), repeatSets: $('repeatSets'),
+  helpBtn: $('helpBtn'), helpSheet: $('helpSheet'), helpClose: $('helpClose'), helpBody: $('helpBody'),
   presets: $('presets'), dial: $('dial'), dialVal: $('dialVal'),
   media: $('media'), mediaBtn: $('mediaBtn'),
   editMedia: $('editMedia'), openMedia: $('openMedia'),
@@ -891,7 +1041,8 @@ const STORE = 'workshop.timer';
 const DEFAULTS = {
   theme: 'noc', secs: 30, soundEnd: true, soundTick: true, tickCount: 3,
   media: '', mediaOn: false, ratio: 55, side: 'a', orient: 'auto',
-  progress: 'deflate', keepAwake: true, sets: 0, lang: null
+  progress: 'deflate', keepAwake: true, sets: 0, lang: null,
+  repeat: false, repeatSets: true
 };
 
 let cfg = { ...DEFAULTS };
@@ -926,6 +1077,11 @@ const STRINGS = {
     ready: 'Spremno', running: 'U tijeku', last: 'Zadnje sekunde', done: 'Gotovo',
     start: 'Kreni', pause: 'Pauza', resume: 'Nastavi',
     sets: 'Setovi', addSet: 'Dodaj set', clearSets: 'Poništi brojač setova',
+    help: 'O alatu', helpTitle: 'O alatu',
+    repeat: 'Ponavljanje', repeatAria: 'Ponavljaj krug na kraju',
+    repeatSets: 'Svaki krug broji kao set',
+    repeatSetsHint: 'Brojač setova se sam poveća na kraju kruga.',
+    repeatHint: 'Ponavljanje se uključuje ikonom s petljom u gornjoj traci; timer se vrti dok ne pritisneš pauzu.',
     resetTime: 'Vrati vrijeme na početak', resetHint: 'Reset (R)',
     duration: 'Trajanje', pickDuration: 'Odaberi trajanje',
     split: 'Podjela ekrana', splitOn: 'Podijeli ekran',
@@ -959,6 +1115,11 @@ const STRINGS = {
     ready: 'Ready', running: 'Running', last: 'Final seconds', done: 'Done',
     start: 'Start', pause: 'Pause', resume: 'Resume',
     sets: 'Sets', addSet: 'Add a set', clearSets: 'Reset the set counter',
+    help: 'About', helpTitle: 'About this tool',
+    repeat: 'Repeat', repeatAria: 'Repeat the round at the end',
+    repeatSets: 'Each round counts as a set',
+    repeatSetsHint: 'The set counter goes up on its own when a round ends.',
+    repeatHint: 'Repeating is switched on with the loop icon in the top bar; the timer keeps going until you pause it.',
     resetTime: 'Reset the time', resetHint: 'Reset (R)',
     duration: 'Duration', pickDuration: 'Choose duration',
     split: 'Split screen', splitOn: 'Split the screen',
@@ -992,6 +1153,11 @@ const STRINGS = {
     ready: 'Bereit', running: 'Läuft', last: 'Letzte Sekunden', done: 'Fertig',
     start: 'Start', pause: 'Pause', resume: 'Weiter',
     sets: 'Sätze', addSet: 'Satz hinzufügen', clearSets: 'Satzzähler zurücksetzen',
+    help: 'Über', helpTitle: 'Über dieses Werkzeug',
+    repeat: 'Wiederholung', repeatAria: 'Runde am Ende wiederholen',
+    repeatSets: 'Jede Runde zählt als Satz',
+    repeatSetsHint: 'Der Satzzähler erhöht sich am Ende einer Runde von selbst.',
+    repeatHint: 'Das Wiederholen schaltest du mit dem Schleifensymbol in der oberen Leiste ein; der Timer läuft, bis du pausierst.',
     resetTime: 'Zeit zurücksetzen', resetHint: 'Zurücksetzen (R)',
     duration: 'Dauer', pickDuration: 'Dauer wählen',
     split: 'Geteilter Bildschirm', splitOn: 'Bildschirm teilen',
@@ -1023,6 +1189,404 @@ const STRINGS = {
 };
 
 /** Prvi jezik iz preglednika koji poznajemo; inače engleski. */
+/**
+ * Sadržaj ploče s uputama.
+ *
+ * Stoji odvojeno od `STRINGS` jer nisu natpisi nego odlomci — u
+ * rječniku bi ih trebalo pedesetak ključeva. Oblik je jednak u sva tri
+ * jezika, pa se prijevod dodaje kao još jedan blok, bez diranja koda.
+ *
+ * `tone` je boja odjeljka i uzeta je iz palete samog alata, pa se sama
+ * mijenja sa svih pet tema — nema zasebnih boja koje bi u Uglju ili
+ * Jantaru ispale mrtve.
+ */
+const HELP = {
+  "hr": {
+    "about": {
+      "name": "Timer za vježbanje",
+      "blurb": "Jedan interval koji se po želji ponavlja — odmor između serija, rad na vrijeme, disanje.",
+      "note": "Jedna HTML datoteka. Nema računa ni poslužitelja: postavke ostaju na tvom uređaju, a nakon prvog učitavanja radi i bez mreže.",
+      "madeBy": "Napravio Bruno Pavelja"
+    },
+    "guideTitle": "Upute",
+    "guideHint": "Otvori odjeljak koji te zanima.",
+    "sections": [
+      {
+        "title": "Glavni ekran",
+        "rows": [
+          [
+            "Predlošci",
+            "Tri brza trajanja na vrhu: 30 sekundi, 1 minuta i 2 minute. Označeno je ono koje je trenutno postavljeno."
+          ],
+          [
+            "Klizač i trajanje",
+            "Klizač ide od 5 sekundi do 15 minuta, u nejednakim koracima — gušće na kratkim vremenima, rjeđe na dugima. Za dulje od 15 minuta pritisni brojku uz klizač i upiši minute i sekunde."
+          ],
+          [
+            "Velika brojka",
+            "Odbrojavanje. Boja nosi stanje: sivo je Spremno, zeleno U tijeku, žuto Zadnje sekunde, crveno Gotovo. Trajanje se ne može mijenjati usred kruga."
+          ],
+          [
+            "Kreni, Pauza, Nastavi",
+            "Isti gumb mijenja ulogu. Pauza pamti gdje je stala, Nastavi kreće odatle. Kružna strelica uz njega vraća vrijeme na početak."
+          ],
+          [
+            "Setovi",
+            "Brojač serija. Pritisak dodaje jednu, ✕ ga vraća na nulu. Preživi zatvaranje kartice."
+          ],
+          [
+            "Ponavljanje",
+            "Ikona s petljom u gornjoj traci. Uključena, novi krug kreće odmah po isteku, bez stanke, i vrti se dok ne pritisneš pauzu."
+          ],
+          [
+            "Podijeljeni ekran",
+            "Ikona s okvirom otvara drugu polovicu ekrana za sliku, YouTube video ili bilo koju stranicu. Adresa se lijepi u polje na praznoj strani. Crta između se povlači i mijenja omjer, dvoklik je vraća na sredinu."
+          ]
+        ],
+        "tone": "var(--run)"
+      },
+      {
+        "title": "Postavke",
+        "rows": [
+          [
+            "Tema",
+            "Pet paleta: Noć, Dan, Ugljen, Jantar i More. Ugljen je posve crn, za AMOLED ekrane."
+          ],
+          [
+            "Prikaz napretka",
+            "Kako se vidi koliko je ostalo: Traka ispod brojke, Praznjenje (boja se povlači iz znamenki) ili Punjenje (znamenke se odozdo pune bojom upozorenja). Na najužem rasporedu se uvijek prazni, jer bi traka pojela redak."
+          ],
+          [
+            "Smjer podjele",
+            "Automatski dijeli ekran okomito na uskim, a vodoravno na širokim ekranima. Može se prisiliti na jedno ili drugo."
+          ],
+          [
+            "Jezik",
+            "Hrvatski, engleski i njemački. Prvi put se bira prema pregledniku, poslije vrijedi tvoj izbor."
+          ],
+          [
+            "Zvuk na kraju",
+            "Trostruki signal kad vrijeme istekne."
+          ],
+          [
+            "Odbrojavanje na kraju",
+            "Kratki signal za svaku od zadnjih sekundi. Koliko ih je, upisuje se ispod — od 1 do 15."
+          ],
+          [
+            "Provjeri zvuk",
+            "Pusti oba signala odmah. Na mobitelu ovo ujedno otključava zvuk; vidi Ograničenja."
+          ],
+          [
+            "Ponavljanje broji setove",
+            "Kad je uključeno, brojač setova se sam poveća na kraju svakog kruga."
+          ],
+          [
+            "Medij s druge strane",
+            "Zamijeni mjesta timeru i slici."
+          ],
+          [
+            "Drži ekran upaljen",
+            "Dok timer radi, traži od preglednika da ekran ne zaspi."
+          ]
+        ],
+        "tone": "var(--idle)"
+      },
+      {
+        "title": "Tipkovnica",
+        "rows": [
+          [
+            "razmak",
+            "Kreni ili pauza."
+          ],
+          [
+            "R",
+            "Vrati vrijeme na početak."
+          ],
+          [
+            "S",
+            "Dodaj set."
+          ],
+          [
+            "Esc",
+            "Zatvori otvorenu ploču."
+          ]
+        ],
+        "tone": "var(--warn)"
+      }
+    ],
+    "limits": {
+      "title": "Ograničenja",
+      "items": [
+        "Jedan interval, ne program. Timer vrti jedno te isto trajanje; ne može nizati različite faze rada i odmora s različitim vremenima.",
+        "Ponavljanje je beskonačno. Nema zadanog broja krugova nakon kojeg bi sam stao — zaustavlja se pauzom.",
+        "Zvuk se na mobitelu otključava tek prvim dodirom stranice. Pritisni „Provjeri zvuk“ prije vježbe, inače prvi signal može izostati.",
+        "Držanje ekrana ovisi o pregledniku. Neki nemaju Wake Lock, neki ga odbiju; tada ekran gasne po postavkama sustava.",
+        "U pozadinskoj kartici prikaz stane. Preglednik ondje zaustavlja crtanje, ali su odbrojavanje i zvukovi zakazani unaprijed, pa signal kraja stigne na vrijeme; brojka se uskladi čim se vratiš.",
+        "YouTube ne dopušta ugradnju svakog videa. Kad je vlasnik zabrani, okvir ostane prazan — takav video otvori u novoj kartici.",
+        "Postavke žive samo u ovom pregledniku. Nema računa ni sinkronizacije; privatni način i brisanje podataka stranice odnesu i postavke i brojač setova.",
+        "Nema povijesti ni statistike. Brojač setova je tekući zbroj, ne dnevnik vježbanja."
+      ],
+      "tone": "var(--done)"
+    }
+  },
+  "en": {
+    "about": {
+      "name": "Workout timer",
+      "blurb": "One interval that repeats if you want it to — rest between sets, timed work, breathing.",
+      "note": "A single HTML file. No account and no server: the settings stay on your device, and once loaded it works offline.",
+      "madeBy": "Made by Bruno Pavelja"
+    },
+    "guideTitle": "Guide",
+    "guideHint": "Open the section you need.",
+    "sections": [
+      {
+        "title": "Main screen",
+        "rows": [
+          [
+            "Presets",
+            "Three quick durations at the top: 30 seconds, 1 minute and 2 minutes. The one currently set is marked."
+          ],
+          [
+            "Slider and duration",
+            "The slider runs from 5 seconds to 15 minutes in uneven steps — closer together at short times, further apart at long ones. For longer than 15 minutes, press the number beside the slider and type minutes and seconds."
+          ],
+          [
+            "The big number",
+            "The countdown. Its colour carries the state: grey is Ready, green Running, amber Final seconds, red Done. The duration cannot be changed mid-round."
+          ],
+          [
+            "Start, Pause, Resume",
+            "One button, three roles. Pause remembers where it stopped, Resume carries on from there. The circular arrow beside it returns the time to the start."
+          ],
+          [
+            "Sets",
+            "A tally of your sets. A press adds one, ✕ returns it to zero. It survives closing the tab."
+          ],
+          [
+            "Repeat",
+            "The loop icon in the top bar. Switched on, the next round starts the moment the last one ends, with no gap, and keeps going until you pause."
+          ],
+          [
+            "Split screen",
+            "The frame icon opens the other half of the screen for an image, a YouTube video or any page. Paste the address into the field on the empty side. Drag the line between them to change the ratio; a double click returns it to the middle."
+          ]
+        ],
+        "tone": "var(--run)"
+      },
+      {
+        "title": "Settings",
+        "rows": [
+          [
+            "Theme",
+            "Five palettes: Night, Day, Charcoal, Amber and Sea. Charcoal is fully black, for AMOLED screens."
+          ],
+          [
+            "Progress display",
+            "How the remaining time shows: a Bar below the number, Draining (colour withdraws from the digits) or Filling (digits fill from below with the warning colour). The narrowest layout always drains, because a bar would eat a whole row."
+          ],
+          [
+            "Split direction",
+            "Automatic splits the screen vertically on narrow screens and horizontally on wide ones. You can force either one."
+          ],
+          [
+            "Language",
+            "Croatian, English and German. The first time it follows your browser; after that your choice wins."
+          ],
+          [
+            "Sound at the end",
+            "A triple signal when the time runs out."
+          ],
+          [
+            "Countdown at the end",
+            "A short signal for each of the final seconds. How many is typed below — from 1 to 15."
+          ],
+          [
+            "Test the sound",
+            "Plays both signals right away. On a phone this also unlocks the sound; see Limitations."
+          ],
+          [
+            "Each round counts as a set",
+            "When on, the set counter goes up on its own at the end of every round."
+          ],
+          [
+            "Media on the other side",
+            "Swaps the places of the timer and the image."
+          ],
+          [
+            "Keep the screen on",
+            "While the timer runs, asks the browser not to let the screen sleep."
+          ]
+        ],
+        "tone": "var(--idle)"
+      },
+      {
+        "title": "Keyboard",
+        "rows": [
+          [
+            "space",
+            "Start or pause."
+          ],
+          [
+            "R",
+            "Return the time to the start."
+          ],
+          [
+            "S",
+            "Add a set."
+          ],
+          [
+            "Esc",
+            "Close the open panel."
+          ]
+        ],
+        "tone": "var(--warn)"
+      }
+    ],
+    "limits": {
+      "title": "Limitations",
+      "items": [
+        "One interval, not a programme. The timer runs one and the same duration; it cannot chain different work and rest phases with different times.",
+        "Repeating is endless. There is no preset number of rounds after which it would stop by itself — you stop it by pausing.",
+        "On a phone the sound only unlocks on the first touch of the page. Press “Test the sound” before you train, or the first signal may not arrive.",
+        "Keeping the screen on depends on the browser. Some have no Wake Lock and some refuse it; then the screen dims according to your system settings.",
+        "In a background tab the display stops. The browser halts drawing there, but the countdown and the sounds are scheduled ahead, so the end signal arrives on time; the number catches up the moment you return.",
+        "YouTube does not allow every video to be embedded. When the owner forbids it, the frame stays empty — open such a video in a new tab instead.",
+        "Settings live only in this browser. There is no account and no sync; private mode and clearing site data take both the settings and the set counter with them.",
+        "No history and no statistics. The set counter is a running tally, not a training log."
+      ],
+      "tone": "var(--done)"
+    }
+  },
+  "de": {
+    "about": {
+      "name": "Trainings-Timer",
+      "blurb": "Ein Intervall, das sich auf Wunsch wiederholt — Pause zwischen Sätzen, Arbeit auf Zeit, Atemübungen.",
+      "note": "Eine einzige HTML-Datei. Kein Konto und kein Server: die Einstellungen bleiben auf deinem Gerät, und nach dem ersten Laden läuft es offline.",
+      "madeBy": "Gemacht von Bruno Pavelja"
+    },
+    "guideTitle": "Anleitung",
+    "guideHint": "Öffne den Abschnitt, den du brauchst.",
+    "sections": [
+      {
+        "title": "Hauptbildschirm",
+        "rows": [
+          [
+            "Vorlagen",
+            "Drei schnelle Dauern oben: 30 Sekunden, 1 Minute und 2 Minuten. Die gerade eingestellte ist markiert."
+          ],
+          [
+            "Regler und Dauer",
+            "Der Regler reicht von 5 Sekunden bis 15 Minuten, in ungleichen Schritten — dichter bei kurzen Zeiten, weiter bei langen. Für mehr als 15 Minuten drücke die Zahl neben dem Regler und trage Minuten und Sekunden ein."
+          ],
+          [
+            "Die große Zahl",
+            "Der Countdown. Die Farbe trägt den Zustand: Grau ist Bereit, Grün Läuft, Gelb Letzte Sekunden, Rot Fertig. Die Dauer lässt sich mitten in einer Runde nicht ändern."
+          ],
+          [
+            "Start, Pause, Weiter",
+            "Ein Knopf, drei Rollen. Pause merkt sich die Stelle, Weiter macht dort weiter. Der Rundpfeil daneben setzt die Zeit zurück."
+          ],
+          [
+            "Sätze",
+            "Ein Zähler für deine Sätze. Ein Druck fügt einen hinzu, ✕ setzt ihn auf null. Er übersteht das Schließen des Tabs."
+          ],
+          [
+            "Wiederholung",
+            "Das Schleifensymbol in der oberen Leiste. Eingeschaltet beginnt die nächste Runde sofort nach Ablauf, ohne Pause, und läuft, bis du pausierst."
+          ],
+          [
+            "Geteilter Bildschirm",
+            "Das Rahmensymbol öffnet die andere Hälfte für ein Bild, ein YouTube-Video oder eine beliebige Seite. Die Adresse kommt in das Feld auf der leeren Seite. Die Linie dazwischen lässt sich ziehen und ändert das Verhältnis, ein Doppelklick stellt sie zurück in die Mitte."
+          ]
+        ],
+        "tone": "var(--run)"
+      },
+      {
+        "title": "Einstellungen",
+        "rows": [
+          [
+            "Design",
+            "Fünf Paletten: Nacht, Tag, Kohle, Bernstein und Meer. Kohle ist vollständig schwarz, für AMOLED-Bildschirme."
+          ],
+          [
+            "Fortschrittsanzeige",
+            "Wie die Restzeit erscheint: ein Balken unter der Zahl, Leeren (die Farbe weicht aus den Ziffern) oder Füllen (die Ziffern füllen sich von unten mit der Warnfarbe). Die schmalste Anordnung leert immer, weil ein Balken eine ganze Zeile fräße."
+          ],
+          [
+            "Teilungsrichtung",
+            "Automatisch teilt schmale Bildschirme senkrecht und breite waagerecht. Beides lässt sich erzwingen."
+          ],
+          [
+            "Sprache",
+            "Kroatisch, Englisch und Deutsch. Beim ersten Mal folgt sie dem Browser, danach gilt deine Wahl."
+          ],
+          [
+            "Ton am Ende",
+            "Ein dreifaches Signal, wenn die Zeit abgelaufen ist."
+          ],
+          [
+            "Countdown am Ende",
+            "Ein kurzes Signal für jede der letzten Sekunden. Wie viele es sind, wird darunter eingetragen — von 1 bis 15."
+          ],
+          [
+            "Ton prüfen",
+            "Spielt beide Signale sofort ab. Auf dem Handy entsperrt das zugleich den Ton; siehe Grenzen."
+          ],
+          [
+            "Jede Runde zählt als Satz",
+            "Eingeschaltet erhöht sich der Satzzähler am Ende jeder Runde von selbst."
+          ],
+          [
+            "Medium auf der anderen Seite",
+            "Vertauscht Timer und Bild."
+          ],
+          [
+            "Bildschirm anlassen",
+            "Bittet den Browser, den Bildschirm nicht einschlafen zu lassen, solange der Timer läuft."
+          ]
+        ],
+        "tone": "var(--idle)"
+      },
+      {
+        "title": "Tastatur",
+        "rows": [
+          [
+            "Leertaste",
+            "Start oder Pause."
+          ],
+          [
+            "R",
+            "Zeit zurücksetzen."
+          ],
+          [
+            "S",
+            "Satz hinzufügen."
+          ],
+          [
+            "Esc",
+            "Offene Tafel schließen."
+          ]
+        ],
+        "tone": "var(--warn)"
+      }
+    ],
+    "limits": {
+      "title": "Grenzen",
+      "items": [
+        "Ein Intervall, kein Programm. Der Timer läuft immer dieselbe Dauer; er kann keine verschiedenen Arbeits- und Pausenphasen mit unterschiedlichen Zeiten aneinanderreihen.",
+        "Die Wiederholung ist endlos. Es gibt keine voreingestellte Rundenzahl, nach der er von selbst stehen bliebe — du stoppst ihn mit der Pause.",
+        "Auf dem Handy entsperrt sich der Ton erst bei der ersten Berührung der Seite. Drücke vor dem Training „Ton prüfen“, sonst kann das erste Signal ausbleiben.",
+        "Das Anlassen des Bildschirms hängt vom Browser ab. Manche haben kein Wake Lock, manche verweigern es; dann dunkelt der Bildschirm nach den Systemeinstellungen ab.",
+        "In einem Hintergrund-Tab steht die Anzeige still. Der Browser hält dort das Zeichnen an, aber Countdown und Töne sind im Voraus eingeplant, sodass das Endsignal rechtzeitig kommt; die Zahl holt auf, sobald du zurückkehrst.",
+        "YouTube erlaubt nicht bei jedem Video die Einbettung. Verbietet der Eigentümer sie, bleibt der Rahmen leer — öffne ein solches Video stattdessen in einem neuen Tab.",
+        "Die Einstellungen leben nur in diesem Browser. Es gibt kein Konto und keine Synchronisierung; der private Modus und das Löschen der Seitendaten nehmen Einstellungen und Satzzähler mit.",
+        "Keine Historie und keine Statistik. Der Satzzähler ist eine laufende Summe, kein Trainingstagebuch."
+      ],
+      "tone": "var(--done)"
+    }
+  }
+};
+
 function detectLang() {
   for (const tag of navigator.languages || [navigator.language || '']) {
     const code = String(tag).slice(0, 2).toLowerCase();
@@ -1055,6 +1619,7 @@ function applyLang() {
   }
 
   renderLangs();
+  renderHelp();
   renderProgressPick();
   renderOrientPick();
   renderMedia();
@@ -1188,6 +1753,17 @@ function cancelSounds() {
   for (const osc of scheduled) { try { osc.stop(); } catch { /* već gotov */ } }
   scheduled = [];
 }
+
+/**
+ * Ispusti zakazane zvukove iz popisa, ali ih ne zaustavljaj.
+ *
+ * Signal kraja zakazan je na `remaining`, `+0.28` i `+0.56` — dakle
+ * svira i nakon nule. Kod automatskog ponavljanja sljedeći krug odmah
+ * zove `scheduleSounds`, a on počinje s `cancelSounds`, pa bi pokosio
+ * upravo ono što se u tom trenutku čuje. Ovako signal odsvira do kraja,
+ * a novi krug zakazuje svoje povrh njega.
+ */
+function keepSounds() { scheduled = []; }
 
 function scheduleSounds(remaining) {
   cancelSounds();
@@ -1346,16 +1922,32 @@ function pause() {
   paint();
 }
 
-/** Na nuli timer stane i čeka — sljedeći krug kreće na pritisak. */
+/**
+ * Kraj kruga.
+ *
+ * Zadano timer stane i čeka — sljedeći krug kreće na pritisak. S
+ * uključenim ponavljanjem novi krug kreće odmah, bez stanke: `start`
+ * sam vrati `left` na `total` jer je pao na nulu, ekran ostaje upaljen,
+ * a stanje „Gotovo" se ne prikazuje — kraj kruga javljaju zvuk, vibracija
+ * i brojač setova.
+ */
 function finish() {
   if (!running) return;
   running = false;
   cancelAnimationFrame(frame);
   clearTimeout(endGuard);
   left = 0;
+  if (navigator.vibrate) navigator.vibrate([120, 70, 120]);
+
+  if (cfg.repeat) {
+    if (cfg.repeatSets) addSet();
+    keepSounds();
+    start();
+    return;
+  }
+
   releaseWakeLock();
   paint();
-  if (navigator.vibrate) navigator.vibrate([120, 70, 120]);
 }
 
 function reset() {
@@ -1737,11 +2329,13 @@ els.editMedia.addEventListener('click', () => askForUrl().focus());
    8 · Setovi
    ═══════════════════════════════════════════════════════════ */
 
-els.sets.addEventListener('click', () => {
+function addSet() {
   cfg.sets = (Number(cfg.sets) || 0) + 1;
   els.setsN.textContent = cfg.sets;
   save();
-});
+}
+
+els.sets.addEventListener('click', addSet);
 
 els.setsZero.addEventListener('click', () => {
   cfg.sets = 0;
@@ -1774,6 +2368,59 @@ function bindSwitch(el, key, after) {
   });
 }
 
+/** Ploča se crta iz `HELP`, pa promjena jezika mijenja i nju. */
+function renderHelp() {
+  const doc = HELP[cfg.lang] || HELP.en;
+  const safe = (value) => String(value).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const CHEV = '<svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 6 4.5 4.5L12.5 6"/></svg>';
+
+  const section = (title, tone, count, body) => `<details class="help-sec" style="--tone:${tone}">
+      <summary><span class="dot"></span>${safe(title)}<span class="count">${count}</span>${CHEV}</summary>
+      <div class="help-body">${body}</div>
+    </details>`;
+
+  const guide = doc.sections.map((part) => section(part.title, part.tone, part.rows.length,
+    `<dl class="help">${part.rows.map(([term, text]) => `<dt>${safe(term)}</dt><dd>${safe(text)}</dd>`).join('')}</dl>`)).join('');
+
+  const limits = section(doc.limits.title, doc.limits.tone, doc.limits.items.length,
+    `<ul class="help-limits">${doc.limits.items.map((item) => `<li>${safe(item)}</li>`).join('')}</ul>`);
+
+  els.helpBody.innerHTML = `<div class="impressum">
+      <p class="name">${safe(doc.about.name)}</p>
+      <p class="blurb">${safe(doc.about.blurb)}</p>
+      <div class="by">
+        <b>${safe(doc.about.madeBy)}</b>
+        <a class="link-btn" href="https://work.pavelja.com" target="_blank" rel="noopener noreferrer">work.pavelja.com
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10 10 4M5 4h5v5"/></svg>
+        </a>
+      </div>
+      <p class="note">${safe(doc.about.note)}</p>
+    </div>
+    <div class="guide-head">
+      <p class="t">${safe(doc.guideTitle)}</p>
+      <p class="h">${safe(doc.guideHint)}</p>
+    </div>
+    ${guide}${limits}`;
+}
+
+const openHelp = () => { els.helpSheet.classList.add('on'); els.helpSheet.setAttribute('aria-hidden', 'false'); };
+const closeHelp = () => { els.helpSheet.classList.remove('on'); els.helpSheet.setAttribute('aria-hidden', 'true'); };
+
+els.helpBtn.addEventListener('click', openHelp);
+els.helpClose.addEventListener('click', closeHelp);
+els.helpSheet.addEventListener('click', (event) => { if (event.target === els.helpSheet) closeHelp(); });
+
+function applyRepeat() {
+  els.repeatBtn.setAttribute('aria-pressed', String(Boolean(cfg.repeat)));
+}
+
+els.repeatBtn.addEventListener('click', () => {
+  cfg.repeat = !cfg.repeat;
+  save();
+  applyRepeat();
+});
+
+bindSwitch(els.repeatSets, 'repeatSets');
 bindSwitch(els.soundEnd, 'soundEnd');
 bindSwitch(els.soundTick, 'soundTick');
 els.sideSw.addEventListener('click', () => setSide(cfg.side === 'a' ? 'b' : 'a'));
@@ -1793,7 +2440,12 @@ els.testSound.addEventListener('click', () => { wakeAudio(); tickBeep(); window.
 
 document.addEventListener('keydown', (event) => {
   if (event.target.matches('input, textarea')) return;
-  if (event.key === 'Escape') { closeSheet(); closeTimeSheet(); return; }
+  // Upute stoje iznad postavki, pa ih Esc zatvara prvi i vraća te u
+  // postavke iz kojih si ih otvorio.
+  if (event.key === 'Escape') {
+    if (els.helpSheet.classList.contains('on')) { closeHelp(); return; }
+    closeSheet(); closeTimeSheet(); return;
+  }
   if (event.code === 'Space') { event.preventDefault(); running ? pause() : start(); return; }
   if (event.key === 'r' || event.key === 'R') reset();
   if (event.key === 's' || event.key === 'S') els.sets.click();
@@ -1815,6 +2467,7 @@ total = Math.max(1, Number(cfg.secs) || 30);
 left = total;
 els.dial.value = String(stopIndex(total));
 els.setsN.textContent = Number(cfg.sets) || 0;
+applyRepeat();
 renderPresets();
 setMediaOn(Boolean(cfg.mediaOn));
 applyLang();
