@@ -4,7 +4,7 @@ import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DELETED_DIR, lineageOf, stateOf } from '../lib/paths.js';
-import { INSTALL_BAR, SERVICE_WORKER, iconPng, iconSvg, injectPwa, manifestFor, shortName } from '../lib/pwa.js';
+import { SERVICE_WORKER, iconPng, iconSvg, injectPwa, manifestFor, shortName } from '../lib/pwa.js';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourcesRoot = path.join(projectRoot, 'sources');
@@ -692,7 +692,10 @@ export async function buildIndex({ quiet = false, dev = false } = {}) {
       short: shortName(item.title, item.appName),
       description: item.description,
       startUrl: item.url,
-      scope: `/${PUBLIC_DIR}/`,
+      // Doseg je sam dokument, ne mapa. S `/alat/` bi prvi instalirani
+      // alat polagao pravo na sve ostale: otvarali bi se u njegovom
+      // prozoru, a preglednik bi ih smatrao već instaliranima.
+      scope: item.url,
       theme: colors.bg,
       background: colors.bg,
       iconBase: `/${PUBLIC_DIR}/icons/${base}`
@@ -725,25 +728,20 @@ export async function buildIndex({ quiet = false, dev = false } = {}) {
   await Promise.all([
     writeFile(path.join(appOutRoot, 'search-index.json'), `${JSON.stringify(data, null, 2)}\n`),
     writeFile(path.join(appOutRoot, 'search-index.js'), `window.__WORKSHOP_INDEX__ = ${json.replace(/</g, '\\u003c')};\n`),
-    readFile(path.join(appRoot, 'index.html'), 'utf8')
-      .then((html) => writeFile(path.join(appOutRoot, 'index.html'),
-        // Katalog manifest i workera nosi u izvoru; traka je zajednička
-        // s alatima, pa dolazi odavde i ostaje ista na oba mjesta.
-        html.replace('</body>', `${INSTALL_BAR}\n</body>`))),
+    copyFile(path.join(appRoot, 'index.html'), path.join(appOutRoot, 'index.html')),
     writeFile(path.join(distRoot, '_headers'), headersFile()),
     writeFile(path.join(distRoot, 'robots.txt'), ROBOTS_FILE),
     writeFile(path.join(distRoot, 'favicon.svg'), FAVICON_FILE),
     writeFile(path.join(distRoot, 'sw.js'), SERVICE_WORKER),
-    writeAppFiles(distRoot, 'workshop', { bg: CATALOGUE_THEME, fg: DEFAULT_ACCENT }, manifestFor({
-      name: 'Workshop — registar alata',
-      short: 'Workshop',
-      description: 'Pretraživi registar brzinskih alata.',
-      startUrl: '/',
-      scope: '/',
-      theme: CATALOGUE_THEME,
-      background: CATALOGUE_THEME,
-      iconBase: '/icons/workshop'
-    })),
+    /* Katalog se namjerno ne da instalirati — nema manifest ni traku.
+       Doseg mu je morao biti `/`, jer mu je polazna adresa korijen, pa bi
+       instaliran progutao svaki alat i otvarao ga u svom prozoru. Worker
+       ostaje: katalog radi bez mreže i bez instalacije.
+
+       Ikona je tu samo da bookmark na početnom zaslonu ne bude ružan. */
+    mkdir(path.join(distRoot, 'icons'), { recursive: true })
+      .then(() => writeFile(path.join(distRoot, 'icons', 'workshop-192.png'),
+        iconPng(192, { bg: CATALOGUE_THEME, fg: DEFAULT_ACCENT }))),
     writeFile(path.join(distRoot, '404.html'), NOT_FOUND_FILE)
   ]);
 
@@ -760,7 +758,7 @@ export async function buildIndex({ quiet = false, dev = false } = {}) {
       console.log(`Slika preskočena (${item.imageSkipped}): ${item.path}`);
     }
     console.log(`Indeks: ${Math.round(json.length / 1024)} kB`);
-    console.log(`Aplikacije: ${items.length + 1} (katalog i svaki alat), ikone crtane u buildu.`);
+    console.log(`Aplikacije: ${items.length} ${items.length === 1 ? 'alat' : 'alata'} (katalog radi offline, ali se ne instalira).`);
     console.log('');
     console.log('  /'.padEnd(30) + 'katalog i pretraga');
     console.log(`  /${PUBLIC_DIR}/<naziv>.html`.padEnd(30) + 'alati — ovo dijeliš');

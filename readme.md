@@ -230,7 +230,9 @@ Uz tekst se mijenja i **formatiranje brojeva i datuma** — `hr-HR`, `en-GB` ili
 
 ## Aplikacija i offline
 
-Katalog **i svaki alat zasebno** su instalabilne aplikacije. Timer dobiva vlastitu ikonu na početnom zaslonu i otvara se bez preglednikove trake; isto vrijedi za svaki budući alat, bez ijednog retka koji bi trebalo zapamtiti.
+**Svaki alat je zasebna instalabilna aplikacija.** Timer dobiva vlastitu ikonu na početnom zaslonu i otvara se bez preglednikove trake; isto vrijedi za svaki budući alat, bez ijednog retka koji bi trebalo zapamtiti.
+
+**Katalog se namjerno ne instalira.** Njegov bi doseg morao biti `/`, jer mu je polazna adresa korijen — a instaliran bi tako progutao svaki alat i otvarao ga u svom prozoru. Ostaje obična stranica, ali s workerom: **radi bez mreže i bez instalacije.**
 
 ### Što build dodaje
 
@@ -243,6 +245,24 @@ Glava loze dobiva u poslužena kopiju manifest, ikone i registraciju workera:
 ```
 
 **`sources/` ostaje netaknut** — ubacuje se samo u kopiju pod `/alat/`. Starije verzije ostaju doslovna kopija; one su povijest, ne aplikacija.
+
+### Doseg je sam dokument
+
+Svaki alat pokriva **samo svoju adresu**, ne mapu:
+
+```json
+"id":        "/alat/timer.html",
+"start_url": "/alat/timer.html",
+"scope":     "/alat/timer.html"
+```
+
+Sa zajedničkim `scope: "/alat/"` prvi instalirani alat proguta sve ostale: otvarali bi se u njegovom prozoru, preglednik bi ih smatrao već instaliranima i ne bi nudio zasebnu instalaciju. Uz to bi im `display-mode: standalone` bio istinit, pa bi i traka za instalaciju i prekidač obavijesti mislili da su u svojoj aplikaciji.
+
+`id` se upisuje izričito jer ga preglednik inače izvodi iz `start_url` — promjena polazne adrese ispala bi nova aplikacija umjesto iste.
+
+Katalog manifest uopće nema, pa mu preglednik instalaciju ni ne nudi. Zadržava `apple-touch-icon` — samo da bookmark na početnom zaslonu ne bude ružan — ali bez `apple-mobile-web-app-capable`, pa se otvara u pregledniku, kao stranica.
+
+> **Promjena dosega ne stiže u već instaliranu aplikaciju.** Nakon objave ovog popravka staru instalaciju obriši i instaliraj je ponovno.
 
 ### Boje
 
@@ -265,7 +285,7 @@ Nema ih u repozitoriju. [`lib/pwa.js`](lib/pwa.js) crta šesterokut s rupom — 
 
 Preglednici nude instalaciju vrlo nejednako: Chrome i Edge sami pokažu ikonu u adresnoj traci, Firefox na desktopu nema ništa, a Safari na iPhoneu traži ručno Podijeli → Dodaj na početni zaslon i ne javlja se ničim.
 
-Zato katalog i svaki alat dobivaju **istu traku pri dnu**, iz [`lib/pwa.js`](lib/pwa.js):
+Zato **svaki alat** dobiva traku pri dnu, iz [`lib/pwa.js`](lib/pwa.js). Katalog je nema, jer se i ne instalira:
 
 - pojavi se 2,5 s nakon što preglednik javi da je instalacija moguća;
 - na iPhoneu, gdje te javke nema, pokaže uputu umjesto gumba;
@@ -275,7 +295,7 @@ Zato katalog i svaki alat dobivaju **istu traku pri dnu**, iz [`lib/pwa.js`](lib
 
 Niske su joj vlastite, u hr/en/de, i bira ih po `<html lang>` — pa prati jezik koji je alat postavio.
 
-Traka nosi svoje boje umjesto da posuđuje stranične: katalog i alati nemaju isti skup varijabli, a tamna pločica s jantarnim gumbom čita se na objema podlogama.
+Traka nosi svoje boje umjesto da posuđuje stranične: alati nemaju isti skup varijabli, a tamna pločica s jantarnim gumbom čita se i na svijetloj i na tamnoj podlozi.
 
 **Alat koji drži kontrole pri dnu podigne traku iznad njih:**
 
@@ -295,13 +315,22 @@ Doseg se bira po `Notification.maxActions`:
 
 | Platforma | Što stiže |
 | --- | --- |
-| Chrome, Android i računalo | Trajna obavijest s preostalim vremenom i tipkama **Pauza · Nastavi · Zaustavi** |
+| Chrome, Android i računalo | Trajna obavijest sa **satom u koliko krug završava** i tipkama **Pauza · Nastavi · Zaustavi** |
 | Safari, instalirano na iPhoneu | Samo javka na kraju kruga — tipke ondje ne postoje |
 | Kartica preglednika, bilo gdje | Ništa; prekidač je zaključan uz objašnjenje |
 
-> **Vrijeme u obavijesti stoji dok sustav pušta aplikaciju da radi.** Uspava li je, brojka se zamrzne. Web nema način da obavijest zakaže unaprijed — to nije propust nego granica platforme, pa zvuk i vibracija ostaju pouzdaniji signal.
+### Zašto sat, a ne odbrojavanje
 
-Obavijest se osvježava jednom u sekundi i **samo dok je stranica skrivena**: dok je gledaš, nitko je ne vidi, a slanje bi trošilo bateriju.
+Prva izvedba je pokazivala preostale sekunde i osvježavala obavijest **svake sekunde**. Chrome to prijavljuje kao zlouporabu obavijesti — i s pravom, to je 60 poruka u minuti.
+
+Sada obavijest nosi **sat u koliko krug završava**. Izračuna se jednom i ne stari, pa se šalje samo kad se stanje stvarno promijeni: pokretanje, pauza, nastavak, novi krug, kraj. Kroz krug od 15 sekundi to su **dvije** obavijesti.
+
+Dvije brane to drže na uzdi:
+
+- **Potpis zadnje poslane obavijesti.** Ista poruka se ne šalje dvaput; ponovljeni pritisak na Pauzu ne pošalje ništa.
+- **Obavijest se ne veže uz vidljivost.** Ranije se zatvarala pri povratku u prvi plan, pa ju je svako gašenje ekrana tražilo iznova — u mjerenju je 14 promjena vidljivosti davalo 7 istih obavijesti. Sada stoji dok timer radi, bez obzira gledaš li stranicu.
+
+> **Web ne može zakazati obavijest unaprijed.** Zato je alat šalje tek kad odbrojavanje istekne; uspava li sustav aplikaciju, javka kasni. Zvuk i vibracija ostaju pouzdaniji signal.
 
 ### Offline
 
