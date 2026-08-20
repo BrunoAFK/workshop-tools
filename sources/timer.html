@@ -963,6 +963,12 @@ input:focus { border-color: var(--run); outline: 0; }
         <label for="tickCount" data-i18n="tickCount">Koliko zadnjih sekundi</label>
         <input id="tickCount" type="number" min="1" max="15" step="1" value="3" inputmode="numeric">
       </div>
+      <div class="field-row">
+        <label><span data-i18n="notify">Obavijest na kraju</span>
+          <small id="notifyHint" data-i18n="notifyHint">Kad je timer u pozadini, sustav javi da je krug istekao.</small>
+        </label>
+        <button class="sw" id="notifySw" type="button" role="switch" aria-checked="false"></button>
+      </div>
       <button class="btn wide" id="testSound" type="button" data-i18n="testSound">Provjeri zvuk</button>
       <p class="hint" data-i18n="soundHint">Na mobitelu zvuk se otključava tek prvim dodirom ekrana — pritisni ovo jednom prije vježbe.</p>
     </div>
@@ -1033,7 +1039,8 @@ const els = {
   top: document.querySelector('.top'), pane: document.querySelector('.pane'), readout: document.querySelector('.readout'),
   setupBtn: $('setupBtn'), sheet: $('sheet'), sheetClose: $('sheetClose'), themes: $('themes'),
   soundEnd: $('soundEnd'), soundTick: $('soundTick'), tickCount: $('tickCount'),
-  testSound: $('testSound'), keepAwake: $('keepAwake')
+  testSound: $('testSound'), keepAwake: $('keepAwake'),
+  notifySw: $('notifySw'), notifyHint: $('notifyHint')
 };
 
 /* ═══════════════════════════════════════════════════════════
@@ -1045,7 +1052,7 @@ const DEFAULTS = {
   theme: 'noc', secs: 30, soundEnd: true, soundTick: true, tickCount: 3,
   media: '', mediaOn: false, ratio: 55, side: 'a', orient: 'auto',
   progress: 'deflate', keepAwake: true, sets: 0, lang: null,
-  repeat: false, repeatSets: true
+  repeat: false, repeatSets: true, notify: false
 };
 
 let cfg = { ...DEFAULTS };
@@ -1107,6 +1114,13 @@ const STRINGS = {
     soundTick: 'Odbrojavanje na kraju', soundTickHint: 'Kratki signal za svaku od zadnjih sekundi.',
     tickCount: 'Koliko zadnjih sekundi',
     testSound: 'Provjeri zvuk',
+    notify: 'Obavijest na kraju',
+    notifyHint: 'Kad je timer u pozadini, sustav javi da je krug istekao.',
+    notifyNeedsApp: 'Dostupno kad timer instaliraš kao aplikaciju.',
+    notifyBlocked: 'Preglednik je odbio dopuštenje za obavijesti.',
+    notifyTitle: 'Vrijeme je isteklo', notifyBody: 'Krug je gotov.',
+    notifyRunning: 'Odbrojavanje traje', notifyStop: 'Zaustavi',
+    notifyHintLive: 'Dok je timer u pozadini, obavijest pokazuje preostalo vrijeme i nosi tipke.',
     soundHint: 'Na mobitelu zvuk se otključava tek prvim dodirom ekrana — pritisni ovo jednom prije vježbe.',
     swapSides: 'Medij s druge strane', swapSidesHint: 'Zamijeni mjesta slici i timeru.',
     keepAwake: 'Drži ekran upaljen', keepAwakeHint: 'Dok timer radi.',
@@ -1145,6 +1159,13 @@ const STRINGS = {
     soundTick: 'Countdown at the end', soundTickHint: 'A short signal for each of the final seconds.',
     tickCount: 'How many final seconds',
     testSound: 'Test the sound',
+    notify: 'Notification at the end',
+    notifyHint: 'When the timer runs in the background, the system says the round is over.',
+    notifyNeedsApp: 'Available once you install the timer as an app.',
+    notifyBlocked: 'The browser refused permission for notifications.',
+    notifyTitle: 'Time is up', notifyBody: 'The round is over.',
+    notifyRunning: 'Counting down', notifyStop: 'Stop',
+    notifyHintLive: 'While the timer is in the background, the notification shows the time left and carries buttons.',
     soundHint: 'On a phone the sound unlocks only on the first tap — press this once before you train.',
     swapSides: 'Media on the other side', swapSidesHint: 'Swap the image and the timer.',
     keepAwake: 'Keep the screen on', keepAwakeHint: 'While the timer runs.',
@@ -1183,6 +1204,13 @@ const STRINGS = {
     soundTick: 'Countdown am Ende', soundTickHint: 'Ein kurzes Signal für jede der letzten Sekunden.',
     tickCount: 'Wie viele letzte Sekunden',
     testSound: 'Ton prüfen',
+    notify: 'Benachrichtigung am Ende',
+    notifyHint: 'Läuft der Timer im Hintergrund, meldet das System das Ende der Runde.',
+    notifyNeedsApp: 'Verfügbar, sobald du den Timer als App installierst.',
+    notifyBlocked: 'Der Browser hat die Erlaubnis für Benachrichtigungen verweigert.',
+    notifyTitle: 'Die Zeit ist um', notifyBody: 'Die Runde ist vorbei.',
+    notifyRunning: 'Countdown läuft', notifyStop: 'Stoppen',
+    notifyHintLive: 'Läuft der Timer im Hintergrund, zeigt die Benachrichtigung die Restzeit und trägt Tasten.',
     soundHint: 'Am Handy wird der Ton erst mit der ersten Berührung freigegeben — drücke das einmal vor dem Training.',
     swapSides: 'Medium auf der anderen Seite', swapSidesHint: 'Bild und Timer tauschen.',
     keepAwake: 'Bildschirm anlassen', keepAwakeHint: 'Solange der Timer läuft.',
@@ -1280,6 +1308,10 @@ const HELP = {
             "Pusti oba signala odmah. Na mobitelu ovo ujedno otključava zvuk; vidi Ograničenja."
           ],
           [
+            "Obavijest na kraju",
+            "Kad je timer u pozadini, sustav javi da je krug istekao. Gdje preglednik podržava tipke — Chrome na Androidu i računalu — obavijest ostaje na ekranu, pokazuje preostalo vrijeme i nosi Pauzu, Nastavi i Zaustavi. Radi samo u instaliranoj aplikaciji i traži dopuštenje pri uključivanju."
+          ],
+          [
             "Ponavljanje broji setove",
             "Kad je uključeno, brojač setova se sam poveća na kraju svakog kruga."
           ],
@@ -1323,6 +1355,7 @@ const HELP = {
         "Jedan interval, ne program. Timer vrti jedno te isto trajanje; ne može nizati različite faze rada i odmora s različitim vremenima.",
         "Ponavljanje je beskonačno. Nema zadanog broja krugova nakon kojeg bi sam stao — zaustavlja se pauzom.",
         "Zvuk se na mobitelu otključava tek prvim dodirom stranice. Pritisni „Provjeri zvuk“ prije vježbe, inače prvi signal može izostati.",
+        "Vrijeme u obavijesti stoji dok sustav pušta aplikaciju da radi. Uspava li je — a na iPhoneu to čini brzo — brojka se zamrzne i obavijest zaostaje. Web nema način da obavijest zakaže unaprijed, pa zvuk i vibracija ostaju pouzdaniji signal. Tipke u obavijesti Safari uopće ne podržava; ondje stiže samo javka na kraju.",
         "Držanje ekrana ovisi o pregledniku. Neki nemaju Wake Lock, neki ga odbiju; tada ekran gasne po postavkama sustava.",
         "U pozadinskoj kartici prikaz stane. Preglednik ondje zaustavlja crtanje, ali su odbrojavanje i zvukovi zakazani unaprijed, pa signal kraja stigne na vrijeme; brojka se uskladi čim se vratiš.",
         "YouTube ne dopušta ugradnju svakog videa. Kad je vlasnik zabrani, okvir ostane prazan — takav video otvori u novoj kartici.",
@@ -1408,6 +1441,10 @@ const HELP = {
             "Plays both signals right away. On a phone this also unlocks the sound; see Limitations."
           ],
           [
+            "Notification at the end",
+            "When the timer runs in the background, the system says the round is over. Where the browser supports buttons — Chrome on Android and desktop — the notification stays on screen, shows the time left and carries Pause, Resume and Stop. Works only in the installed app and asks for permission when you switch it on."
+          ],
+          [
             "Each round counts as a set",
             "When on, the set counter goes up on its own at the end of every round."
           ],
@@ -1451,6 +1488,7 @@ const HELP = {
         "One interval, not a programme. The timer runs one and the same duration; it cannot chain different work and rest phases with different times.",
         "Repeating is endless. There is no preset number of rounds after which it would stop by itself — you stop it by pausing.",
         "On a phone the sound only unlocks on the first touch of the page. Press “Test the sound” before you train, or the first signal may not arrive.",
+        "The time in the notification holds only while the system lets the app run. If it suspends the app — and on iPhone it does so quickly — the number freezes and the notification falls behind. The web has no way to schedule a notification in advance, so the sound and the vibration remain the more reliable signal. Safari does not support buttons in notifications at all; there only the end message arrives.",
         "Keeping the screen on depends on the browser. Some have no Wake Lock and some refuse it; then the screen dims according to your system settings.",
         "In a background tab the display stops. The browser halts drawing there, but the countdown and the sounds are scheduled ahead, so the end signal arrives on time; the number catches up the moment you return.",
         "YouTube does not allow every video to be embedded. When the owner forbids it, the frame stays empty — open such a video in a new tab instead.",
@@ -1536,6 +1574,10 @@ const HELP = {
             "Spielt beide Signale sofort ab. Auf dem Handy entsperrt das zugleich den Ton; siehe Grenzen."
           ],
           [
+            "Benachrichtigung am Ende",
+            "Läuft der Timer im Hintergrund, meldet das System das Ende der Runde. Wo der Browser Tasten unterstützt — Chrome auf Android und am Rechner — bleibt die Benachrichtigung auf dem Bildschirm, zeigt die Restzeit und trägt Pause, Weiter und Stoppen. Funktioniert nur in der installierten App und fragt beim Einschalten um Erlaubnis."
+          ],
+          [
             "Jede Runde zählt als Satz",
             "Eingeschaltet erhöht sich der Satzzähler am Ende jeder Runde von selbst."
           ],
@@ -1579,6 +1621,7 @@ const HELP = {
         "Ein Intervall, kein Programm. Der Timer läuft immer dieselbe Dauer; er kann keine verschiedenen Arbeits- und Pausenphasen mit unterschiedlichen Zeiten aneinanderreihen.",
         "Die Wiederholung ist endlos. Es gibt keine voreingestellte Rundenzahl, nach der er von selbst stehen bliebe — du stoppst ihn mit der Pause.",
         "Auf dem Handy entsperrt sich der Ton erst bei der ersten Berührung der Seite. Drücke vor dem Training „Ton prüfen“, sonst kann das erste Signal ausbleiben.",
+        "Die Zeit in der Benachrichtigung stimmt nur, solange das System die App laufen lässt. Legt es sie schlafen — und auf dem iPhone tut es das schnell — friert die Zahl ein und die Benachrichtigung hinkt hinterher. Das Web kann eine Benachrichtigung nicht im Voraus planen, also bleiben Ton und Vibration das verlässlichere Signal. Tasten in Benachrichtigungen unterstützt Safari gar nicht; dort kommt nur die Meldung am Ende.",
         "Das Anlassen des Bildschirms hängt vom Browser ab. Manche haben kein Wake Lock, manche verweigern es; dann dunkelt der Bildschirm nach den Systemeinstellungen ab.",
         "In einem Hintergrund-Tab steht die Anzeige still. Der Browser hält dort das Zeichnen an, aber Countdown und Töne sind im Voraus eingeplant, sodass das Endsignal rechtzeitig kommt; die Zahl holt auf, sobald du zurückkehrst.",
         "YouTube erlaubt nicht bei jedem Video die Einbettung. Verbietet der Eigentümer sie, bleibt der Rahmen leer — öffne ein solches Video stattdessen in einem neuen Tab.",
@@ -1623,6 +1666,7 @@ function applyLang() {
 
   renderLangs();
   renderHelp();
+  syncNotify();
   renderProgressPick();
   renderOrientPick();
   renderMedia();
@@ -1920,6 +1964,7 @@ function start() {
   clearTimeout(endGuard);
   endGuard = window.setTimeout(finish, left * 1000 + 40);
   paint();
+  syncLive();
   frame = requestAnimationFrame(tick);
 }
 
@@ -1931,6 +1976,7 @@ function pause() {
   left = Math.max(0, (endsAt - Date.now()) / 1000);
   releaseWakeLock();
   paint();
+  syncLive();
 }
 
 /**
@@ -1959,6 +2005,8 @@ function finish() {
 
   releaseWakeLock();
   paint();
+  closeLive();
+  notifyEnd();
 }
 
 function reset() {
@@ -1969,6 +2017,7 @@ function reset() {
   left = total;
   releaseWakeLock();
   paint();
+  closeLive();
 }
 
 function setTotal(seconds, fromDial) {
@@ -1988,6 +2037,159 @@ els.presets.addEventListener('click', (event) => {
 });
 
 els.dial.addEventListener('input', () => setTotal(STOPS[Number(els.dial.value)], true));
+
+/* ═══════════════════════════════════════════════════════════
+   5b · Obavijest na kraju kruga
+
+   Ima smisla samo u instaliranoj aplikaciji: u kartici preglednika
+   vidiš timer ionako, a na iPhoneu su obavijesti dopuštene isključivo
+   web-aplikacijama dodanima na početni zaslon.
+
+   Šalje se preko service workera, jer Chrome na Androidu ne dopušta
+   `new Notification()` sa stranice, a i klik onda ima gdje sletjeti.
+   ═══════════════════════════════════════════════════════════ */
+
+const installed = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const canNotify = () => installed() && 'Notification' in window && 'serviceWorker' in navigator;
+
+function syncNotify() {
+  const usable = canNotify();
+  els.notifySw.disabled = !usable;
+  els.notifySw.setAttribute('aria-disabled', String(!usable));
+  if (!usable) cfg.notify = false;
+  els.notifySw.setAttribute('aria-checked', String(Boolean(cfg.notify)));
+  els.notifyHint.textContent = !usable ? t('notifyNeedsApp')
+    : canLiveNotify() ? t('notifyHintLive') : t('notifyHint');
+}
+
+els.notifySw.addEventListener('click', async () => {
+  if (!canNotify()) return;
+
+  if (cfg.notify) {
+    cfg.notify = false;
+    save();
+    syncNotify();
+    closeLive();
+    return;
+  }
+
+  // Dopuštenje se traži tek kad ga korisnik zatraži, ne na učitavanju.
+  let permission = Notification.permission;
+  if (permission === 'default') {
+    try { permission = await Notification.requestPermission(); } catch { permission = 'denied'; }
+  }
+
+  cfg.notify = permission === 'granted';
+  save();
+  syncNotify();
+  if (!cfg.notify) els.notifyHint.textContent = t('notifyBlocked');
+});
+
+/**
+ * Trajna obavijest s preostalim vremenom i tipkama.
+ *
+ * Nudi je se samo ondje gdje su tipke izvedive — `maxActions` je nula
+ * na iPhoneu, pa bi ondje ostala obavijest koja se ne da ni pauzirati
+ * ni pomaknuti. Iskreno je tada ne pokazati nego pokazati polovičnu.
+ *
+ * Vrijeme u njoj vrijedi dok sustav pušta stranicu da radi. Uspava li
+ * je, brojka se zamrzne — to se s weba ne da riješiti, pa zvuk i
+ * vibracija ostaju pouzdaniji signal.
+ */
+const LIVE_TAG = 'workshop-timer-live';
+const canLiveNotify = () => canNotify() && Number(Notification.maxActions) > 0;
+
+let liveTick = 0;
+
+async function liveRegistration() {
+  if (!cfg.notify || !canLiveNotify() || Notification.permission !== 'granted') return null;
+  try { return await navigator.serviceWorker.getRegistration(); } catch { return null; }
+}
+
+async function closeLive() {
+  clearInterval(liveTick);
+  liveTick = 0;
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) return;
+    for (const note of await registration.getNotifications({ tag: LIVE_TAG })) note.close();
+  } catch { /* nema workera */ }
+}
+
+async function showLive() {
+  const registration = await liveRegistration();
+  if (!registration) return;
+
+  const phase = phaseOf();
+  const icon = new URL('icons/timer-192.png', location.href).href;
+  const sets = Number(cfg.sets) || 0;
+
+  await registration.showNotification(`${format(left)} · ${t(PHASE_KEY[phase])}`, {
+    body: sets ? `${t('sets')}: ${sets}` : t('notifyRunning'),
+    tag: LIVE_TAG,
+    renotify: false,             // osvježavanje ne smije svake sekunde zvoniti
+    silent: true,
+    requireInteraction: true,
+    icon,
+    badge: icon,
+    data: { url: location.pathname },
+    actions: running
+      ? [{ action: 'pause', title: t('pause') }, { action: 'stop', title: t('notifyStop') }]
+      : [{ action: 'resume', title: t('resume') }, { action: 'stop', title: t('notifyStop') }]
+  });
+}
+
+/**
+ * Drži obavijest u koraku sa stanjem timera.
+ *
+ * Osvježava se samo dok je stranica skrivena: dok je gledaš, obavijest
+ * nitko ne vidi, a slanje svake sekunde bez potrebe troši bateriju.
+ */
+function syncLive() {
+  if (!cfg.notify || !canLiveNotify()) return;
+
+  if (!running && left <= 0) { closeLive(); return; }
+  if (!running && left >= total) { closeLive(); return; }   // resetirano
+
+  showLive();
+  if (liveTick) return;
+  liveTick = setInterval(() => {
+    if (document.hidden) showLive();
+  }, 1000);
+}
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) syncLive(); });
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data?.type !== 'notification-action') return;
+    if (event.data.action === 'pause' && running) pause();
+    else if (event.data.action === 'resume' && !running) start();
+    else if (event.data.action === 'stop') { reset(); closeLive(); return; }
+    syncLive();
+  });
+}
+
+/** Javi samo kad korisnik ne gleda — inače mu govoriš ono što već vidi. */
+async function notifyEnd() {
+  if (!cfg.notify || !canNotify() || Notification.permission !== 'granted') return;
+  if (!document.hidden) return;
+
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) return;
+    const icon = new URL('icons/timer-192.png', location.href).href;
+    await registration.showNotification(t('notifyTitle'), {
+      body: t('notifyBody'),
+      tag: 'workshop-timer',        // sljedeći krug zamijeni prethodnu
+      renotify: true,
+      icon,
+      badge: icon,
+      data: { url: location.pathname },
+      silent: false
+    });
+  } catch { /* dopuštenje povučeno ili worker nije spreman */ }
+}
 
 /* ═══════════════════════════════════════════════════════════
    6 · Ekran ostaje upaljen dok timer radi
@@ -2479,6 +2681,7 @@ left = total;
 els.dial.value = String(stopIndex(total));
 els.setsN.textContent = Number(cfg.sets) || 0;
 applyRepeat();
+syncNotify();
 renderPresets();
 setMediaOn(Boolean(cfg.mediaOn));
 applyLang();

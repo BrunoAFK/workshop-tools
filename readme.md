@@ -285,6 +285,24 @@ Traka nosi svoje boje umjesto da posuđuje stranične: katalog i alati nemaju is
 
 Bez toga bi traka legla preko gumba „Kreni".
 
+### Obavijesti
+
+Instalacija donosi i nešto što u kartici preglednika ne postoji: **timer javlja kraj kruga kad je u pozadini.** Prekidač je u njegovim postavkama i zaključan je dok alat nije instaliran — pa instalacija dobiva vidljiv razlog.
+
+Ide preko workera, jer Chrome na Androidu ne dopušta `new Notification()` sa stranice. Klik na obavijest vraća u aplikaciju; klik na tipku worker prosljeđuje stranici porukom, a ona odlučuje što će s njom — worker ne zna što koji alat radi.
+
+Doseg se bira po `Notification.maxActions`:
+
+| Platforma | Što stiže |
+| --- | --- |
+| Chrome, Android i računalo | Trajna obavijest s preostalim vremenom i tipkama **Pauza · Nastavi · Zaustavi** |
+| Safari, instalirano na iPhoneu | Samo javka na kraju kruga — tipke ondje ne postoje |
+| Kartica preglednika, bilo gdje | Ništa; prekidač je zaključan uz objašnjenje |
+
+> **Vrijeme u obavijesti stoji dok sustav pušta aplikaciju da radi.** Uspava li je, brojka se zamrzne. Web nema način da obavijest zakaže unaprijed — to nije propust nego granica platforme, pa zvuk i vibracija ostaju pouzdaniji signal.
+
+Obavijest se osvježava jednom u sekundi i **samo dok je stranica skrivena**: dok je gledaš, nitko je ne vidi, a slanje bi trošilo bateriju.
+
 ### Offline
 
 Sprema se **ono što si otvorio**. Worker poslužuje iz predmemorije i istovremeno u pozadini povlači novo, pa je stranica odmah tu, a nova verzija se primijeni pri sljedećem otvaranju — bez ijedne poruke.
