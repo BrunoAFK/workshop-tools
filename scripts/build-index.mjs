@@ -60,6 +60,9 @@ export function urlFor(item, isHead) {
  */
 const RESERVED_DIRS = new Set([VERSION_DIR]);
 
+/** Doseg aplikacije: adresa bez `.html`, jer pokriva oba oblika. */
+const scopeOf = (url) => url.replace(/\.html?$/i, '');
+
 /* Boje aplikacije: podloga iz `<meta name="theme-color">`, znak iz
    `<meta name="accent-color">`. Alat koji ih ne prijavi dobiva boje
    kataloga — ikona je i dalje njegova, samo u obiteljskim bojama. */
@@ -660,6 +663,17 @@ export async function buildIndex({ quiet = false, dev = false } = {}) {
   const collisions = indexed.length - new Set(indexed.map((item) => item.url)).size;
   if (collisions) throw new Error(`${collisions} kolizija adresa — dva dokumenta bi dobila isti URL.`);
 
+  /* Doseg je prefiks, pa bi alat „timer" progutao „timer-2": instalirani
+     bi otvarao tuđe stranice u svom prozoru. Uhvati se ovdje, dok je još
+     samo pitanje naziva datoteke. */
+  for (const head of items) {
+    const scope = scopeOf(head.url);
+    const swallowed = items.find((other) => other !== head && other.url.startsWith(scope));
+    if (swallowed) {
+      throw new Error(`Doseg alata „${head.lineage}" (${scope}) pokriva i „${swallowed.lineage}". Preimenuj jedan.`);
+    }
+  }
+
   /* Javna kopija pod čitljivom adresom. Alati nisu tajni pa postoji
      samo jedna kopija — nema više odvojene „za dijeljenje" i „čitljive".
 
@@ -692,10 +706,13 @@ export async function buildIndex({ quiet = false, dev = false } = {}) {
       short: shortName(item.title, item.appName),
       description: item.description,
       startUrl: item.url,
-      // Doseg je sam dokument, ne mapa. S `/alat/` bi prvi instalirani
-      // alat polagao pravo na sve ostale: otvarali bi se u njegovom
-      // prozoru, a preglednik bi ih smatrao već instaliranima.
-      scope: item.url,
+      // Doseg je adresa bez nastavka, jer je prefiks obaju oblika:
+      // Cloudflare Pages `/alat/timer.html` preusmjerava na `/alat/timer`,
+      // pa doseg s `.html` ne bi pokrivao stvarnu adresu i aplikacija bi
+      // trajno bila izvan dosega — Chrome je tada crta s trakom i adresom
+      // umjesto kao aplikaciju. Poslužitelj bez tog pravila servira
+      // `.html` izravno, a i to je unutar istog dosega.
+      scope: scopeOf(item.url),
       theme: colors.bg,
       background: colors.bg,
       iconBase: `/${PUBLIC_DIR}/icons/${base}`

@@ -246,17 +246,31 @@ Glava loze dobiva u poslužena kopiju manifest, ikone i registraciju workera:
 
 **`sources/` ostaje netaknut** — ubacuje se samo u kopiju pod `/alat/`. Starije verzije ostaju doslovna kopija; one su povijest, ne aplikacija.
 
-### Doseg je sam dokument
+### Doseg je adresa bez nastavka
 
 Svaki alat pokriva **samo svoju adresu**, ne mapu:
 
 ```json
 "id":        "/alat/timer.html",
 "start_url": "/alat/timer.html",
-"scope":     "/alat/timer.html"
+"scope":     "/alat/timer"
 ```
 
 Sa zajedničkim `scope: "/alat/"` prvi instalirani alat proguta sve ostale: otvarali bi se u njegovom prozoru, preglednik bi ih smatrao već instaliranima i ne bi nudio zasebnu instalaciju. Uz to bi im `display-mode: standalone` bio istinit, pa bi i traka za instalaciju i prekidač obavijesti mislili da su u svojoj aplikaciji.
+
+**Doseg zato nema `.html`.** Cloudflare Pages skida nastavak i preusmjerava:
+
+```
+/alat/timer.html   → 301 → /alat/timer
+```
+
+Doseg s `.html` ne bi pokrivao tu stvarnu adresu, pa bi aplikacija bila trajno **izvan dosega** — Chrome je tada crta s vlastitom trakom, adresom i gumbom ✕ umjesto kao aplikaciju. Bez nastavka je prefiks obaju oblika, pa radi i ondje i na poslužitelju koji `.html` servira izravno.
+
+Zato build i **odbija dva alata čiji se dosezi preklapaju** — „timer" bi progutao „timer-2":
+
+```
+Doseg alata „timer" (/alat/timer) pokriva i „timer-2". Preimenuj jedan.
+```
 
 `id` se upisuje izričito jer ga preglednik inače izvodi iz `start_url` — promjena polazne adrese ispala bi nova aplikacija umjesto iste.
 
