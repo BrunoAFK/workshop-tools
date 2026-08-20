@@ -4,7 +4,7 @@ import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DELETED_DIR, lineageOf, stateOf } from '../lib/paths.js';
-import { SERVICE_WORKER, iconPng, iconSvg, injectPwa, manifestFor, shortName } from '../lib/pwa.js';
+import { INSTALL_BAR, SERVICE_WORKER, iconPng, iconSvg, injectPwa, manifestFor, shortName } from '../lib/pwa.js';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourcesRoot = path.join(projectRoot, 'sources');
@@ -725,7 +725,11 @@ export async function buildIndex({ quiet = false, dev = false } = {}) {
   await Promise.all([
     writeFile(path.join(appOutRoot, 'search-index.json'), `${JSON.stringify(data, null, 2)}\n`),
     writeFile(path.join(appOutRoot, 'search-index.js'), `window.__WORKSHOP_INDEX__ = ${json.replace(/</g, '\\u003c')};\n`),
-    copyFile(path.join(appRoot, 'index.html'), path.join(appOutRoot, 'index.html')),
+    readFile(path.join(appRoot, 'index.html'), 'utf8')
+      .then((html) => writeFile(path.join(appOutRoot, 'index.html'),
+        // Katalog manifest i workera nosi u izvoru; traka je zajednička
+        // s alatima, pa dolazi odavde i ostaje ista na oba mjesta.
+        html.replace('</body>', `${INSTALL_BAR}\n</body>`))),
     writeFile(path.join(distRoot, '_headers'), headersFile()),
     writeFile(path.join(distRoot, 'robots.txt'), ROBOTS_FILE),
     writeFile(path.join(distRoot, 'favicon.svg'), FAVICON_FILE),

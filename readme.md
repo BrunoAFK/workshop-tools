@@ -261,6 +261,30 @@ Traku preglednika alat mijenja i u hodu: `syncThemeColor()` čita `--bg` nakon p
 
 Nema ih u repozitoriju. [`lib/pwa.js`](lib/pwa.js) crta šesterokut s rupom — isti znak kao u zaglavlju — i zapisuje ga kao SVG te kao PNG od 192, 512 i maskiranih 512 px. PNG se rasterizira s četverostrukim uzorkovanjem i zapisuje kroz `zlib`, koji je u Nodeu. Zato build prolazi i na Cloudflareu, gdje nema ni preglednika ni alata za slike, a ikona se sama osvježi kad alat promijeni boje.
 
+### Traka za instalaciju
+
+Preglednici nude instalaciju vrlo nejednako: Chrome i Edge sami pokažu ikonu u adresnoj traci, Firefox na desktopu nema ništa, a Safari na iPhoneu traži ručno Podijeli → Dodaj na početni zaslon i ne javlja se ničim.
+
+Zato katalog i svaki alat dobivaju **istu traku pri dnu**, iz [`lib/pwa.js`](lib/pwa.js):
+
+- pojavi se 2,5 s nakon što preglednik javi da je instalacija moguća;
+- na iPhoneu, gdje te javke nema, pokaže uputu umjesto gumba;
+- **„Ne sad" i uspješna instalacija je gase zauvijek** (`localStorage`, ključ `workshop.install`);
+- ne pojavljuje se u iframeu, pa je nema u pregledu verzija unutar kataloga;
+- nema je kad je aplikacija već instalirana (`display-mode: standalone`).
+
+Niske su joj vlastite, u hr/en/de, i bira ih po `<html lang>` — pa prati jezik koji je alat postavio.
+
+Traka nosi svoje boje umjesto da posuđuje stranične: katalog i alati nemaju isti skup varijabli, a tamna pločica s jantarnim gumbom čita se na objema podlogama.
+
+**Alat koji drži kontrole pri dnu podigne traku iznad njih:**
+
+```css
+:root { --install-offset: 92px; }   /* zadano je 12px */
+```
+
+Bez toga bi traka legla preko gumba „Kreni".
+
 ### Offline
 
 Sprema se **ono što si otvorio**. Worker poslužuje iz predmemorije i istovremeno u pozadini povlači novo, pa je stranica odmah tu, a nova verzija se primijeni pri sljedećem otvaranju — bez ijedne poruke.
