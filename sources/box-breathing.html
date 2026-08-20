@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Vođeno box disanje — kvadrat koji se obrubljuje, udah i izdah sa zvučnim signalom, odbrojavanje faza i tajmer seanse.">
 <meta name="date" content="2026-08-18">
+<meta name="theme-color" content="#f4f6f2">
+<meta name="accent-color" content="#4e8c66">
 <meta name="keywords" content="Vrijeme, Vježbanje">
 <meta property="og:image" content="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20320%20180'%3E%3Crect%20width%3D'320'%20height%3D'180'%20fill%3D'%23f4f6f2'%2F%3E%3Crect%20x%3D'100'%20y%3D'28'%20width%3D'120'%20height%3D'120'%20fill%3D'none'%20stroke%3D'%23dfe6da'%20stroke-width%3D'9'%2F%3E%3Cpath%20d%3D'M100%20148V28h60'%20fill%3D'none'%20stroke%3D'%234e8c66'%20stroke-width%3D'9'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%2F%3E%3Ccircle%20cx%3D'160'%20cy%3D'28'%20r%3D'13'%20fill%3D'%234e8c66'%2F%3E%3Ctext%20x%3D'160'%20y%3D'100'%20fill%3D'%238b968f'%20font-family%3D'Helvetica%20Neue%2C%20Helvetica%2C%20Arial%2C%20sans-serif'%20font-size%3D'13'%20font-weight%3D'500'%20text-anchor%3D'middle'%20letter-spacing%3D'4'%3E4-4-4-4%3C%2Ftext%3E%3C%2Fsvg%3E">
 <title>Box disanje — vođeni ritam 4-4-4-4</title>
@@ -293,82 +295,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 .picks { display: grid; gap: var(--sp-2); grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); }
 
-/* ── bench za ugađanje tona (privremeno) ──────────────────── */
-
-/* Bench je jedini modal kojem treba širina — graf se puno bolje čita
-   razvučen, a kontrole onda stanu jedna uz drugu. */
-#labSheet .sheet-box { width: min(900px, 100%); }
-
-.lab-body { display: grid; grid-template-columns: 1fr; }
-.lab-body > .full { grid-column: 1 / -1; }
-
-@media (min-width: 720px) {
-  .lab-body { grid-template-columns: 1fr 1fr; }
-  .lab-body > .field:nth-of-type(odd):not(.full) { border-right: 1px solid var(--line); }
-}
-
-.lab-tabs { display: flex; gap: var(--sp-1); margin-bottom: var(--sp-3); }
-.lab-tabs .pick { flex: 1; }
-
-.lab-plot {
-  display: block;
-  width: 100%;
-  aspect-ratio: 5 / 3;
-  border: 1px solid var(--line-2);
-  border-radius: 12px;
-  background: var(--panel);
-  touch-action: none;
-}
-
-.lab-grid { stroke: var(--line); stroke-width: .4; }
-.lab-curve { fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linecap: round; }
-.lab-fill { fill: var(--accent); opacity: .12; }
-.lab-handle { fill: var(--panel); stroke: var(--accent); stroke-width: 2; cursor: grab; }
-.lab-handle.mid { stroke-dasharray: 3 2; }
-.lab-axis { fill: var(--fg-3); font-family: var(--num); font-size: 4px; }
-
-/* Razvučen graf: na širokom ekranu niži i širi, da se vrijeme vidi
-   kao vrijeme. Mora doći nakon osnovnog pravila da ga nadjača. */
-@media (min-width: 720px) { .lab-plot { aspect-ratio: 16 / 5; } }
-
-.lab-legend { display: flex; justify-content: space-between; margin-top: var(--sp-2); color: var(--fg-3); font-size: .72rem; }
-.lab-legend b { color: var(--fg-2); font-family: var(--num); font-weight: 600; }
-
-.lab-line { display: grid; gap: var(--sp-2); align-items: center; grid-template-columns: 5.5em 1fr 4.4em; margin-top: var(--sp-2); }
-.lab-line > span:first-child { color: var(--fg-2); font-size: .78rem; }
-.lab-line .lab-val { color: var(--fg-3); font-family: var(--num); font-size: .82rem; text-align: right; }
-
-.lab-line input[type="range"] { width: 100%; height: 26px; margin: 0; background: none; appearance: none; cursor: pointer; }
-.lab-line input[type="range"]::-webkit-slider-runnable-track { height: 5px; border-radius: 99px; background: var(--track); }
-.lab-line input[type="range"]::-webkit-slider-thumb { width: 20px; height: 20px; margin-top: -7px; border: 0; border-radius: 50%; background: var(--accent); appearance: none; }
-.lab-line input[type="range"]::-moz-range-track { height: 5px; border-radius: 99px; background: var(--track); }
-.lab-line input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: var(--accent); }
-
-/* Sviranje mora biti nadohvat bez obzira dokle si doskrolao. */
-.lab-foot {
-  position: sticky;
-  bottom: 0;
-  display: grid;
-  gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4) var(--sp-4);
-  border-top: 1px solid var(--line);
-  background: var(--bg-2);
-  grid-template-columns: 1fr auto auto auto;
-}
-
-.lab-foot .btn { width: auto; }
-.lab-foot .btn.play { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
-.lab-foot .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
-
-.lab-out {
-  width: 100%; min-height: 84px; margin: var(--sp-3) 0 0; padding: var(--sp-2);
-  border: 1px solid var(--line-2); border-radius: 10px;
-  color: var(--fg-2); background: var(--panel);
-  font-family: ui-monospace, Menlo, monospace; font-size: .7rem; line-height: 1.45;
-  resize: vertical;
-}
-
-
 .pick {
   padding: var(--sp-2);
   border: 1px solid var(--line-2);
@@ -451,11 +377,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
           <circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 2.1"/>
         </svg>
       </button>
-      <button class="icon" id="labBtn" type="button" aria-label="Ugađanje tona" title="Ugađanje tona">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 9v6h3.5L13 19V5L7.5 9Z"/><path d="M17 9.5a4 4 0 0 1 0 5"/><path d="M19.5 7a7.5 7.5 0 0 1 0 10"/>
-        </svg>
-      </button>
       <button class="reset icon" id="resetBtn" type="button" data-i18n-attr="aria-label:reset,title:reset">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20.4 4.2v4.6h-4.6"/>
@@ -480,57 +401,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 </div>
 
 <!-- ═══ BENCH ZA UGAĐANJE TONA (privremeno) ════════════════ -->
-<div class="sheet" id="labSheet" role="dialog" aria-modal="true" aria-label="Ugađanje tona" aria-hidden="true">
-  <div class="sheet-box">
-    <div class="sheet-head">
-      <h2>Ugađanje tona</h2>
-      <button class="icon" id="labClose" type="button" data-i18n-attr="aria-label:close">✕</button>
-    </div>
-
-    <div class="lab-body">
-      <div class="field full">
-        <p class="field-title">Polazište</p>
-        <div class="picks" id="labPresets"></div>
-      </div>
-
-      <div class="field full">
-        <div class="lab-tabs" id="labTabs"></div>
-        <svg class="lab-plot" id="labPlot" viewBox="0 0 100 60"></svg>
-        <div class="lab-legend">
-          <span>Početak <b id="labA">—</b></span>
-          <span>Zavoj <b id="labBend">—</b></span>
-          <span>Kraj <b id="labB">—</b></span>
-        </div>
-      </div>
-
-      <div class="field">
-        <p class="field-title">Val</p>
-        <div class="picks" id="labWave"></div>
-        <div class="lab-line"><span>Trajanje</span><input id="labDur" type="range" min="0.2" max="20" step="0.1"><span class="lab-val" id="labDurV"></span></div>
-      </div>
-
-      <div class="field">
-        <p class="field-title">Filtar</p>
-        <div class="picks" id="labFilter"></div>
-        <div class="lab-line"><span>Q</span><input id="labQ" type="range" min="0.1" max="20" step="0.1"><span class="lab-val" id="labQV"></span></div>
-        <p class="hint">Krivulja filtra se ugađa u kartici „Filtar" gore.</p>
-      </div>
-
-      <div class="field full">
-        <textarea class="lab-out" id="labOut" readonly spellcheck="false"></textarea>
-        <p class="hint">Privremeno, za ugađanje. Pošalji mi sadržaj ovog polja.</p>
-      </div>
-    </div>
-
-    <div class="lab-foot">
-      <button class="btn play" id="labPlayBtn" type="button">▶ Sviraj</button>
-      <button class="btn" id="labAuto" type="button" aria-pressed="false" title="Sviraj pri svakoj promjeni">Auto</button>
-      <button class="btn" id="labSwap" type="button">⇄ Obrni</button>
-      <button class="btn" id="labCopy" type="button">Kopiraj</button>
-    </div>
-  </div>
-</div>
-
 <!-- ═══ POSTAVKE ═══════════════════════════════════════════ -->
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" data-i18n-attr="aria-label:settings" aria-hidden="true">
   <div class="sheet-box">
@@ -1233,12 +1103,20 @@ els.langPick.addEventListener('click', (event) => {
   if (button) { cfg.lang = button.dataset.lang; save(); applyLang(); }
 });
 
+/** Boja preglednikove trake prati odabranu temu, ne ostaje na zadanoj. */
+function syncThemeColor() {
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (bg && meta) meta.setAttribute('content', bg);
+}
+
 function applyTheme(id) {
   cfg.theme = ['svjetlo', 'tamno', 'zeleno'].includes(id) ? id : 'svjetlo';
   els.root.dataset.theme = cfg.theme;
   els.body.dataset.theme = cfg.theme;
   save();
   renderPicks();
+  syncThemeColor();
 }
 
 function bindSwitch(el, key, after) {
@@ -1267,378 +1145,13 @@ els.sheet.addEventListener('click', (event) => { if (event.target === els.sheet)
 
 document.addEventListener('keydown', (event) => {
   if (event.target.matches('input')) return;
-  if (event.key === 'Escape') { closeSheet(); closeSession(); labClose(); return; }
+  if (event.key === 'Escape') { closeSheet(); closeSession(); return; }
   if (event.code === 'Space') { event.preventDefault(); running ? pause() : start(); return; }
   if (event.key === 'r' || event.key === 'R') reset();
 });
 
 /* ═══════════════════════════════════════════════════════════
-   8 · Bench za ugađanje tona  ·  PRIVREMENO
-
-   Odvojen od produkcijskih zvukova. Svaka od tri krivulje —
-   glasnoća, visina, filtar — ima početak, kraj i zavoj, i vuče
-   se izravno po grafu. Zavoj zamjenjuje izbor linearno/eksponencijalno:
-   umjesto dva stanja daje cijeli raspon između.
-   ═══════════════════════════════════════════════════════════ */
-
-const LAB_STORE = 'workshop.box.lab';
-const LAB_WAVES = ['sine', 'triangle', 'square', 'sawtooth', 'noise', 'pink'];
-const LAB_FILTERS = ['off', 'lowpass', 'bandpass', 'highpass'];
-
-// Raspon osi i način ispisa za svaku krivulju.
-const LAB_AXES = {
-  gain:   { name: 'Glasnoća', min: 0,  max: 0.3,  fmt: (v) => v.toFixed(3) },
-  pitch:  { name: 'Visina',   min: 40, max: 1200, fmt: (v) => `${Math.round(v)} Hz` },
-  filter: { name: 'Filtar',   min: 80, max: 8000, fmt: (v) => `${Math.round(v)} Hz` }
-};
-
-/**
- * Gotovi polazišni setovi.
- *
- * Dah nije ton nego šum kroz filtar koji putuje: pri udahu se spektar
- * otvara prema gore, pri izdahu zatvara. Zato svaki od ovih kreće od
- * šuma, a razlikuju se po tome koji dio spektra propuštaju i koliko
- * usko — to je ono što razdvaja nos od usta i šapat od vala.
- */
-const LAB_PRESETS = [
-  { id: 'nos', name: 'Nos', set: {
-    wave: 'noise', dur: 4, filterType: 'bandpass', q: 2.6,
-    gain:   { a: 0.02, b: 0.24, bend: 0.35 },
-    filter: { a: 520,  b: 1500, bend: 0.15 }
-  } },
-  { id: 'usta', name: 'Usta', set: {
-    wave: 'noise', dur: 4, filterType: 'lowpass', q: 0.8,
-    gain:   { a: 0.03, b: 0.28, bend: 0.25 },
-    filter: { a: 700,  b: 1900, bend: 0 }
-  } },
-  { id: 'more', name: 'More', set: {
-    wave: 'noise', dur: 5, filterType: 'lowpass', q: 1.6,
-    gain:   { a: 0.05, b: 0.26, bend: -0.2 },
-    filter: { a: 300,  b: 950,  bend: -0.3 }
-  } },
-  { id: 'sapat', name: 'Šapat', set: {
-    wave: 'noise', dur: 4, filterType: 'highpass', q: 0.7,
-    gain:   { a: 0.02, b: 0.18, bend: 0.4 },
-    filter: { a: 1300, b: 3600, bend: 0.1 }
-  } },
-  { id: 'meki', name: 'Meki', set: {
-    wave: 'pink', dur: 4, filterType: 'lowpass', q: 1.1,
-    gain:   { a: 0.03, b: 0.22, bend: 0.2 },
-    filter: { a: 420,  b: 1250, bend: 0 }
-  } },
-  { id: 'vjetar', name: 'Vjetar', set: {
-    wave: 'pink', dur: 5, filterType: 'bandpass', q: 0.9,
-    gain:   { a: 0.04, b: 0.26, bend: -0.15 },
-    filter: { a: 380,  b: 1100, bend: 0.2 }
-  } },
-  { id: 'ton', name: 'Ton', set: {
-    wave: 'sine', dur: 4, filterType: 'off', q: 1.2,
-    gain:   { a: 0.04, b: 0.13, bend: 0 },
-    pitch:  { a: 220,  b: 330,  bend: 0 }
-  } }
-];
-
-const LAB_DEFAULTS = {
-  wave: 'sine', dur: 4, q: 1.2, filterType: 'off', tab: 'gain', auto: false,
-  gain:   { a: 0.04, b: 0.13, bend: 0 },
-  pitch:  { a: 220,  b: 330,  bend: 0 },
-  filter: { a: 800,  b: 2400, bend: 0 }
-};
-
-let lab = { ...LAB_DEFAULTS };
-try {
-  const stored = JSON.parse(localStorage.getItem(LAB_STORE) || '{}');
-  lab = { ...LAB_DEFAULTS, ...stored };
-  for (const key of ['gain', 'pitch', 'filter']) lab[key] = { ...LAB_DEFAULTS[key], ...(stored[key] || {}) };
-} catch { /* prvi put */ }
-
-const labEls = {
-  sheet: $('labSheet'), open: $('labBtn'), close: $('labClose'),
-  tabs: $('labTabs'), plot: $('labPlot'), wave: $('labWave'), filter: $('labFilter'),
-  a: $('labA'), bend: $('labBend'), b: $('labB'),
-  play: $('labPlayBtn'), swap: $('labSwap'), copy: $('labCopy'), out: $('labOut'), auto: $('labAuto'),
-  presets: $('labPresets')
-};
-
-const labSave = () => { try { localStorage.setItem(LAB_STORE, JSON.stringify(lab)); } catch { /* privatni način */ } };
-
-/** Vrijednost krivulje u trenutku t (0–1) — kvadratna Bézierova. */
-function labValue(curve, axis, t) {
-  const span = axis.max - axis.min;
-  const mid = (curve.a + curve.b) / 2 + curve.bend * span * 0.4;
-  const c = Math.min(axis.max, Math.max(axis.min, mid));
-  const u = 1 - t;
-  return u * u * curve.a + 2 * u * t * c + t * t * curve.b;
-}
-
-function labChips(host, list, get, set) {
-  host.innerHTML = list.map((id) =>
-    `<button class="pick" type="button" data-v="${id}" aria-pressed="${id === get()}">${id}</button>`).join('');
-  host.onclick = (event) => {
-    const button = event.target.closest('[data-v]');
-    if (!button) return;
-    set(button.dataset.v);
-    labSave();
-    labRender();
-    labAuto();
-  };
-}
-
-/* Širina crtaće plohe prati stvarni omjer elementa, pa se krivulja
-   razvuče preko cijelog grafa, a ručke ostanu okrugle. */
-const PLOT_H = 60, PAD = 6, PAD_B = 12;   // dolje više mjesta za oznake
-const plotArea = PLOT_H - PAD - PAD_B;
-let PLOT_W = 100;
-
-function labSyncViewBox() {
-  const box = labEls.plot.getBoundingClientRect();
-  if (box.height > 0) PLOT_W = Math.max(60, Math.round(PLOT_H * (box.width / box.height)));
-  labEls.plot.setAttribute('viewBox', `0 0 ${PLOT_W} ${PLOT_H}`);
-}
-const plotX = (t) => PAD + t * (PLOT_W - PAD * 2);
-const plotY = (value, axis) => PLOT_H - PAD_B - ((value - axis.min) / (axis.max - axis.min)) * plotArea;
-const fromPlotY = (y, axis) => axis.min + ((PLOT_H - PAD_B - y) / plotArea) * (axis.max - axis.min);
-
-function labDrawPlot() {
-  labSyncViewBox();
-  const curve = lab[lab.tab];
-  const axis = LAB_AXES[lab.tab];
-
-  let path = '';
-  for (let i = 0; i <= 60; i++) {
-    const t = i / 60;
-    path += `${i ? 'L' : 'M'}${plotX(t).toFixed(2)} ${plotY(labValue(curve, axis, t), axis).toFixed(2)}`;
-  }
-
-  const grid = [0.25, 0.5, 0.75].map((f) =>
-    `<path class="lab-grid" d="M${plotX(f)} ${PAD}V${PLOT_H - PAD_B}"/>` +
-    `<path class="lab-grid" d="M${PAD} ${PAD + f * plotArea}H${PLOT_W - PAD}"/>`).join('');
-
-  const bendY = plotY(labValue(curve, axis, 0.5), axis);
-
-  labEls.plot.innerHTML = grid
-    + `<path class="lab-fill" d="${path}L${plotX(1)} ${PLOT_H - PAD_B}L${plotX(0)} ${PLOT_H - PAD_B}Z"/>`
-    + `<path class="lab-curve" d="${path}"/>`
-    + `<circle class="lab-handle mid" data-h="bend" cx="${plotX(0.5)}" cy="${bendY}" r="3.2"/>`
-    + `<circle class="lab-handle" data-h="a" cx="${plotX(0)}" cy="${plotY(curve.a, axis)}" r="3.6"/>`
-    + `<circle class="lab-handle" data-h="b" cx="${plotX(1)}" cy="${plotY(curve.b, axis)}" r="3.6"/>`
-    + `<text class="lab-axis" x="${PAD}" y="${PLOT_H - 3}">0 s</text>`
-    + `<text class="lab-axis" x="${PLOT_W - PAD}" y="${PLOT_H - 3}" text-anchor="end">${Number(lab.dur).toFixed(1)} s</text>`
-    + `<text class="lab-axis" x="${PAD}" y="${PAD + 3}">${LAB_AXES[lab.tab].fmt(LAB_AXES[lab.tab].max)}</text>`;
-
-  labEls.a.textContent = axis.fmt(curve.a);
-  labEls.b.textContent = axis.fmt(curve.b);
-  labEls.bend.textContent = curve.bend.toFixed(2);
-}
-
-function labRender() {
-  labChips(labEls.tabs, Object.keys(LAB_AXES), () => lab.tab, (v) => { lab.tab = v; });
-  labEls.tabs.querySelectorAll('.pick').forEach((b) => { b.textContent = LAB_AXES[b.dataset.v].name; });
-  labChips(labEls.wave, LAB_WAVES, () => lab.wave, (v) => { lab.wave = v; });
-  labChips(labEls.filter, LAB_FILTERS, () => lab.filterType, (v) => { lab.filterType = v; });
-  labEls.presets.innerHTML = LAB_PRESETS.map((preset) =>
-    `<button class="pick" type="button" data-preset="${preset.id}">${preset.name}</button>`).join('');
-  labEls.auto.setAttribute('aria-pressed', String(Boolean(lab.auto)));
-  $('labDur').value = lab.dur;
-  $('labDurV').textContent = `${Number(lab.dur).toFixed(1)} s`;
-  $('labQ').value = lab.q;
-  $('labQV').textContent = Number(lab.q).toFixed(1);
-  labDrawPlot();
-  labEls.out.value = JSON.stringify(lab, null, 2);
-}
-
-/* ── vučenje po grafu ── */
-
-let dragging = null;
-
-function labPointValue(event) {
-  const box = labEls.plot.getBoundingClientRect();
-  const y = ((event.clientY - box.top) / box.height) * PLOT_H;
-  return fromPlotY(y, LAB_AXES[lab.tab]);
-}
-
-// Promjena veličine prozora mijenja omjer, pa i koordinatni prostor.
-window.addEventListener('resize', () => { if (labEls.sheet.classList.contains('on')) labDrawPlot(); });
-
-labEls.plot.addEventListener('pointerdown', (event) => {
-  const handle = event.target.closest('[data-h]');
-  if (!handle) return;
-  dragging = handle.dataset.h;
-  labEls.plot.setPointerCapture(event.pointerId);
-  event.preventDefault();
-});
-
-labEls.plot.addEventListener('pointermove', (event) => {
-  if (!dragging) return;
-  const curve = lab[lab.tab];
-  const axis = LAB_AXES[lab.tab];
-  const value = Math.min(axis.max, Math.max(axis.min, labPointValue(event)));
-  if (dragging === 'bend') {
-    // Zavoj je odmak sredine od ravne crte, u dijelovima raspona osi.
-    const straight = (curve.a + curve.b) / 2;
-    curve.bend = Math.min(1, Math.max(-1, (value - straight) / ((axis.max - axis.min) * 0.4)));
-  } else {
-    curve[dragging] = value;
-  }
-  labDrawPlot();
-  labEls.out.value = JSON.stringify(lab, null, 2);
-});
-
-for (const type of ['pointerup', 'pointercancel']) {
-  labEls.plot.addEventListener(type, () => {
-    if (!dragging) return;
-    dragging = null;
-    labSave();
-    labAuto();
-  });
-}
-
-$('labDur').addEventListener('input', () => {
-  lab.dur = Number($('labDur').value);
-  $('labDurV').textContent = `${lab.dur.toFixed(1)} s`;
-  labDrawPlot();
-  labEls.out.value = JSON.stringify(lab, null, 2);
-  labSave();
-});
-$('labDur').addEventListener('change', labAuto);
-
-$('labQ').addEventListener('input', () => {
-  lab.q = Number($('labQ').value);
-  $('labQV').textContent = lab.q.toFixed(1);
-  labEls.out.value = JSON.stringify(lab, null, 2);
-  labSave();
-});
-$('labQ').addEventListener('change', labAuto);
-
-/* ── sviranje ── */
-
-let labTone = null;
-
-function labButton() {
-  labEls.play.textContent = labTone ? '■ Stani' : '▶ Sviraj';
-}
-
-function labStop() {
-  if (!labTone) return;
-  const source = labTone;
-  labTone = null;
-  source.onended = null;
-  try { source.stop(); } catch { /* već gotov */ }
-  labButton();
-}
-
-/** Svira pri promjeni samo ako je „auto" uključen. */
-function labAuto() {
-  if (lab.auto) labPlay();
-}
-
-/** Krivulja u obliku koji AudioParam prihvaća. */
-function labSamples(which, floor) {
-  const curve = lab[which];
-  const axis = LAB_AXES[which];
-  const out = new Float32Array(128);
-  for (let i = 0; i < out.length; i++) {
-    out[i] = Math.max(floor, labValue(curve, axis, i / (out.length - 1)));
-  }
-  return out;
-}
-
-function labPlay() {
-  const ctx = wakeAudio();
-  if (!ctx) return;
-  labStop();
-
-  const at = ctx.currentTime + 0.02;
-  const dur = Math.max(0.05, Number(lab.dur));
-
-  let source;
-  let out;
-  if (lab.wave === 'noise' || lab.wave === 'pink') {
-    source = ctx.createBufferSource();
-    source.buffer = noiseBuffer(ctx, lab.wave === 'pink' ? 'pink' : 'white');
-    source.loop = true;
-    out = source;
-  } else {
-    const osc = ctx.createOscillator();
-    osc.type = lab.wave;
-    osc.frequency.setValueCurveAtTime(labSamples('pitch', 20), at, dur);
-    source = osc;
-    out = osc;
-  }
-
-  if (lab.filterType !== 'off') {
-    const filter = ctx.createBiquadFilter();
-    filter.type = lab.filterType;
-    filter.Q.value = Number(lab.q);
-    filter.frequency.setValueCurveAtTime(labSamples('filter', 20), at, dur);
-    out.connect(filter);
-    out = filter;
-  }
-
-  const gain = ctx.createGain();
-  gain.gain.setValueCurveAtTime(labSamples('gain', 0.0001), at, dur);
-  out.connect(gain).connect(ctx.destination);
-  source.start(at);
-  source.stop(at + dur + 0.05);
-  source.onended = () => { if (labTone === source) { labTone = null; labButton(); } };
-  labTone = source;
-  labButton();
-}
-
-// Isti gumb pokreće i zaustavlja — dugi tonovi inače nemaju izlaz.
-labEls.play.addEventListener('click', () => (labTone ? labStop() : labPlay()));
-
-labEls.swap.addEventListener('click', () => {
-  for (const key of ['gain', 'pitch', 'filter']) {
-    const curve = lab[key];
-    [curve.a, curve.b] = [curve.b, curve.a];
-    curve.bend = -curve.bend;
-  }
-  labSave();
-  labRender();
-  labAuto();
-});
-
-labEls.copy.addEventListener('click', async () => {
-  labEls.out.select();
-  try { await navigator.clipboard.writeText(labEls.out.value); } catch { document.execCommand('copy'); }
-  labEls.copy.textContent = 'Kopirano';
-  window.setTimeout(() => { labEls.copy.textContent = 'Kopiraj'; }, 1400);
-});
-
-labEls.presets.addEventListener('click', (event) => {
-  const button = event.target.closest('[data-preset]');
-  if (!button) return;
-  const preset = LAB_PRESETS.find((item) => item.id === button.dataset.preset);
-  if (!preset) return;
-  // Polazište prepisuje samo ono što nosi; ostalo ostaje kako je bilo.
-  for (const [key, value] of Object.entries(preset.set)) {
-    lab[key] = (value && typeof value === 'object') ? { ...lab[key], ...value } : value;
-  }
-  labSave();
-  labRender();
-  labPlay();
-});
-
-labEls.auto.addEventListener('click', () => {
-  lab.auto = labEls.auto.getAttribute('aria-pressed') !== 'true';
-  labEls.auto.setAttribute('aria-pressed', String(lab.auto));
-  labSave();
-});
-
-labEls.open.addEventListener('click', () => {
-  wakeAudio();
-  labEls.sheet.classList.add('on');
-  labEls.sheet.setAttribute('aria-hidden', 'false');
-  labRender();
-});
-
-const labClose = () => { labStop(); labButton(); labEls.sheet.classList.remove('on'); labEls.sheet.setAttribute('aria-hidden', 'true'); };
-labEls.close.addEventListener('click', labClose);
-labEls.sheet.addEventListener('click', (event) => { if (event.target === labEls.sheet) labClose(); });
-
-/* ═══════════════════════════════════════════════════════════
-   9 · Start
+   8 · Start
    ═══════════════════════════════════════════════════════════ */
 
 // Zupčanik iste geometrije kao u ostatku Workshopa.

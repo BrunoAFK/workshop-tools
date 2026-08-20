@@ -15,6 +15,7 @@ Pretraživi registar brzinskih alata — kalkulatora, konvertera, generatora, š
 - [Kako radi indeksiranje](#kako-radi-indeksiranje)
 - [Sučelje](#sučelje)
 - [Jezici](#jezici)
+- [Aplikacija i offline](#aplikacija-i-offline)
 - [Dizajn](#dizajn)
 - [Deploy](#deploy)
 - [Testovi](#testovi)
@@ -67,7 +68,8 @@ Oba uređaja moraju biti na istoj mreži; prvi put macOS pita smije li Node prim
 ├── app/
 │   └── index.html          # Katalog — sve sučelje u jednoj datoteci
 ├── lib/
-│   └── paths.js            # Pravila loza i putanja
+│   ├── paths.js            # Pravila loza i putanja
+│   └── pwa.js              # Manifest, ikone i service worker
 ├── scripts/
 │   ├── build-index.mjs     # Generator
 │   └── dev.mjs             # Dev server + watcher + SSE
@@ -226,6 +228,51 @@ Uz tekst se mijenja i **formatiranje brojeva i datuma** — `hr-HR`, `en-GB` ili
 
 ---
 
+## Aplikacija i offline
+
+Katalog **i svaki alat zasebno** su instalabilne aplikacije. Timer dobiva vlastitu ikonu na početnom zaslonu i otvara se bez preglednikove trake; isto vrijedi za svaki budući alat, bez ijednog retka koji bi trebalo zapamtiti.
+
+### Što build dodaje
+
+Glava loze dobiva u poslužena kopiju manifest, ikone i registraciju workera:
+
+```html
+<link rel="manifest" href="/alat/timer.webmanifest">
+<link rel="apple-touch-icon" href="/alat/icons/timer-192.png">
+<script>…navigator.serviceWorker.register('/sw.js')…</script>
+```
+
+**`sources/` ostaje netaknut** — ubacuje se samo u kopiju pod `/alat/`. Starije verzije ostaju doslovna kopija; one su povijest, ne aplikacija.
+
+### Boje
+
+Alat prijavljuje svoje boje s dvije oznake:
+
+```html
+<meta name="theme-color"  content="#0d1012">   <!-- podloga i traka preglednika -->
+<meta name="accent-color" content="#35d67f">   <!-- znak na ikoni -->
+```
+
+Iz njih se slaže manifest i crtaju ikone. Alat bez njih dobiva boje kataloga.
+
+Traku preglednika alat mijenja i u hodu: `syncThemeColor()` čita `--bg` nakon promjene teme, pa noćna tema zatamni i traku.
+
+### Ikone se crtaju u buildu
+
+Nema ih u repozitoriju. [`lib/pwa.js`](lib/pwa.js) crta šesterokut s rupom — isti znak kao u zaglavlju — i zapisuje ga kao SVG te kao PNG od 192, 512 i maskiranih 512 px. PNG se rasterizira s četverostrukim uzorkovanjem i zapisuje kroz `zlib`, koji je u Nodeu. Zato build prolazi i na Cloudflareu, gdje nema ni preglednika ni alata za slike, a ikona se sama osvježi kad alat promijeni boje.
+
+### Offline
+
+Sprema se **ono što si otvorio**. Worker poslužuje iz predmemorije i istovremeno u pozadini povlači novo, pa je stranica odmah tu, a nova verzija se primijeni pri sljedećem otvaranju — bez ijedne poruke.
+
+Katalog uz sebe sprema i sličice kartica, jer slike prvog posjeta idu kroz preglednikovu predmemoriju i workera nikad ne vide.
+
+Otvoriš li bez mreže alat koji nikad nisi posjetio, dobivaš kratku stranicu koja to i kaže, s poveznicom na katalog. Katalog se ne podmeće umjesto alata — adresa bi tvrdila jedno, a stranica pokazivala drugo.
+
+> **Service worker ne radi na LAN adresi.** `http://192.168.x.x:4173` je nesiguran izvor, pa se worker ondje ne registrira. Instalaciju i offline isprobaj na objavljenoj adresi preko HTTPS-a ili lokalno na `http://localhost`.
+
+---
+
 ## Dizajn
 
 Katalog je **namjerno tih**: sadržaj nosi stranicu, ukras ne postoji. Nema pozadinskih slojeva, nema hero sekcije, nema ulaznih animacija — stranica počinje pretragom, a odmah ispod je popis alata.
@@ -301,6 +348,12 @@ Pogledaj ispis builda — ako javi „Slika preskočena", piše i razlog. Najče
 
 **Indeks ne odgovara datotekama na disku**
 `npm run build` pokrenut dok `npm run dev` već radi — oba brišu i pišu `dist/` pa se mogu preklopiti. Dev server sam sa sobom to više ne radi, ali dvije odvojene naredbe nemaju zajedničku bravu. Pusti dev server da odradi svoje ili ga ugasi prije ručnog builda.
+
+**Instalacija se ne nudi, offline ne radi**
+Otvoreno preko LAN adrese ili `file://`. Service worker traži HTTPS ili `localhost`; vidi [Aplikacija i offline](#aplikacija-i-offline).
+
+**Alat pokazuje staru verziju nakon objave**
+Tako je i zamišljeno: nova se preuzme u pozadini, a primijeni pri sljedećem otvaranju. Zatvori i otvori ponovno.
 
 **Watcher ne primjećuje promjene**
 `fs.watch` na nekim mrežnim datotečnim sustavima ne javlja događaje. Restartaj `npm run dev`.

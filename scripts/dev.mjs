@@ -55,7 +55,7 @@ const mimeTypes = {
   '.html': 'text/html; charset=utf-8', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
   '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8',
   '.png': 'image/png', '.svg': 'image/svg+xml', '.txt': 'text/plain; charset=utf-8',
-  '.webp': 'image/webp'
+  '.webp': 'image/webp', '.webmanifest': 'application/manifest+json; charset=utf-8'
 };
 
 function notify() {

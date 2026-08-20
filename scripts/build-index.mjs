@@ -4,6 +4,7 @@ import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DELETED_DIR, lineageOf, stateOf } from '../lib/paths.js';
+import { SERVICE_WORKER, iconPng, iconSvg, injectPwa, manifestFor, shortName } from '../lib/pwa.js';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourcesRoot = path.join(projectRoot, 'sources');
@@ -58,6 +59,15 @@ export function urlFor(item, isHead) {
  * ovdje se kaže koja je mapa kriva i zašto.
  */
 const RESERVED_DIRS = new Set([VERSION_DIR]);
+
+/* Boje aplikacije: podloga iz `<meta name="theme-color">`, znak iz
+   `<meta name="accent-color">`. Alat koji ih ne prijavi dobiva boje
+   kataloga — ikona je i dalje njegova, samo u obiteljskim bojama. */
+const DEFAULT_THEME = '#15140e';
+const DEFAULT_ACCENT = '#d9a441';
+
+/** Podloga kataloga u svijetloj temi — ista vrijednost kao `--bg`. */
+const CATALOGUE_THEME = '#fbfaf7';
 
 export function safeName(relativePath) {
   const head = relativePath.split('/')[0];
@@ -458,6 +468,10 @@ async function indexFile(filePath, thumbnailsDirectory, dates) {
   const tags = automaticTags(meta, relativePath, title, description, content);
   const { image, skipped: imageSkipped } = await materializeImage(findImageSource(html, meta), thumbnailsDirectory);
 
+  const themeColor = cleanText(meta.get('theme-color')?.[0]) || null;
+  const accentColor = cleanText(meta.get('accent-color')?.[0]) || null;
+  const appName = cleanText(meta.get('application-name')?.[0]) || null;
+
   const declared = declaredDate(html, meta);
   const fromGit = dates.get(repoPath) || null;
 
@@ -478,6 +492,9 @@ async function indexFile(filePath, thumbnailsDirectory, dates) {
     // udvostručavalo indeks bez ikakve koristi.
     content,
     scriptChars: scripted.length,
+    themeColor,
+    accentColor,
+    appName,
     sourceFile: filePath
   };
 }
@@ -495,6 +512,21 @@ function headersFile() {
 
 /favicon.svg
   Cache-Control: public, max-age=86400
+
+# Worker mora smjeti provjeriti ima li novoga, inače nova verzija čeka
+# na istek cachea umjesto na sljedeće otvaranje.
+/sw.js
+  Cache-Control: no-cache
+
+/*.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+# Ikone se mijenjaju samo kad alat promijeni boje.
+/icons/*
+  Cache-Control: public, max-age=604800
+/${PUBLIC_DIR}/icons/*
+  Cache-Control: public, max-age=604800
 
 # Indeks se mijenja sa svakim buildom i nikad se ne smije poslužiti iz cachea.
 /search-index.js
@@ -582,6 +614,26 @@ const NOT_FOUND_FILE = `<!doctype html>
 </html>
 `;
 
+/**
+ * Ikone i manifest jedne aplikacije.
+ *
+ * Ikone se crtaju u kodu, pa ih nema u repozitoriju i ne treba ih
+ * osvježavati rukom kad alat promijeni boje — vidi `lib/pwa.js`.
+ */
+async function writeAppFiles(directory, base, colors, manifest) {
+  await mkdir(path.join(directory, 'icons'), { recursive: true });
+  const icon = (suffix) => path.join(directory, 'icons', `${base}${suffix}`);
+  await Promise.all([
+    writeFile(icon('.svg'), iconSvg(colors)),
+    writeFile(icon('-192.png'), iconPng(192, colors)),
+    writeFile(icon('-512.png'), iconPng(512, colors)),
+    // Maskirana inačica: Android joj odreže sve izvan središnjeg kruga,
+    // pa znak mora biti manji, a podloga sezati do ruba.
+    writeFile(icon('-mask.png'), iconPng(512, { ...colors, mark: 0.42 })),
+    writeFile(path.join(directory, `${base}.webmanifest`), manifest)
+  ]);
+}
+
 export async function buildIndex({ quiet = false, dev = false } = {}) {
 
   // Sve je javno i na jednom mjestu: katalog na korijenu, alati pod
@@ -608,12 +660,51 @@ export async function buildIndex({ quiet = false, dev = false } = {}) {
   const collisions = indexed.length - new Set(indexed.map((item) => item.url)).size;
   if (collisions) throw new Error(`${collisions} kolizija adresa — dva dokumenta bi dobila isti URL.`);
 
-  // Javna kopija pod čitljivom adresom. Alati nisu tajni pa postoji
-  // samo jedna kopija — nema više odvojene „za dijeljenje" i „čitljive".
+  /* Javna kopija pod čitljivom adresom. Alati nisu tajni pa postoji
+     samo jedna kopija — nema više odvojene „za dijeljenje" i „čitljive".
+
+     Glava loze uz to dobiva manifest, ikone i registraciju workera, pa
+     se svaki alat da instalirati zasebno. Ubacuje se u kopiju, nikad u
+     izvor: `sources/` ostaje čist, a novi alat postaje aplikacija bez
+     ijednog retka koji bi autor morao zapamtiti.
+
+     Starije verzije ostaju doslovna kopija — one su povijest, ne
+     aplikacija; worker ih svejedno posluži bez mreže kad ih otvoriš. */
+  const heads = new Set(items.map((item) => item.id));
+
   await Promise.all(indexed.map(async (item) => {
     const target = path.join(distRoot, item.url.replace(/^\//, ''));
     await mkdir(path.dirname(target), { recursive: true });
-    await copyFile(item.sourceFile, target);
+
+    if (!heads.has(item.id)) {
+      await copyFile(item.sourceFile, target);
+      return;
+    }
+
+    const colors = {
+      bg: item.themeColor || DEFAULT_THEME,
+      fg: item.accentColor || DEFAULT_ACCENT
+    };
+    const base = item.lineage.split('/').pop();
+
+    await writeAppFiles(documentsRoot, base, colors, manifestFor({
+      name: item.title,
+      short: shortName(item.title, item.appName),
+      description: item.description,
+      startUrl: item.url,
+      scope: `/${PUBLIC_DIR}/`,
+      theme: colors.bg,
+      background: colors.bg,
+      iconBase: `/${PUBLIC_DIR}/icons/${base}`
+    }));
+
+    const html = await readFile(item.sourceFile, 'utf8');
+    await writeFile(target, injectPwa(html, {
+      manifestHref: `/${PUBLIC_DIR}/${base}.webmanifest`,
+      iconHref: `/${PUBLIC_DIR}/icons/${base}-192.png`,
+      theme: colors.bg,
+      hasThemeColor: Boolean(item.themeColor)
+    }));
   }));
 
   const data = {
@@ -622,7 +713,8 @@ export async function buildIndex({ quiet = false, dev = false } = {}) {
     generatedAt: new Date().toISOString(),
     // `dateSource` ide van jer po njemu i preglednik slaže „Najnovije";
     // bez njega bi klijentsko sortiranje odstupalo od build poretka.
-    items: items.map(({ sourceFile, scriptChars, imageSkipped, lineage, sequence, archivedAt, bytes, versions, ...item }) => ({
+    items: items.map(({ sourceFile, scriptChars, imageSkipped, themeColor, accentColor, appName,
+      lineage, sequence, archivedAt, bytes, versions, ...item }) => ({
       ...item,
       versions: versions.map(({ bytes: _bytes, ...version }) => version)
     }))
@@ -637,6 +729,17 @@ export async function buildIndex({ quiet = false, dev = false } = {}) {
     writeFile(path.join(distRoot, '_headers'), headersFile()),
     writeFile(path.join(distRoot, 'robots.txt'), ROBOTS_FILE),
     writeFile(path.join(distRoot, 'favicon.svg'), FAVICON_FILE),
+    writeFile(path.join(distRoot, 'sw.js'), SERVICE_WORKER),
+    writeAppFiles(distRoot, 'workshop', { bg: CATALOGUE_THEME, fg: DEFAULT_ACCENT }, manifestFor({
+      name: 'Workshop — registar alata',
+      short: 'Workshop',
+      description: 'Pretraživi registar brzinskih alata.',
+      startUrl: '/',
+      scope: '/',
+      theme: CATALOGUE_THEME,
+      background: CATALOGUE_THEME,
+      iconBase: '/icons/workshop'
+    })),
     writeFile(path.join(distRoot, '404.html'), NOT_FOUND_FILE)
   ]);
 
@@ -653,6 +756,7 @@ export async function buildIndex({ quiet = false, dev = false } = {}) {
       console.log(`Slika preskočena (${item.imageSkipped}): ${item.path}`);
     }
     console.log(`Indeks: ${Math.round(json.length / 1024)} kB`);
+    console.log(`Aplikacije: ${items.length + 1} (katalog i svaki alat), ikone crtane u buildu.`);
     console.log('');
     console.log('  /'.padEnd(30) + 'katalog i pretraga');
     console.log(`  /${PUBLIC_DIR}/<naziv>.html`.padEnd(30) + 'alati — ovo dijeliš');

@@ -6,6 +6,10 @@
 <meta name="color-scheme" content="light dark">
 <meta name="description" content="Workshop — osobni registar alata. Pretraživ do zadnje rečenice.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="/workshop.webmanifest">
+<link rel="apple-touch-icon" href="/icons/workshop-192.png">
+<meta name="theme-color" content="#fbfaf7">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title data-i18n="title">Workshop — registar alata</title>
 <style>
 /* ═══════════════════════════════════════════════════════════
@@ -1964,6 +1968,10 @@ function setView(view) {
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem('workshop.theme', theme);
+  // Traka preglednika prati temu; bez ovoga bi u noćnoj ostala svijetla.
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (bg && meta) meta.setAttribute('content', bg);
 }
 
 function toggleTheme() {
@@ -2074,6 +2082,28 @@ function hydrate(data) {
   render();
 }
 
+/**
+ * Sličice kartica u predmemoriju, čim katalog stane na noge.
+ *
+ * Worker sprema ono što prođe kroz njega, a slike prvog posjeta idu
+ * kroz preglednikovu predmemoriju i njega nikad ne vide — offline bi
+ * onda katalog bio bez ijedne slike. Ovdje se traže izrijekom, jer
+ * indeks točno zna koje postoje. Nekoliko kilobajta ukupno.
+ */
+async function warmCache() {
+  if (!('caches' in window) || !index) return;
+  const wanted = docs.map((d) => d.image).filter((src) => src && !/^https?:/i.test(src));
+  if (!wanted.length) return;
+  try {
+    const cache = await caches.open('workshop');
+    await Promise.all(wanted.map(async (src) => {
+      if (await cache.match(src)) return;
+      const response = await fetch(src);
+      if (response.ok) await cache.put(src, response);
+    }));
+  } catch { /* privatni način ili nema mjesta */ }
+}
+
 function boot() {
   setTheme(localStorage.getItem('workshop.theme') || 'day');
   applyLang();
@@ -2092,6 +2122,13 @@ function boot() {
 
   readUrl();
   hydrate(index);
+
+  // Instalacija i rad bez mreže. Registracija tiho padne na `file://`
+  // i na LAN adresi bez HTTPS-a — ondje worker nije dopušten.
+  if ('serviceWorker' in navigator) {
+    addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  }
+  warmCache();
 
   // dev live-reload
   if (index.dev && location.protocol.startsWith('http')) {
