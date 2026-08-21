@@ -357,31 +357,14 @@ main {
   padding-top: calc(var(--sp-3) + env(safe-area-inset-top));
 }
 
-/* Tri načina kao jedna traka, ne tri gumba: izbor je jedan od tri, a
-   segmentirana kontrola to i pokazuje oblikom. */
-.nacini {
+.vrh-nacin {
   flex: 1;
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: calc(var(--r) - 4px);
-  background: var(--panel);
-}
-
-.nacini button {
-  flex: 1;
-  height: 30px;
-  border: 0;
-  border-radius: calc(var(--r) - 7px);
-  background: none;
-  color: var(--dim);
-  font-size: .78rem;
+  font-size: .68rem;
   font-weight: 600;
-  white-space: nowrap;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--faint);
 }
-
-.nacini button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 
 .ikona {
   flex-shrink: 0;
@@ -542,10 +525,11 @@ main {
 </head>
 <body>
 
-<!-- Način je vrh sučelja, ne postavka: mijenja što gumbi rade i koji
-     su prikazi uopće mogući, pa mora biti vidljiv bez otvaranja ičega. -->
+<!-- Način se bira u postavkama, ali se **vidi** ovdje: mijenja što gumbi
+     rade, pa ne smije biti stvar koju moraš otvoriti da bi je saznao.
+     Oznaka je tekst, ne kontrola. -->
 <header class="vrh">
-  <div class="nacini" role="group" data-nacini></div>
+  <span class="vrh-nacin" data-nacin-oznaka></span>
   <button class="ikona" id="postavke" type="button" data-i18n-attr="aria-label:postavke">
     <svg viewBox="0 0 20 20" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5">
       <circle cx="10" cy="10" r="2.6"/>
@@ -827,15 +811,32 @@ function setLang(kod) {
    3 · Teme
    ═══════════════════════════════════════════════════════════ */
 
+/**
+ * Tema nosi popis načina u kojima vrijedi.
+ *
+ * Zasad sve teme vrijede u svim načinima — mehanizam postoji, podjela
+ * još nije zadana. Kad se zada, mijenja se samo `nacini` u ovom popisu;
+ * biranje, prikaz u postavkama i zamjena nekompatibilne teme već čitaju
+ * odavde.
+ */
+const SVI_NACINI = ['auto', 'full', 'rucno'];
+
 const TEME = [
-  { id: 'dan',    kljuc: 'temaDan',    cipovi: ['#faf8f3', '#ffffff', '#c0503a'] },
-  { id: 'noc',    kljuc: 'temaNoc',    cipovi: ['#131316', '#1b1b1f', '#c0503a'] },
-  { id: 'papir',  kljuc: 'temaPapir',  cipovi: ['#f2ece0', '#fbf7ef', '#a8452f'] },
-  { id: 'ugljen', kljuc: 'temaUgljen', cipovi: ['#0e0e0f', '#171719', '#d2604a'] }
+  { id: 'dan',    kljuc: 'temaDan',    nacini: SVI_NACINI, cipovi: ['#faf8f3', '#ffffff', '#c0503a'] },
+  { id: 'noc',    kljuc: 'temaNoc',    nacini: SVI_NACINI, cipovi: ['#131316', '#1b1b1f', '#c0503a'] },
+  { id: 'papir',  kljuc: 'temaPapir',  nacini: SVI_NACINI, cipovi: ['#f2ece0', '#fbf7ef', '#a8452f'] },
+  { id: 'ugljen', kljuc: 'temaUgljen', nacini: SVI_NACINI, cipovi: ['#0e0e0f', '#171719', '#d2604a'] }
 ];
 
+/** Teme koje vrijede u danom načinu, u zadanom redoslijedu. */
+const temeZa = (nacin) => TEME.filter((x) => x.nacini.includes(nacin));
+
+const temaVrijedi = (id, nacin) => temeZa(nacin).some((x) => x.id === id);
+
 function applyTheme(id) {
-  cfg.tema = TEME.some((x) => x.id === id) ? id : 'dan';
+  // Nekompatibilna tema ne ostaje na snazi: uzima se prva koja vrijedi.
+  const dopustene = temeZa(cfg.nacin);
+  cfg.tema = temaVrijedi(id, cfg.nacin) ? id : (dopustene[0]?.id || 'dan');
   document.documentElement.dataset.theme = cfg.tema;
   syncThemeColor();
   save();
@@ -874,6 +875,12 @@ const prikazId = () => dopusteni().includes(cfg.prikazi[obitelj()])
 const stage = document.getElementById('stage');
 const prikaz = () => PRIKAZI[prikazId()];
 
+/* Koji je prikaz stvarno u DOM-u. Prikazi čuvaju svoje čvorove na sebi,
+   pa crtanje po onome kojem `mount` nije prošao ruši petlju — a `prikazId()`
+   se mijenja čim se promijeni način, prije nego se išta montira. */
+let montiran = null;
+let zadnjaSekunda = -1;
+
 const bojaFaze = (faza) => faza ? `var(--${faza === 'rucno' ? 'rad' : faza})` : 'var(--faint)';
 
 const sat = (ms) => {
@@ -887,8 +894,11 @@ const sat = (ms) => {
 
 function postaviPrikaz(id) {
   if (dopusteni().includes(id)) cfg.prikazi[obitelj()] = id;
+  const zeljeni = prikazId();
   stage.replaceChildren();          // bez ovoga ostaju mrtvi čvorovi
-  prikaz().mount(stage);
+  PRIKAZI[zeljeni].mount(stage);
+  montiran = zeljeni;
+  zadnjaSekunda = -1;               // novi prikaz mora dobiti prvo crtanje
   paint();
   save();
 }
@@ -1269,18 +1279,11 @@ const NACINI = [
   { id: 'rucno', kljuc: 'nacinRucno' }
 ];
 
-const kutijaNacina = document.querySelector('[data-nacini]');
+const oznakaNacina = document.querySelector('[data-nacin-oznaka]');
 
-function crtajNacine() {
-  kutijaNacina.replaceChildren(...NACINI.map((n) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = t(n.kljuc);
-    b.setAttribute('aria-pressed', String(cfg.nacin === n.id));
-    b.addEventListener('click', () => postaviNacin(n.id));
-    return b;
-  }));
-}
+const crtajNacine = () => {
+  oznakaNacina.textContent = t(NACINI.find((n) => n.id === cfg.nacin)?.kljuc || 'nacin');
+};
 
 /**
  * Promjena načina uvijek zaustavlja ono što teče.
@@ -1293,6 +1296,9 @@ function postaviNacin(id) {
   const bioCiklus = JEZGRA.jeCiklus(cfg);
   cfg.nacin = id;
   if (bioCiklus !== JEZGRA.jeCiklus(cfg)) reset(); else { save(); }
+  // Tema mora pristajati novom načinu — `applyTheme` sama pada na prvu
+  // kompatibilnu ako zatečena to nije.
+  if (!temaVrijedi(cfg.tema, cfg.nacin)) applyTheme(cfg.tema);
   crtajNacine();
   crtajTrajanje();
   crtajPostavke();
@@ -1382,7 +1388,7 @@ function crtajPostavke() {
       brojcanik('krugova', cfg.ciklus, 2, 8, null, postavi('ciklus'))));
   }
 
-  polja.push(polje('tema', cipovi(TEME, cfg.tema, applyTheme)));
+  polja.push(polje('tema', cipovi(temeZa(cfg.nacin), cfg.tema, applyTheme)));
   polja.push(polje('jezik', cipovi(
     Object.entries(LANGS).map(([id, ime]) => ({ id, kljuc: id, ime })), lang, setLang)));
 
@@ -1417,9 +1423,10 @@ function natpisGumba(s) {
 }
 
 function paint(s = JEZGRA.stanje(cfg, run, Date.now())) {
-  // Tema se primjenjuje prije nego je ijedan prikaz montiran, a i ona
-  // traži precrtavanje. Prvi `paint` stiže iz `postaviPrikaz`.
-  if (!stage.firstChild) return;
+  // Ništa se ne crta dok DOM ne odgovara odabiru. Pokriva oba slučaja:
+  // podizanje, gdje tema traži crtanje prije prvog `mount`, i promjenu
+  // načina, gdje `prikazId()` odskoči na drugu obitelj prije montiranja.
+  if (montiran !== prikazId()) return;
   document.body.style.setProperty('--faza-boja', bojaFaze(s.faza));
   prikaz().paint(s);
   natpisGumba(s);
@@ -1428,17 +1435,19 @@ function paint(s = JEZGRA.stanje(cfg, run, Date.now())) {
   crtajTjedan();
 }
 
-let zadnjaSekunda = -1;
-
 function petlja() {
-  const s = JEZGRA.stanje(cfg, run, Date.now());
-  if (!s.mirno && !s.pripremljeno && !s.pauzirano && s.preostalo <= 0) zavrsiFazu();
-  else {
-    const sekunda = Math.ceil(s.preostalo / 1000);
-    // Tekst se prepisuje tek kad se prikazana sekunda promijeni.
-    if (sekunda !== zadnjaSekunda) { zadnjaSekunda = sekunda; paint(s); }
-  }
+  /* Sljedeći okvir se zakazuje **prije** posla, ne poslije.
+     Sa zakazivanjem na kraju jedna iznimka u crtanju zauvijek ubije
+     odbrojavanje, a jedini vidljiv trag je brojka koja stoji — i djeluje
+     kao da se osvježava tek na pauzu, jer `pauziraj()` crta izravno. */
   requestAnimationFrame(petlja);
+
+  const s = JEZGRA.stanje(cfg, run, Date.now());
+  if (!s.mirno && !s.pripremljeno && !s.pauzirano && s.preostalo <= 0) return zavrsiFazu();
+
+  const sekunda = Math.ceil(s.preostalo / 1000);
+  // Tekst se prepisuje tek kad se prikazana sekunda promijeni.
+  if (sekunda !== zadnjaSekunda) { zadnjaSekunda = sekunda; paint(s); }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1463,7 +1472,10 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Space') { e.preventDefault(); glavni(); }
   else if (k === 's') preskoci();
   else if (k === 'r') { reset(); crtajTrajanje(); }
-  else if (k === 't') applyTheme(TEME[(TEME.findIndex((x) => x.id === cfg.tema) + 1) % TEME.length].id);
+  else if (k === 't') {
+    const izbor = temeZa(cfg.nacin);
+    applyTheme(izbor[(izbor.findIndex((x) => x.id === cfg.tema) + 1) % izbor.length].id);
+  }
   else if (dopusteni()[Number(k) - 1]) postaviPrikaz(dopusteni()[Number(k) - 1]);
 });
 
