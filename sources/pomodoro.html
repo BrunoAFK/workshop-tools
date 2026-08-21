@@ -34,11 +34,13 @@
      posudi — pa mora doseći 3:1 (WCAG 1.4.11) na podlozi na kojoj se
      crta. Sve su vrijednosti izmjerene, ne odabrane okom.
 
-     Rad **nije** crven. Crvena je u ovom repozitoriju već zauzeta:
-     `timer.html` je u svih pet tema koristi samo za kraj, a rad boji
-     zeleno. Razlog je praktičan koliko i konvencionalan — ako je rad
-     crven, zadnjim sekundama ne preostaje nijedna jača boja, pa se
-     upozorenje nema čime razlikovati od stanja koje traje 25 minuta.
+     Rad je crven, a ručni timer modar. Dvije vrste ne smiju dijeliti
+     boju: u popisu povijesti razlikuju se samo po njoj.
+
+     Crvena za rad ima cijenu i ona je izmjerena: rad i kraj tada dijele
+     ton na 5–6°, a u tamnim temama i svjetlinu. Boja sama više ne može
+     nositi zadnji stupanj, pa ga nosi **puls**. Naranča ostaje srednjem
+     stupnju, gdje je razlika u tonu dovoljna.
 
      Kraj se najavljuje u dva koraka, ne jednim skokom u crveno:
      `--blizu` (naranča) kad se približi, `--warn` (crvena) na samom
@@ -50,7 +52,9 @@
      stoji uz boju kao tekst — boja nije jedini nositelj podatka. */
 
 html[data-theme="dan"] {
-  --fokus: #d0271b; --blizu: #c25f16; --rad: #35618f; --kratka: #4e8c66; --duga: #ae8334; --warn: #c33a22;
+  --fokus: #d0271b; --blizu: #c96a11;
+  --rad: #b2513a; --rucno: #35618f;
+  --kratka: #4e8c66; --duga: #ae8334; --warn: #c8261a;
   --bg: #faf8f3; --panel: #ffffff; --ink: #15140e;
   --dim: #6f6a5c; --faint: #9a9484;
   --line: #e3ded1; --line-2: #cdc5b2; --on-state: #fff;
@@ -58,7 +62,9 @@ html[data-theme="dan"] {
 }
 
 html[data-theme="noc"] {
-  --fokus: #ff5a4a; --blizu: #f28b3a; --rad: #5b9bd5; --kratka: #57a37b; --duga: #d9a441; --warn: #ef5340;
+  --fokus: #ff5a4a; --blizu: #f0913f;
+  --rad: #d2604a; --rucno: #5b9bd5;
+  --kratka: #57a37b; --duga: #d9a441; --warn: #ff4438;
   --bg: #131316; --panel: #1b1b1f; --ink: #ece9e2;
   --dim: #9a958a; --faint: #6b665c;
   --line: #2c2c31; --line-2: #3c3c44; --on-state: #10161c;
@@ -66,7 +72,9 @@ html[data-theme="noc"] {
 }
 
 html[data-theme="papir"] {
-  --fokus: #c22a15; --blizu: #ad5310; --rad: #2f5a85; --kratka: #43765a; --duga: #8f6a26; --warn: #b23a22;
+  --fokus: #c22a15; --blizu: #b8600f;
+  --rad: #a8452f; --rucno: #2f5a85;
+  --kratka: #43765a; --duga: #8f6a26; --warn: #b52411;
   --bg: #f2ece0; --panel: #fbf7ef; --ink: #241f16;
   --dim: #6b6152; --faint: #9c9282;
   --line: #ddd4c2; --line-2: #c6bba5; --on-state: #fff;
@@ -74,7 +82,9 @@ html[data-theme="papir"] {
 }
 
 html[data-theme="ugljen"] {
-  --fokus: #ff6b57; --blizu: #f5934a; --rad: #64a8e0; --kratka: #5fa87b; --duga: #e0b25c; --warn: #f2624c;
+  --fokus: #ff6b57; --blizu: #f5934a;
+  --rad: #e0705a; --rucno: #64a8e0;
+  --kratka: #5fa87b; --duga: #e0b25c; --warn: #ff5546;
   --bg: #0e0e0f; --panel: #171719; --ink: #e6e6e8;
   --dim: #92929a; --faint: #63636b;
   --line: #26262a; --line-2: #36363c; --on-state: #0b1218;
@@ -790,6 +800,14 @@ main {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
+
+/* Zadnje sekunde: crvena se od radne crvene razlikuje premalo da bi
+   sama nosila upozorenje, pa uz nju ide i lagan puls. Samo naziv faze i
+   glavni gumb — cijeli zaslon koji pulsira bio bi mučenje. */
+@keyframes puls { 50% { opacity: .45 } }
+
+body[data-zavrsava] .faza,
+body[data-zavrsava] #go { animation: puls 1s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
@@ -1995,7 +2013,7 @@ const vrstaRucnog = () => VRSTE.includes(cfg.rucnoVrsta) ? cfg.rucnoVrsta : 'ruc
 /** Faza pod kojom se stanje boji i imenuje — za ciklus je to sama faza. */
 const oznakaFaze = (faza) => faza === 'rucno' ? vrstaRucnog() : faza;
 
-const bojaVrste = (v) => `var(--${v === 'rucno' ? 'rad' : v})`;
+const bojaVrste = (v) => `var(--${v})`;
 
 els.klizac.max = String(STOPS.length - 1);
 
@@ -2530,6 +2548,7 @@ function paint(s = JEZGRA.stanje(cfg, run, sada())) {
   if (montiran !== prikazId()) return;
   const boja = bojaStanja(s);
   document.body.style.setProperty('--faza-boja', boja);
+  document.body.toggleAttribute('data-zavrsava', Boolean(s.zavrsava));
   // U mirnom stanju gumb ostaje u boji rada — sljedeće što slijedi jest rad.
   document.body.style.setProperty('--go-boja', s.faza ? boja : 'var(--rad)');
   prikaz().paint(s);
