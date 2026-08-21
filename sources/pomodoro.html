@@ -369,13 +369,14 @@ main {
 }
 .traka-napretka i { display: block; height: 100%; transition: width .25s linear; }
 
-/* ── Kuhinjski sat ────────────────────────────────────────
-   Predmet, ne dijagram: obruč i lice ne prate temu, jer replika koja
-   se prebojava prestaje biti replika. Mijenja se samo ono oko njega. */
-.kuhinjski { gap: var(--sp-4); }
-.sat-tijelo { line-height: 0; filter: drop-shadow(0 10px 22px rgb(0 0 0 / .22)); }
+/* ── Brojčanik ────────────────────────────────────────────
+   Sjenu nosi samo replika: ona glumi predmet koji leži na stolu.
+   Plosnata izvedba je crtež i ne pretvara se da ima debljinu. */
+.sat { gap: var(--sp-4); }
+.sat-tijelo { line-height: 0; }
+.kuhinjski .sat-tijelo { filter: drop-shadow(0 10px 22px rgb(0 0 0 / .22)); }
 .sat-tijelo svg { display: block; width: min(64cqw, 62cqh); height: min(64cqw, 62cqh); }
-.kuhinjski .brojka { font-size: min(9cqw, 9cqh); }
+.sat .brojka { font-size: min(9cqw, 9cqh); }
 
 /* ── Posuda ───────────────────────────────────────────────
    Gornji bulb se prazni u donji. Brojka je namjerno sitna —
@@ -891,7 +892,7 @@ const STRINGS = {
     postavke: 'Postavke', zatvori: 'Zatvori', trajanje: 'Trajanje',
     nacin: 'Način', nacinAuto: 'Auto', nacinFull: 'Full auto', nacinRucno: 'Ručno',
     prikaz: 'Prikaz', traka: 'Tijek', znamenka: 'Znamenka', prsten: 'Prsten',
-    posuda: 'Posuda', kuhinjski: 'Kuhinjski sat',
+    posuda: 'Posuda', brojcanik: 'Brojčanik', kuhinjski: 'Kuhinjski sat',
     napredak: 'Napredak', barNapredak: 'Traka', deflateNapredak: 'Praznjenje', fillNapredak: 'Punjenje',
     trajanja: 'Trajanja', radMin: 'Rad', kratkaMin: 'Kratka pauza', dugaMin: 'Duga pauza',
     zvukNaslov: 'Zvuk', zvukUkljucen: 'Zvučni signali',
@@ -909,7 +910,7 @@ const STRINGS = {
     postavke: 'Settings', zatvori: 'Close', trajanje: 'Duration',
     nacin: 'Mode', nacinAuto: 'Auto', nacinFull: 'Full auto', nacinRucno: 'Manual',
     prikaz: 'View', traka: 'Timeline', znamenka: 'Digits', prsten: 'Ring',
-    posuda: 'Hourglass', kuhinjski: 'Kitchen dial',
+    posuda: 'Hourglass', brojcanik: 'Dial', kuhinjski: 'Kitchen dial',
     napredak: 'Progress', barNapredak: 'Bar', deflateNapredak: 'Draining', fillNapredak: 'Filling',
     trajanja: 'Durations', radMin: 'Focus', kratkaMin: 'Short break', dugaMin: 'Long break',
     zvukNaslov: 'Sound', zvukUkljucen: 'Sound cues',
@@ -927,7 +928,7 @@ const STRINGS = {
     postavke: 'Einstellungen', zatvori: 'Schließen', trajanje: 'Dauer',
     nacin: 'Modus', nacinAuto: 'Auto', nacinFull: 'Vollautomatisch', nacinRucno: 'Manuell',
     prikaz: 'Ansicht', traka: 'Zeitleiste', znamenka: 'Ziffern', prsten: 'Ring',
-    posuda: 'Sanduhr', kuhinjski: 'Küchenuhr',
+    posuda: 'Sanduhr', brojcanik: 'Zifferblatt', kuhinjski: 'Küchenuhr',
     napredak: 'Fortschritt', barNapredak: 'Balken', deflateNapredak: 'Leeren', fillNapredak: 'Füllen',
     trajanja: 'Zeiten', radMin: 'Arbeit', kratkaMin: 'Kurze Pause', dugaMin: 'Lange Pause',
     zvukNaslov: 'Ton', zvukUkljucen: 'Signaltöne',
@@ -1029,8 +1030,8 @@ const PRIKAZI = {};
 /* Traka crta plan ciklusa, pa je u ručnom načinu nema što crtati —
    ondje bi bila prazan pravokutnik koji tvrdi da postoji slijed. */
 const PRIKAZI_ZA = {
-  ciklus: ['traka', 'znamenka', 'prsten', 'posuda', 'kuhinjski'],
-  rucno: ['znamenka', 'prsten', 'posuda', 'kuhinjski']
+  ciklus: ['traka', 'znamenka', 'prsten', 'posuda', 'brojcanik', 'kuhinjski'],
+  rucno: ['znamenka', 'prsten', 'posuda', 'brojcanik', 'kuhinjski']
 };
 
 const obitelj = () => JEZGRA.jeCiklus(cfg) ? 'ciklus' : 'rucno';
@@ -1226,16 +1227,20 @@ PRIKAZI.prsten = {
   }
 };
 
-/* ── Kuhinjski sat ─────────────────────────────────────────
-   Replika mehaničkog kuhinjskog timera: metalni obruč, bijelo lice,
-   brojke 0–55 zakrenute radijalno i crveni isječak koji se steže.
+/* ── Brojčanik: kuhinjski sat, u dvije izvedbe ─────────────
+   Dijele geometriju — skala od 60 minuta, brojke 0–55 zakrenute
+   radijalno, isječak od 12 sati u smjeru kazaljke — a razlikuju se u
+   tome što tvrde.
 
-   Na ovom licu crvena **ne znači opasnost nego preostalo** — tako je
-   na samom predmetu. Zato isječak ostaje crven u svim fazama, a koja
-   je faza piše ispod, u boji faze.
+   `kuhinjski` je **predmet**: metalni obruč, bijelo lice, crveni
+   isječak. Ne prati temu, jer replika koja se prebojava prestaje biti
+   replika. Na njemu crvena ne znači opasnost nego preostalo — tako je
+   i na stvarnom satu.
 
-   Skala je apsolutnih 60 minuta, kao na predmetu. Trajanje duže od
-   sata puni krug do kraja i počinje se micati kad padne ispod 60. */
+   `brojcanik` je **dijagram**: plohe iz teme, bez ijednog prijelaza i
+   bez sjene, a isječak nosi boju stanja, pa se s modrog prelijeva u
+   naranču i crvenu kao i svi ostali prikazi.
+   ═══════════════════════════════════════════════════════════ */
 
 const SAT_CRVENA = '#e8340c';
 
@@ -1248,64 +1253,95 @@ function isjecak(cx, cy, r, kut) {
        + `${(cx + r * Math.cos(rad)).toFixed(2)} ${(cy + r * Math.sin(rad)).toFixed(2)}Z`;
 }
 
-PRIKAZI.kuhinjski = {
-  mount(el) {
-    const korijen = document.createElement('div');
-    korijen.className = 'prikaz kuhinjski';
-
-    const crte = [];
-    for (let m = 0; m < 60; m++) {
-      const veliki = m % 5 === 0;
-      crte.push(`<line x1="100" y1="${veliki ? 42 : 51}" x2="100" y2="59"`
-        + ` stroke="#15140e" stroke-width="${veliki ? 2.6 : 1.1}"`
-        + ` transform="rotate(${m * 6} 100 100)"/>`);
-    }
-
-    const brojke = [];
-    for (let m = 0; m < 60; m += 5) {
-      brojke.push(`<text x="100" y="35" transform="rotate(${m * 6} 100 100)"`
-        + ` text-anchor="middle" fill="#15140e" font-family="var(--num)"`
-        + ` font-size="15" font-weight="700">${m}</text>`);
-    }
-
-    korijen.innerHTML = `
-      <div class="sat-tijelo">
-        <svg viewBox="0 0 200 200">
-          <defs>
-            <linearGradient id="obruc" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#e9e9ea"/><stop offset=".35" stop-color="#9a9a9e"/>
-              <stop offset=".62" stop-color="#d8d8da"/><stop offset="1" stop-color="#7e7e83"/>
-            </linearGradient>
-            <linearGradient id="gumb" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#d5d5d8"/><stop offset=".48" stop-color="#8e8e93"/>
-              <stop offset=".52" stop-color="#b8b8bd"/><stop offset="1" stop-color="#7a7a80"/>
-            </linearGradient>
-          </defs>
-          <circle cx="100" cy="100" r="98" fill="url(#obruc)"/>
-          <circle cx="100" cy="100" r="86" fill="#141414"/>
-          <circle cx="100" cy="100" r="81" fill="#fbfbfa"/>
-          <path data-isjecak fill="${SAT_CRVENA}"/>
-          ${crte.join('')}
-          ${brojke.join('')}
-          <circle cx="100" cy="100" r="15" fill="url(#gumb)"/>
-          <circle cx="100" cy="100" r="15" fill="none" stroke="#6f6f74" stroke-width=".8"/>
-        </svg>
-      </div>
-      <span class="brojka" data-time>00:00</span>
-      <span class="faza" data-faza></span>`;
-
-    el.append(korijen);
-    this.isjecak = korijen.querySelector('[data-isjecak]');
-    this.time = korijen.querySelector('[data-time]');
-    this.fazaEl = korijen.querySelector('[data-faza]');
-  },
-  paint(s) {
-    const minuta = Math.min(60, s.preostalo / 60000);
-    this.isjecak.setAttribute('d', isjecak(100, 100, 59, minuta * 6));
-    this.time.textContent = sat(s.preostalo);
-    this.fazaEl.textContent = t(s.faza || 'mirno');
-  }
+/**
+ * Dvije izvedbe ne dijele samo boje nego i raspored.
+ *
+ * Na replici skala leži **preko** isječka, jer je tako na predmetu:
+ * crne crte otisnute su na licu, a crveni se disk vrti ispod njih.
+ * U plosnatoj izvedbi to izgleda blatno — crte preko plohe u boji
+ * stanja samo je prljaju. Ondje skala stoji **izvan** isječka, pa
+ * ploha ostaje čista, a to je i cijela poanta plosnatog crteža.
+ */
+const SAT_GEO = {
+  predmet: { isjecak: 59, malaOd: 41, malaDo: 49, velikaDo: 58, brojke: 65, disk: 98 },
+  plosnati: { isjecak: 52, malaOd: 57, malaDo: 64, velikaDo: 70, brojke: 78, disk: 96 }
 };
+
+/** Crte i brojke skale, u zadanim polumjerima. */
+function skala(g, bojaCrta, bojaBrojki) {
+  const dijelovi = [];
+  for (let m = 0; m < 60; m++) {
+    const veliki = m % 5 === 0;
+    dijelovi.push(`<line x1="100" y1="${100 - (veliki ? g.velikaDo : g.malaDo)}"`
+      + ` x2="100" y2="${100 - g.malaOd}" stroke="${bojaCrta}"`
+      + ` stroke-width="${veliki ? 2.6 : 1.1}" transform="rotate(${m * 6} 100 100)"/>`);
+  }
+  for (let m = 0; m < 60; m += 5) {
+    dijelovi.push(`<text x="100" y="${100 - g.brojke}" transform="rotate(${m * 6} 100 100)"`
+      + ` text-anchor="middle" fill="${bojaBrojki}" font-family="var(--num)"`
+      + ` font-size="15" font-weight="700">${m}</text>`);
+  }
+  return dijelovi.join('');
+}
+
+function satPrikaz(plosnat) {
+  const g = plosnat ? SAT_GEO.plosnati : SAT_GEO.predmet;
+  return {
+    mount(el) {
+      const korijen = document.createElement('div');
+      korijen.className = `prikaz sat ${plosnat ? 'brojcanik' : 'kuhinjski'}`;
+
+      const lice = plosnat ? `
+        <circle cx="100" cy="100" r="${g.disk}" fill="var(--panel)" stroke="var(--line)" stroke-width="1.5"/>`
+        : `
+        <circle cx="100" cy="100" r="${g.disk}" fill="url(#obruc)"/>
+        <circle cx="100" cy="100" r="86" fill="#141414"/>
+        <circle cx="100" cy="100" r="81" fill="#fbfbfa"/>`;
+
+      const srediste = plosnat
+        ? `<circle cx="100" cy="100" r="5" fill="var(--ink)"/>`
+        : `<circle cx="100" cy="100" r="15" fill="url(#gumb)"/>
+           <circle cx="100" cy="100" r="15" fill="none" stroke="#6f6f74" stroke-width=".8"/>`;
+
+      korijen.innerHTML = `
+        <div class="sat-tijelo">
+          <svg viewBox="0 0 200 200">
+            ${plosnat ? '' : `<defs>
+              <linearGradient id="obruc" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#e9e9ea"/><stop offset=".35" stop-color="#9a9a9e"/>
+                <stop offset=".62" stop-color="#d8d8da"/><stop offset="1" stop-color="#7e7e83"/>
+              </linearGradient>
+              <linearGradient id="gumb" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#d5d5d8"/><stop offset=".48" stop-color="#8e8e93"/>
+                <stop offset=".52" stop-color="#b8b8bd"/><stop offset="1" stop-color="#7a7a80"/>
+              </linearGradient>
+            </defs>`}
+            ${lice}
+            ${plosnat ? skala(g, 'var(--line-2)', 'var(--ink)') + '<path data-isjecak/>'
+                      : '<path data-isjecak/>' + skala(g, '#15140e', '#15140e')}
+            ${srediste}
+          </svg>
+        </div>
+        <span class="brojka" data-time>00:00</span>
+        <span class="faza" data-faza></span>`;
+
+      el.append(korijen);
+      this.isjecak = korijen.querySelector('[data-isjecak]');
+      this.time = korijen.querySelector('[data-time]');
+      this.fazaEl = korijen.querySelector('[data-faza]');
+    },
+    paint(s) {
+      const minuta = Math.min(60, s.preostalo / 60000);
+      this.isjecak.setAttribute('d', isjecak(100, 100, g.isjecak, minuta * 6));
+      this.isjecak.setAttribute('fill', plosnat ? bojaStanja(s) : SAT_CRVENA);
+      this.time.textContent = sat(s.preostalo);
+      this.fazaEl.textContent = t(s.faza || 'mirno');
+    }
+  };
+}
+
+PRIKAZI.kuhinjski = satPrikaz(false);
+PRIKAZI.brojcanik = satPrikaz(true);
 
 /* ── Posuda ────────────────────────────────────────────── */
 PRIKAZI.posuda = {
