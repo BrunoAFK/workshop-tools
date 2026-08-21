@@ -40,35 +40,45 @@
      crven, zadnjim sekundama ne preostaje nijedna jača boja, pa se
      upozorenje nema čime razlikovati od stanja koje traje 25 minuta.
 
+     Kraj se najavljuje u dva koraka, ne jednim skokom u crveno:
+     `--blizu` (naranča) kad se približi, `--warn` (crvena) na samom
+     kraju. Naranča je namjerno na 25° — petnaestak stupnjeva i od
+     crvene i od jantara `--duga`, jer bi inače u dugoj pauzi prijelaz
+     iz jantara u naranču prošao neprimijećen.
+
      Tonovi se razlikuju bojom, ne svjetlinom, pa naziv faze uvijek
      stoji uz boju kao tekst — boja nije jedini nositelj podatka. */
 
 html[data-theme="dan"] {
-  --rad: #35618f; --kratka: #4e8c66; --duga: #ae8334; --warn: #c33a22;
+  --blizu: #c25f16; --rad: #35618f; --kratka: #4e8c66; --duga: #ae8334; --warn: #c33a22;
   --bg: #faf8f3; --panel: #ffffff; --ink: #15140e;
   --dim: #6f6a5c; --faint: #9a9484;
   --line: #e3ded1; --line-2: #cdc5b2; --on-state: #fff;
+  --spent: #cbc3ae;
 }
 
 html[data-theme="noc"] {
-  --rad: #5b9bd5; --kratka: #57a37b; --duga: #d9a441; --warn: #ef5340;
+  --blizu: #f28b3a; --rad: #5b9bd5; --kratka: #57a37b; --duga: #d9a441; --warn: #ef5340;
   --bg: #131316; --panel: #1b1b1f; --ink: #ece9e2;
   --dim: #9a958a; --faint: #6b665c;
   --line: #2c2c31; --line-2: #3c3c44; --on-state: #10161c;
+  --spent: #3e3e46;
 }
 
 html[data-theme="papir"] {
-  --rad: #2f5a85; --kratka: #43765a; --duga: #8f6a26; --warn: #b23a22;
+  --blizu: #ad5310; --rad: #2f5a85; --kratka: #43765a; --duga: #8f6a26; --warn: #b23a22;
   --bg: #f2ece0; --panel: #fbf7ef; --ink: #241f16;
   --dim: #6b6152; --faint: #9c9282;
   --line: #ddd4c2; --line-2: #c6bba5; --on-state: #fff;
+  --spent: #c3b69c;
 }
 
 html[data-theme="ugljen"] {
-  --rad: #64a8e0; --kratka: #5fa87b; --duga: #e0b25c; --warn: #f2624c;
+  --blizu: #f5934a; --rad: #64a8e0; --kratka: #5fa87b; --duga: #e0b25c; --warn: #f2624c;
   --bg: #0e0e0f; --panel: #171719; --ink: #e6e6e8;
   --dim: #92929a; --faint: #63636b;
   --line: #26262a; --line-2: #36363c; --on-state: #0b1218;
+  --spent: #37373f;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -398,7 +408,7 @@ main {
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: var(--ctl); height: var(--ctl);
+  width: calc(var(--ctl) + 4px); height: calc(var(--ctl) + 4px);
   border: 0;
   border-radius: 50%;
   background: none;
@@ -609,8 +619,8 @@ main {
 <header class="vrh">
   <span class="vrh-nacin" data-nacin-oznaka></span>
   <button class="ikona" id="postavke" type="button" data-i18n-attr="aria-label:postavke">
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-         stroke-width="1.6" stroke-linejoin="round">
+    <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor"
+         stroke-width="1.5" stroke-linejoin="round">
       <path d="M10.3 2.6h3.4l.4 2.3 1.9 1.1 2.2-.8 1.7 2.9-1.8 1.5v2.2l1.8 1.5-1.7 2.9-2.2-.8-1.9 1.1-.4 2.3h-3.4l-.4-2.3-1.9-1.1-2.2.8-1.7-2.9 1.8-1.5v-2.2L4.1 8.1l1.7-2.9 2.2.8 1.9-1.1Z"/>
       <circle cx="12" cy="12" r="3"/>
     </svg>
@@ -673,7 +683,7 @@ const JEZGRA = (() => {
 
     zadaciOn: true, tjedanOn: true,
     zvuk: true, odbroj: true, odbrojSek: 5, najava: true, najavaMin: 1,
-    napredak: 'deflate', zadnjeSek: 15, brzina: 1,
+    napredak: 'deflate', brzina: 1,
     obavijesti: false, budan: true,
     tema: 'dan', lang: null
   };
@@ -740,7 +750,7 @@ const JEZGRA = (() => {
 
     if (!run.faza) {
       return { mirno: true, pripremljeno: false, pauzirano: false, faza: null, ciklus,
-               preostalo: trajanje(cfg, ciklus ? 'rad' : 'rucno'), udio: 0, zavrsava: false,
+               preostalo: trajanje(cfg, ciklus ? 'rad' : 'rucno'), udio: 0, zavrsava: false, blizu: false,
                krug: run.krug, udioSeanse: seansa(null, 0) };
     }
 
@@ -748,18 +758,28 @@ const JEZGRA = (() => {
 
     if (run.endsAt == null && run.ostatak == null) {
       return { mirno: false, pripremljeno: true, pauzirano: false, faza: run.faza, ciklus,
-               preostalo: puno, udio: 0, zavrsava: false, krug: run.krug,
+               preostalo: puno, udio: 0, zavrsava: false, blizu: false, krug: run.krug,
                udioSeanse: seansa(run.faza, 0) };
     }
 
     const preostalo = Math.max(0, run.ostatak != null ? run.ostatak : run.endsAt - sada);
     const udio = puno ? 1 - preostalo / puno : 1;
-    // Zadnje sekunde su vlastito stanje, ne samo mali `preostalo`. Bez
-    // njega upozorenje nema svoju boju, pa zadnjih 15 sekundi izgleda
-    // isto kao prvih dvadeset minuta.
-    const zavrsava = run.ostatak == null && preostalo > 0 && preostalo <= cfg.zadnjeSek * 1000;
+    /* Kraj se najavljuje u dva koraka. Pragovi su isti brojevi kojima
+       se ravna i zvuk — najava i odbrojavanje — pa oko i uho govore o
+       istom trenutku. Prekidači zvuka na boju ne utječu: to su dva
+       kanala, a gašenje zvuka ne znači da ne želiš vidjeti da se bliži
+       kraj.
+
+       Gornja granica veže prag uz trajanje faze: bez nje bi tridesetak
+       sekundi najave na ručnom timeru od 30 sekundi obojilo cijeli krug
+       u naranču, a on tada ne bi značio ništa. */
+    const tece = run.ostatak == null && preostalo > 0;
+    const pragCrvene = Math.min(Number(cfg.odbrojSek) * 1000, puno * 0.15);
+    const pragNaranče = Math.min(Number(cfg.najavaMin) * 60000, puno * 0.5);
+    const zavrsava = tece && preostalo <= pragCrvene;
+    const blizu = tece && !zavrsava && preostalo <= pragNaranče;
     return { mirno: false, pripremljeno: false, pauzirano: run.ostatak != null,
-             faza: run.faza, ciklus, preostalo, udio, zavrsava, krug: run.krug,
+             faza: run.faza, ciklus, preostalo, udio, zavrsava, blizu, krug: run.krug,
              udioSeanse: seansa(run.faza, udio) };
   }
 
@@ -1029,8 +1049,18 @@ let zadnjaSekunda = -1;
 const bojaStanja = (s) => {
   if (!s.faza) return 'var(--faint)';
   if (s.zavrsava) return 'var(--warn)';
+  if (s.blizu) return 'var(--blizu)';
   return `var(--${s.faza === 'rucno' ? 'rad' : s.faza})`;
 };
+
+/* Boja kojom se puni potrošeni dio znamenke. Prati iste stupnjeve, pa
+   se popunjava onim što u tom trenutku znači „bliži se kraj" — a ne
+   crvenom od prve sekunde.
+
+   Neutralni ton je `--spent`, ne `--line`: linija je namjerno jedva
+   vidljiva (1,27:1 prema podlozi), pa bi pri kraju kruga, kad je
+   potrošeno gotovo sve, znamenka nestala sa zaslona. */
+const bojaPotrosenog = (s) => s.zavrsava ? 'var(--warn)' : s.blizu ? 'var(--blizu)' : 'var(--spent)';
 
 const NAPREDAK = ['bar', 'deflate', 'fill'];
 const nacinNapretka = () => NAPREDAK.includes(cfg.napredak) ? cfg.napredak : 'deflate';
@@ -1147,9 +1177,9 @@ PRIKAZI.znamenka = {
     }
 
     this.time.style.webkitTextFillColor = '';
-    // `deflate` prazni znamenku u neutralno, `fill` je puni bojom
-    // upozorenja odozgo — potrošeno se vidi, a ne samo preostalo.
-    const potroseno = nacin === 'fill' ? 'var(--warn)' : 'var(--line)';
+    // `deflate` prazni znamenku u neutralno, `fill` je puni odozgo —
+    // potrošeno se vidi, a ne samo preostalo.
+    const potroseno = nacin === 'fill' ? bojaPotrosenog(s) : 'var(--spent)';
     this.time.style.backgroundImage =
       `linear-gradient(0deg, ${boja} ${razina}%, ${potroseno} ${razina}%)`;
     paliTocke(this.krugovi, s);
