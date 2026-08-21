@@ -440,7 +440,27 @@ main {
            var(--sp-4) calc(var(--sp-4) + env(safe-area-inset-left));
 }
 
-.presetovi { display: flex; gap: var(--sp-2); justify-content: center; }
+.presetovi, .vrste { display: flex; gap: var(--sp-2); justify-content: center; }
+
+/* Odabrana vrsta nosi svoju boju, ne crnu: isti onaj modri, zeleni ili
+   neutralni ton kojim će se bojiti i sam timer. Izbor tako pokazuje
+   posljedicu, a ne samo da je izabran. */
+.vrste button {
+  min-width: 78px;
+  height: 30px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: none;
+  color: var(--dim);
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+.vrste button[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--vrsta-boja, var(--rad));
+  color: var(--on-state);
+}
 
 .presetovi button {
   min-width: 66px;
@@ -531,7 +551,7 @@ main {
 @media (hover: hover) {
   .cipovi button:hover { border-color: var(--dim); background: color-mix(in srgb, var(--panel) 92%, var(--ink)); }
   .cipovi button[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--ink) 88%, var(--panel)); }
-  .presetovi button:hover { border-color: var(--dim); }
+  .presetovi button:hover, .vrste button:not([aria-pressed="true"]):hover { border-color: var(--dim); }
   .broj-kontrola button:not(:disabled):hover { border-color: var(--dim); background: color-mix(in srgb, var(--panel) 92%, var(--ink)); }
   .sklopka:hover { border-color: var(--dim); }
   .povijest-alati button:hover { border-color: var(--dim); background: color-mix(in srgb, var(--panel) 92%, var(--ink)); }
@@ -765,6 +785,7 @@ main {
 <!-- Samo u ručnom načinu: trajanje se zadaje svaki put iznova, pa je
      dio glavnog ekrana, a ne postavka. -->
 <div class="trajanje" id="trajanje" hidden>
+  <div class="vrste" data-vrste role="group" data-i18n-attr="aria-label:vrsta"></div>
   <div class="presetovi" data-presetovi></div>
   <input class="klizac" id="klizac" type="range" min="0" step="1" data-i18n-attr="aria-label:trajanje">
 </div>
@@ -827,6 +848,7 @@ const JEZGRA = (() => {
        ciklusa, pa je u ručnom nema — a bilo bi neugodno da prebacivanje
        na ručno tiho promijeni prikaz i u auto načinu. */
     prikazi: { ciklus: 'traka', rucno: 'prsten' },
+    rucnoVrsta: 'rucno',
 
     zadaciOn: true, tjedanOn: true,
     zvuk: true, odbroj: true, odbrojSek: 5, najava: true, najavaMin: 1,
@@ -1052,6 +1074,7 @@ const STRINGS = {
     krugova: 'Krugova do duge', tema: 'Tema', jezik: 'Jezik',
     temaDan: 'Dan', temaNoc: 'Noć', temaPapir: 'Papir', temaUgljen: 'Ugljen',
     min: 'min', isteklo: 'Krug je istekao dok te nije bilo.',
+    vrsta: 'Vrsta',
     povijest: 'Povijest', izvezi: 'Izvezi', uvezi: 'Uvezi', obrisiSve: 'Obriši sve',
     nemaZapisa: 'Još nema zapisa. Svako pokretanje se bilježi ovdje.',
     opisPlaceholder: 'Na čemu si radio?', prekinuto: 'prekinuto', obrisi: 'Obriši',
@@ -1076,6 +1099,7 @@ const STRINGS = {
     krugova: 'Rounds to long break', tema: 'Theme', jezik: 'Language',
     temaDan: 'Day', temaNoc: 'Night', temaPapir: 'Paper', temaUgljen: 'Charcoal',
     min: 'min', isteklo: 'The round ran out while you were away.',
+    vrsta: 'Kind',
     povijest: 'History', izvezi: 'Export', uvezi: 'Import', obrisiSve: 'Clear all',
     nemaZapisa: 'Nothing recorded yet. Every start lands here.',
     opisPlaceholder: 'What were you working on?', prekinuto: 'stopped', obrisi: 'Delete',
@@ -1100,6 +1124,7 @@ const STRINGS = {
     krugova: 'Runden bis lange Pause', tema: 'Thema', jezik: 'Sprache',
     temaDan: 'Tag', temaNoc: 'Nacht', temaPapir: 'Papier', temaUgljen: 'Anthrazit',
     min: 'Min', isteklo: 'Die Runde lief ab, während du weg warst.',
+    vrsta: 'Art',
     povijest: 'Verlauf', izvezi: 'Exportieren', uvezi: 'Importieren', obrisiSve: 'Alles löschen',
     nemaZapisa: 'Noch nichts aufgezeichnet. Jeder Start landet hier.',
     opisPlaceholder: 'Woran hast du gearbeitet?', prekinuto: 'abgebrochen', obrisi: 'Löschen',
@@ -1223,7 +1248,7 @@ const bojaStanja = (s) => {
   if (!s.faza) return 'var(--faint)';
   if (s.zavrsava) return 'var(--warn)';
   if (s.blizu) return 'var(--blizu)';
-  return `var(--${s.faza === 'rucno' ? 'rad' : s.faza})`;
+  return bojaVrste(oznakaFaze(s.faza));
 };
 
 /* Boja kojom se puni potrošeni dio znamenke. Prati iste stupnjeve, pa
@@ -1307,7 +1332,7 @@ PRIKAZI.traka = {
   },
   paint(s) {
     this.time.textContent = sat(s.preostalo);
-    this.fazaEl.textContent = t(s.faza || 'mirno');
+    this.fazaEl.textContent = t(s.faza ? oznakaFaze(s.faza) : 'mirno');
     this.head.style.left = `${s.udioSeanse * 100}%`;
     const tekuci = s.faza === 'kratka' || s.faza === 'duga' ? s.krug * 2 + 1 : s.krug * 2;
     this.segmenti.forEach((seg, i) => seg.classList.toggle('done', i < tekuci));
@@ -1333,7 +1358,7 @@ PRIKAZI.znamenka = {
   },
   paint(s) {
     this.time.textContent = sat(s.preostalo);
-    this.fazaEl.textContent = t(s.faza || 'mirno');
+    this.fazaEl.textContent = t(s.faza ? oznakaFaze(s.faza) : 'mirno');
 
     const boja = bojaStanja(s);
     const razina = Math.round((1 - s.udio) * 100);
@@ -1388,7 +1413,7 @@ PRIKAZI.prsten = {
   },
   paint(s) {
     this.time.textContent = sat(s.preostalo);
-    this.fazaEl.textContent = t(s.faza || 'mirno');
+    this.fazaEl.textContent = t(s.faza ? oznakaFaze(s.faza) : 'mirno');
     this.arc.setAttribute('stroke', bojaStanja(s));
     this.arc.setAttribute('stroke-dashoffset', OPSEG * (1 - s.udio));
     paliTocke(this.krugovi, s);
@@ -1503,7 +1528,7 @@ function satPrikaz(plosnat) {
       this.isjecak.setAttribute('d', isjecak(100, 100, g.isjecak, minuta * 6));
       this.isjecak.setAttribute('fill', plosnat ? bojaStanja(s) : SAT_CRVENA);
       this.time.textContent = sat(s.preostalo);
-      this.fazaEl.textContent = t(s.faza || 'mirno');
+      this.fazaEl.textContent = t(s.faza ? oznakaFaze(s.faza) : 'mirno');
     }
   };
 }
@@ -1554,7 +1579,7 @@ PRIKAZI.posuda = {
     this.mlaz.setAttribute('stroke', boja);
     this.mlaz.setAttribute('opacity', tece ? '1' : '0');
     this.time.textContent = sat(s.preostalo);
-    this.fazaEl.textContent = t(s.faza || 'mirno');
+    this.fazaEl.textContent = t(s.faza ? oznakaFaze(s.faza) : 'mirno');
   }
 };
 
@@ -1716,7 +1741,7 @@ function otvoriZapis(faza) {
   if (run.zapis) return;                     // nastavak nakon pauze nije nov krug
   run.zapis = noviId();
   povijest.push({
-    id: run.zapis, faza,
+    id: run.zapis, faza: oznakaFaze(faza), rucno: faza === 'rucno',
     pocetak: Date.now(), kraj: null,
     planirano: JEZGRA.trajanje(cfg, faza),
     dovrsen: false, opis: ''
@@ -1730,6 +1755,8 @@ function zatvoriZapis(dovrsen) {
   if (!z) return;
   z.kraj = Date.now();
   z.dovrsen = dovrsen;
+  // Vrsta se smjela mijenjati usred kruga; mjerodavna je ona na kraju.
+  if (z.rucno) z.faza = vrstaRucnog();
   if (!dovrsen && z.kraj - z.pocetak < NAJKRACI_PREKID && !z.opis) {
     povijest = povijest.filter((x) => x.id !== z.id);
   }
@@ -1904,6 +1931,23 @@ const STOPS = [
 
 const PRESETI = [300, 900, 1500];
 
+/**
+ * Čemu je ručni timer poslužio.
+ *
+ * Ne mijenja `run.faza` — ona ostaje `rucno`, jer o njoj ovisi odakle
+ * se čita trajanje. Ovo je oznaka uz nju: boji zaslon, imenuje fazu i
+ * ulazi u povijest. Tako klasifikacija ne može slučajno promijeniti
+ * koliko timer traje.
+ */
+const VRSTE = ['rucno', 'rad', 'kratka'];
+
+const vrstaRucnog = () => VRSTE.includes(cfg.rucnoVrsta) ? cfg.rucnoVrsta : 'rucno';
+
+/** Faza pod kojom se stanje boji i imenuje — za ciklus je to sama faza. */
+const oznakaFaze = (faza) => faza === 'rucno' ? vrstaRucnog() : faza;
+
+const bojaVrste = (v) => `var(--${v === 'rucno' ? 'rad' : v})`;
+
 els.klizac.max = String(STOPS.length - 1);
 
 /** Najbliža stopa danom broju sekundi — klizač zna samo indekse. */
@@ -1919,6 +1963,17 @@ function crtajTrajanje() {
   const rucno = !JEZGRA.jeCiklus(cfg);
   els.trajanje.hidden = !rucno;
   if (!rucno) return;
+
+  const vrste = els.trajanje.querySelector('[data-vrste]');
+  vrste.replaceChildren(...VRSTE.map((v) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = t(v);
+    b.setAttribute('aria-pressed', String(vrstaRucnog() === v));
+    b.style.setProperty('--vrsta-boja', bojaVrste(v));
+    b.addEventListener('click', () => postaviVrstu(v));
+    return b;
+  }));
 
   const kutija = els.trajanje.querySelector('[data-presetovi]');
   kutija.replaceChildren(...PRESETI.map((sek) => {
@@ -1936,6 +1991,15 @@ function crtajTrajanje() {
   const tece = run.faza && (run.endsAt != null || run.ostatak != null);
   els.klizac.disabled = Boolean(tece);
   for (const b of kutija.children) b.disabled = Boolean(tece);
+}
+
+/* Vrsta se smije mijenjati i usred odbrojavanja — zapis pamti onu koja
+   vrijedi na kraju, jer se tek tada zna čemu je krug poslužio. */
+function postaviVrstu(v) {
+  cfg.rucnoVrsta = VRSTE.includes(v) ? v : 'rucno';
+  save();
+  crtajTrajanje();
+  paint();
 }
 
 function postaviRucno(sek) {
@@ -2293,7 +2357,7 @@ async function uvezi(datoteka) {
       povijest.push({
         id: z.id, faza: z.faza || 'rad',
         pocetak: z.pocetak, kraj: typeof z.kraj === 'number' ? z.kraj : null,
-        planirano: Number(z.planirano) || 0,
+        planirano: Number(z.planirano) || 0, rucno: Boolean(z.rucno),
         dovrsen: Boolean(z.dovrsen), opis: String(z.opis || '').slice(0, 140)
       });
       poznati.add(z.id);
@@ -2336,7 +2400,7 @@ document.getElementById('obrisiSve')?.addEventListener('click', () => {
  * čeka tvoj pristanak.
  */
 function natpisGumba(s) {
-  if (s.pripremljeno) els.go.textContent = `${t('kreni')} · ${t(s.faza)}`;
+  if (s.pripremljeno) els.go.textContent = `${t('kreni')} · ${t(oznakaFaze(s.faza))}`;
   else if (s.pauzirano) els.go.textContent = t('nastavi');
   else if (s.mirno) els.go.textContent = t('kreni');
   else els.go.textContent = t('pauza');
