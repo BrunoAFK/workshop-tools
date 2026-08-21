@@ -27,28 +27,40 @@
   --ctl: 44px;                       /* meta za prst, ne za miš */
   --install-offset: 92px;            /* traka za instalaciju ide iznad kontrola */
   --ease: cubic-bezier(.2, .8, .25, 1);
+}
 
-  /* Boja faze nosi značenje — puni znamenku, boji prsten i pijesak
-     u posudi — pa mora doseći kontrast 3:1 (WCAG 1.4.11) na svojoj
-     podlozi. `--rad` i `--kratka` prolaze na obje podloge pa ostaju
-     identični u obje teme; `--duga` po danu pada na 2,12:1, pa dan
-     dobiva tamniju inačicu istog tona. Nije nedosljednost koju treba
-     "popraviti" — noć zadržava `#d9a441` jer ondje prolazi s 8,25:1. */
+  /* Boja faze nosi značenje — puni znamenku, boji prsten i pijesak u
+     posudi — pa mora doseći 3:1 (WCAG 1.4.11) na podlozi na kojoj se
+     crta. Ton je isti u svim temama, svjetlina nije: ista terakota koja
+     na papiru daje 5,0 na uglju daje 1,9. Vrijednosti su izmjerene, ne
+     odabrane okom; skripta je u readmeu alata. */
+
+html[data-theme="dan"] {
   --rad: #c0503a; --kratka: #4e8c66; --duga: #ae8334;
-
-  /* Dan je zadana tema: Pomodoro je alat za radne sate, a i katalog
-     je svijetao. `timer.html` ima obrnuto zadano jer se gleda u
-     teretani — ovdje nema tog razloga. */
-  --bg: #faf8f3; --panel: #fff; --ink: #15140e;
+  --bg: #faf8f3; --panel: #ffffff; --ink: #15140e;
   --dim: #6f6a5c; --faint: #9a9484;
   --line: #e3ded1; --line-2: #cdc5b2; --on-state: #fff;
 }
 
 html[data-theme="noc"] {
-  --duga: #d9a441;                   /* isti ton, samo svjetliji — ovdje prolazi kontrast */
+  --rad: #c0503a; --kratka: #4e8c66; --duga: #d9a441;
   --bg: #131316; --panel: #1b1b1f; --ink: #ece9e2;
   --dim: #9a958a; --faint: #6b665c;
-  --line: #2c2c31; --line-2: #3c3c44;
+  --line: #2c2c31; --line-2: #3c3c44; --on-state: #fff;
+}
+
+html[data-theme="papir"] {
+  --rad: #a8452f; --kratka: #43765a; --duga: #8f6a26;
+  --bg: #f2ece0; --panel: #fbf7ef; --ink: #241f16;
+  --dim: #6b6152; --faint: #9c9282;
+  --line: #ddd4c2; --line-2: #c6bba5; --on-state: #fff;
+}
+
+html[data-theme="ugljen"] {
+  --rad: #d2604a; --kratka: #5fa87b; --duga: #e0b25c;
+  --bg: #0e0e0f; --panel: #171719; --ink: #e6e6e8;
+  --dim: #92929a; --faint: #63636b;
+  --line: #26262a; --line-2: #36363c; --on-state: #14100c;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -171,10 +183,12 @@ main {
   display: grid;
   place-items: end center;
   padding: var(--sp-4);
-  /* Miješa se prema `--bg`, ne prema `--ink`: potonji je taman po
-     danu, ali svijetao po noći, pa bi zastor izbijelio noćno
-     sučelje umjesto da ga zatamni — isti obrazac kao `timer.html`. */
-  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  /* Zastor je namjerno neovisan o temi. Miješanje prema `--bg` gasi
+     pozadinu prema njezinoj vlastitoj boji, pa na Uglju ploča
+     (`--panel`) ostaje na 1,06:1 od zastora i drži je samo linija od
+     1px. Crna na 42% zatamnjuje sve četiri teme jednako, a ploča se
+     odvaja jer je svjetlija od onoga na čemu leži. */
+  background: color-mix(in srgb, #000 42%, transparent);
   visibility: hidden;
   opacity: 0;
   transition: opacity .18s var(--ease), visibility .18s var(--ease);
@@ -190,6 +204,7 @@ main {
    `overflow: hidden`, pa ovo ostaje jedino mjesto koje smije skrolati. */
 .ladica-box {
   width: min(430px, 100%);
+  box-shadow: 0 18px 48px rgb(0 0 0 / .32);
   max-height: calc(100dvh - var(--sp-6));
   overflow-y: auto;
   border: 1px solid var(--line-2);
@@ -330,6 +345,196 @@ main {
 .posuda svg { display: block; width: min(42cqw, 46cqh); height: min(60cqw, 66cqh); }
 .posuda .brojka { font-size: min(7cqw, 8cqh); color: var(--dim); letter-spacing: .1em; }
 
+/* ═══ ZAGLAVLJE ════════════════════════════════════════════ */
+
+.vrh {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) calc(var(--sp-4) + env(safe-area-inset-right))
+           var(--sp-3) calc(var(--sp-4) + env(safe-area-inset-left));
+  padding-top: calc(var(--sp-3) + env(safe-area-inset-top));
+}
+
+/* Tri načina kao jedna traka, ne tri gumba: izbor je jedan od tri, a
+   segmentirana kontrola to i pokazuje oblikom. */
+.nacini {
+  flex: 1;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--r) - 4px);
+  background: var(--panel);
+}
+
+.nacini button {
+  flex: 1;
+  height: 30px;
+  border: 0;
+  border-radius: calc(var(--r) - 7px);
+  background: none;
+  color: var(--dim);
+  font-size: .78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.nacini button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+.ikona {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: var(--ctl); height: var(--ctl);
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--dim);
+}
+
+.ikona:active { background: color-mix(in srgb, var(--panel) 82%, var(--ink)); }
+
+/* ═══ TRAJANJE (ručno) ═════════════════════════════════════ */
+
+.trajanje {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: 0 calc(var(--sp-4) + env(safe-area-inset-right))
+           var(--sp-4) calc(var(--sp-4) + env(safe-area-inset-left));
+}
+
+.presetovi { display: flex; gap: var(--sp-2); justify-content: center; }
+
+.presetovi button {
+  min-width: 66px;
+  height: 30px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: none;
+  color: var(--dim);
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+.presetovi button[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--rad);
+  color: var(--on-state);
+}
+
+/* Klizač ne ide po sekundi nego po popisu okruglih vrijednosti, gušće
+   na kratkom kraju gdje se i bira — inače je na mobitelu svaka pozicija
+   pogađanje. Onemogućen je dok timer radi: mijenjati trajanje ispod
+   odbrojavanja koje teče znači ili izgubiti napredak ili lagati o njemu. */
+.klizac {
+  width: 100%;
+  height: var(--ctl);
+  accent-color: var(--rad);
+  background: none;
+  cursor: pointer;
+}
+
+.klizac:disabled { opacity: .35; cursor: default; }
+
+/* ═══ SADRŽAJ LADICE ═══════════════════════════════════════ */
+
+.ladica-vrh {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.ladica-vrh h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+
+.ladica-tijelo { padding: var(--sp-2) var(--sp-5) var(--sp-4); }
+
+.polje { padding: var(--sp-4) 0; border-bottom: 1px solid var(--line); }
+.polje:last-child { border-bottom: 0; }
+
+.polje-ime {
+  margin: 0 0 var(--sp-3);
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.cipovi { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+.cipovi button {
+  height: 34px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink);
+  font-size: .82rem;
+  font-weight: 600;
+}
+
+.cipovi button[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--ink);
+  color: var(--bg);
+}
+
+/* Uzorak teme umjesto naziva: ime „Ugljen" ne govori ništa o tome kako
+   tema izgleda, tri pločice govore sve. */
+.cip-tema { display: inline-flex; align-items: center; gap: 5px; }
+.cip-tema span { margin-left: 3px; }
+.cip-tema i {
+  width: 12px; height: 12px;
+  border-radius: 3px;
+  /* Rub mora raditi i pod svijetlim i pod tamnim uzorkom, pa je
+     poluproziran crn plus poluproziran bijeli unutarnji odsjaj. */
+  border: 1px solid rgb(0 0 0 / .18);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .12);
+}
+
+.broj {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+}
+
+.broj-ime { font-size: .9rem; }
+
+.broj-kontrola { display: flex; align-items: center; gap: var(--sp-2); }
+
+.broj-kontrola button {
+  width: 32px; height: 32px;
+  border: 1px solid var(--line-2);
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.broj-kontrola button:disabled { opacity: .3; }
+
+.broj-vrijednost {
+  min-width: 62px;
+  text-align: center;
+  font-family: var(--num);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
@@ -337,19 +542,45 @@ main {
 </head>
 <body>
 
+<!-- Način je vrh sučelja, ne postavka: mijenja što gumbi rade i koji
+     su prikazi uopće mogući, pa mora biti vidljiv bez otvaranja ičega. -->
+<header class="vrh">
+  <div class="nacini" role="group" data-nacini></div>
+  <button class="ikona" id="postavke" type="button" data-i18n-attr="aria-label:postavke">
+    <svg viewBox="0 0 20 20" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5">
+      <circle cx="10" cy="10" r="2.6"/>
+      <path d="M10 2.2v2M10 15.8v2M17.8 10h-2M4.2 10h-2M15.5 4.5l-1.4 1.4M5.9 14.1l-1.4 1.4M15.5 15.5l-1.4-1.4M5.9 5.9 4.5 4.5"/>
+    </svg>
+  </button>
+</header>
+
 <main>
   <div id="stage"></div>          <!-- ovdje prikaz crta -->
   <div id="zadaci" hidden></div>
   <div id="tjedan" hidden></div>
 </main>
+
+<!-- Samo u ručnom načinu: trajanje se zadaje svaki put iznova, pa je
+     dio glavnog ekrana, a ne postavka. -->
+<div class="trajanje" id="trajanje" hidden>
+  <div class="presetovi" data-presetovi></div>
+  <input class="klizac" id="klizac" type="range" min="0" step="1" data-i18n-attr="aria-label:trajanje">
+</div>
+
 <div class="kontrole">
   <button id="go" type="button">Kreni</button>
-  <button id="skip" type="button">Preskoči</button>
-  <button id="reset" type="button">Reset</button>
-  <button id="postavke" type="button">Prikaz</button>
+  <button id="skip" type="button" data-i18n="preskoci">Preskoči</button>
+  <button id="reset" type="button" data-i18n="reset">Reset</button>
 </div>
+
 <div class="ladica" id="ladica" role="dialog" aria-modal="true" aria-hidden="true" data-i18n-attr="aria-label:postavke">
-  <div class="ladica-box"></div>
+  <div class="ladica-box">
+    <div class="ladica-vrh">
+      <h2 data-i18n="postavke">Postavke</h2>
+      <button class="ikona" id="zatvori" type="button" data-i18n-attr="aria-label:zatvori">✕</button>
+    </div>
+    <div class="ladica-tijelo" data-postavke></div>
+  </div>
 </div>
 
 <script id="jezgra">
@@ -357,20 +588,33 @@ main {
    JEZGRA
 
    Ne dira DOM i ne čita sat sama od sebe — vrijeme joj se
-   predaje. Zato se dade izvršiti i izvan preglednika, iako alat
-   ostaje jedna samostalna datoteka.
+   predaje. Zato se dade izvršiti i izvan preglednika.
    ═══════════════════════════════════════════════════════════ */
 const JEZGRA = (() => {
 
   const DEFAULTS = {
+    /* Način mijenja i slijed i to tko ga gura dalje:
+
+         auto   — slijed je zadan, ali svaki korak čeka tvoj klik
+         full   — slijed je zadan i teče sam
+         rucno  — nema slijeda; jedan timer, trajanje zadaješ ti      */
+    nacin: 'auto',
+
     rad: 25, kratka: 5, duga: 15, ciklus: 4,
-    prikaz: 'traka',
+    rucnoSek: 1500,
+
+    /* Prikaz se pamti po obitelji načina, ne globalno: traka crta plan
+       ciklusa, pa je u ručnom nema — a bilo bi neugodno da prebacivanje
+       na ručno tiho promijeni prikaz i u auto načinu. */
+    prikazi: { ciklus: 'traka', rucno: 'prsten' },
+
     zadaciOn: true, tjedanOn: true,
     zvuk: true, tik: true,
     obavijesti: false, budan: true,
-    autoPauza: true, autoRad: false,
     tema: 'dan', lang: null
   };
+
+  const jeCiklus = (cfg) => cfg.nacin !== 'rucno';
 
   /** Plan jednog ciklusa: rad, kratka, … rad, duga. */
   function plan(cfg) {
@@ -384,8 +628,9 @@ const JEZGRA = (() => {
     return faze;
   }
 
-  const trajanje = (cfg, faza) =>
-    ({ rad: cfg.rad, kratka: cfg.kratka, duga: cfg.duga }[faza] || 0) * 60000;
+  const trajanje = (cfg, faza) => faza === 'rucno'
+    ? Math.max(1, cfg.rucnoSek) * 1000
+    : ({ rad: cfg.rad, kratka: cfg.kratka, duga: cfg.duga }[faza] || 0) * 60000;
 
   /**
    * Lokalni datum, ne `toISOString()`.
@@ -417,20 +662,39 @@ const JEZGRA = (() => {
     return (prije + faze[index].min * (faza === null ? 0 : udio)) / ukupno;
   }
 
+  /**
+   * Stanje ima četiri oblika, ne dva:
+   *
+   *   mirno        — ništa nije odabrano, `Kreni` pokreće od početka
+   *   pripremljeno — faza je poznata, ali čeka klik (to je auto način)
+   *   u tijeku     — teče
+   *   pauzirano    — stoji, `ostatak` pamti koliko je bilo
+   */
   function stanje(cfg, run, sada) {
+    const ciklus = jeCiklus(cfg);
+    const seansa = (faza, udio) => ciklus ? udioSeanse(cfg, run.krug, faza, udio) : 0;
+
     if (!run.faza) {
-      return { mirno: true, pauzirano: false, faza: null, preostalo: trajanje(cfg, 'rad'),
-               udio: 0, krug: run.krug, udioSeanse: udioSeanse(cfg, run.krug, null, 0) };
+      return { mirno: true, pripremljeno: false, pauzirano: false, faza: null, ciklus,
+               preostalo: trajanje(cfg, ciklus ? 'rad' : 'rucno'), udio: 0,
+               krug: run.krug, udioSeanse: seansa(null, 0) };
     }
+
     const puno = trajanje(cfg, run.faza);
+
+    if (run.endsAt == null && run.ostatak == null) {
+      return { mirno: false, pripremljeno: true, pauzirano: false, faza: run.faza, ciklus,
+               preostalo: puno, udio: 0, krug: run.krug, udioSeanse: seansa(run.faza, 0) };
+    }
+
     const preostalo = Math.max(0, run.ostatak != null ? run.ostatak : run.endsAt - sada);
     const udio = puno ? 1 - preostalo / puno : 1;
-    return { mirno: false, pauzirano: run.ostatak != null, faza: run.faza,
-             preostalo, udio, krug: run.krug,
-             udioSeanse: udioSeanse(cfg, run.krug, run.faza, udio) };
+    return { mirno: false, pripremljeno: false, pauzirano: run.ostatak != null,
+             faza: run.faza, ciklus, preostalo, udio, krug: run.krug,
+             udioSeanse: seansa(run.faza, udio) };
   }
 
-  return { DEFAULTS, plan, trajanje, danas, sljedeca, udioSeanse, stanje };
+  return { DEFAULTS, jeCiklus, plan, trajanje, danas, sljedeca, udioSeanse, stanje };
 })();
 </script>
 
@@ -449,6 +713,7 @@ let dani = {};
 try {
   const spremljeno = JSON.parse(localStorage.getItem(STORE) || '{}');
   cfg = { ...JEZGRA.DEFAULTS, ...(spremljeno.cfg || {}) };
+  cfg.prikazi = { ...JEZGRA.DEFAULTS.prikazi, ...(spremljeno.cfg?.prikazi || {}) };
   run = { ...run, ...(spremljeno.run || {}) };
   zadaci = Array.isArray(spremljeno.zadaci) ? spremljeno.zadaci : [];
   dani = spremljeno.dani && typeof spremljeno.dani === 'object' ? spremljeno.dani : {};
@@ -468,7 +733,7 @@ const save = () => {
   catch { /* privatni način */ }
 };
 
-/* Privremene zamjene — zamjenjuju ih koraci koji ih donose. */
+/* Privremene zamjene — uklanjaju ih koraci koji donose pravu stvar. */
 const wakeAudio = () => {};
 const zakaziZvuk = () => {};
 const otkaziZvuk = () => {};
@@ -480,18 +745,101 @@ const crtajZadatke = () => {};
 const crtajTjedan = () => {};
 const poruka = (tekst) => console.log(tekst);
 
-const NAZIVI = { rad: 'Rad', kratka: 'Pauza', duga: 'Duga pauza', mirno: 'Spremno' };
-const t = (kljuc) => NAZIVI[kljuc] || kljuc;
-
 /* ═══════════════════════════════════════════════════════════
-   2 · Teme
+   2 · Jezici
+
+   Zadani se bira iz preglednika; izbor u postavkama ga nadjača i
+   pamti se. Ključevi su engleski jer su kratki i stabilni.
    ═══════════════════════════════════════════════════════════ */
 
+const LANGS = { hr: 'Hrvatski', en: 'English', de: 'Deutsch' };
+const LOCALES = { hr: 'hr-HR', en: 'en-GB', de: 'de-DE' };
+
+const STRINGS = {
+  hr: {
+    rad: 'Rad', kratka: 'Pauza', duga: 'Duga pauza', rucno: 'Timer', mirno: 'Spremno',
+    kreni: 'Kreni', pauza: 'Pauza', nastavi: 'Nastavi', preskoci: 'Preskoči', reset: 'Reset',
+    postavke: 'Postavke', zatvori: 'Zatvori', trajanje: 'Trajanje',
+    nacin: 'Način', nacinAuto: 'Auto', nacinFull: 'Full auto', nacinRucno: 'Ručno',
+    prikaz: 'Prikaz', traka: 'Traka', znamenka: 'Znamenka', prsten: 'Prsten', posuda: 'Posuda',
+    trajanja: 'Trajanja', radMin: 'Rad', kratkaMin: 'Kratka pauza', dugaMin: 'Duga pauza',
+    krugova: 'Krugova do duge', tema: 'Tema', jezik: 'Jezik',
+    temaDan: 'Dan', temaNoc: 'Noć', temaPapir: 'Papir', temaUgljen: 'Ugljen',
+    min: 'min', isteklo: 'Krug je istekao dok te nije bilo.'
+  },
+  en: {
+    rad: 'Focus', kratka: 'Break', duga: 'Long break', rucno: 'Timer', mirno: 'Ready',
+    kreni: 'Start', pauza: 'Pause', nastavi: 'Resume', preskoci: 'Skip', reset: 'Reset',
+    postavke: 'Settings', zatvori: 'Close', trajanje: 'Duration',
+    nacin: 'Mode', nacinAuto: 'Auto', nacinFull: 'Full auto', nacinRucno: 'Manual',
+    prikaz: 'View', traka: 'Strip', znamenka: 'Numeral', prsten: 'Ring', posuda: 'Hourglass',
+    trajanja: 'Durations', radMin: 'Focus', kratkaMin: 'Short break', dugaMin: 'Long break',
+    krugova: 'Rounds to long break', tema: 'Theme', jezik: 'Language',
+    temaDan: 'Day', temaNoc: 'Night', temaPapir: 'Paper', temaUgljen: 'Charcoal',
+    min: 'min', isteklo: 'The round ran out while you were away.'
+  },
+  de: {
+    rad: 'Arbeit', kratka: 'Pause', duga: 'Lange Pause', rucno: 'Timer', mirno: 'Bereit',
+    kreni: 'Start', pauza: 'Pause', nastavi: 'Weiter', preskoci: 'Überspringen', reset: 'Zurücksetzen',
+    postavke: 'Einstellungen', zatvori: 'Schließen', trajanje: 'Dauer',
+    nacin: 'Modus', nacinAuto: 'Auto', nacinFull: 'Voll automatisch', nacinRucno: 'Manuell',
+    prikaz: 'Ansicht', traka: 'Leiste', znamenka: 'Ziffern', prsten: 'Ring', posuda: 'Sanduhr',
+    trajanja: 'Dauern', radMin: 'Arbeit', kratkaMin: 'Kurze Pause', dugaMin: 'Lange Pause',
+    krugova: 'Runden bis lange Pause', tema: 'Thema', jezik: 'Sprache',
+    temaDan: 'Tag', temaNoc: 'Nacht', temaPapir: 'Papier', temaUgljen: 'Kohle',
+    min: 'Min', isteklo: 'Die Runde lief ab, während du weg warst.'
+  }
+};
+
+function detectLang() {
+  for (const oznaka of navigator.languages || [navigator.language || 'hr']) {
+    const kratka = String(oznaka).slice(0, 2).toLowerCase();
+    if (LANGS[kratka]) return kratka;
+  }
+  return 'en';
+}
+
+let lang = LANGS[cfg.lang] ? cfg.lang : detectLang();
+
+const t = (kljuc) => (STRINGS[lang] || STRINGS.en)[kljuc] ?? STRINGS.en[kljuc] ?? kljuc;
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n);
+  for (const el of document.querySelectorAll('[data-i18n-attr]')) {
+    const [atribut, kljuc] = el.dataset.i18nAttr.split(':');
+    el.setAttribute(atribut, t(kljuc));
+  }
+  crtajNacine();
+  crtajTrajanje();
+  crtajPostavke();
+  postaviPrikaz(prikazId());     // prikaz ispisuje naziv faze, pa se mora premontirati
+}
+
+function setLang(kod) {
+  lang = LANGS[kod] ? kod : lang;
+  cfg.lang = lang;
+  save();
+  applyLang();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   3 · Teme
+   ═══════════════════════════════════════════════════════════ */
+
+const TEME = [
+  { id: 'dan',    kljuc: 'temaDan',    cipovi: ['#faf8f3', '#ffffff', '#c0503a'] },
+  { id: 'noc',    kljuc: 'temaNoc',    cipovi: ['#131316', '#1b1b1f', '#c0503a'] },
+  { id: 'papir',  kljuc: 'temaPapir',  cipovi: ['#f2ece0', '#fbf7ef', '#a8452f'] },
+  { id: 'ugljen', kljuc: 'temaUgljen', cipovi: ['#0e0e0f', '#171719', '#d2604a'] }
+];
+
 function applyTheme(id) {
-  cfg.tema = id === 'noc' ? 'noc' : 'dan';
+  cfg.tema = TEME.some((x) => x.id === id) ? id : 'dan';
   document.documentElement.dataset.theme = cfg.tema;
   syncThemeColor();
   save();
+  paint();
 }
 
 /** Traka preglednika prati temu — čita se stvarni `--bg` nakon promjene. */
@@ -501,7 +849,7 @@ function syncThemeColor() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   3 · Prikazi
+   4 · Prikazi
 
    Ugovor su dvije metode: `mount` upiše markup jednom i zapamti
    čvorove, `paint` mijenja samo vrijednosti. `paint` se zove svake
@@ -509,19 +857,36 @@ function syncThemeColor() {
    ═══════════════════════════════════════════════════════════ */
 
 const PRIKAZI = {};
-const REDOM = ['traka', 'znamenka', 'prsten', 'posuda'];
-const stage = document.getElementById('stage');
-const prikaz = () => PRIKAZI[cfg.prikaz] || PRIKAZI.traka;
 
-const bojaFaze = (faza) => faza ? `var(--${faza})` : 'var(--faint)';
+/* Traka crta plan ciklusa, pa je u ručnom načinu nema što crtati —
+   ondje bi bila prazan pravokutnik koji tvrdi da postoji slijed. */
+const PRIKAZI_ZA = {
+  ciklus: ['traka', 'znamenka', 'prsten', 'posuda'],
+  rucno: ['znamenka', 'prsten', 'posuda']
+};
+
+const obitelj = () => JEZGRA.jeCiklus(cfg) ? 'ciklus' : 'rucno';
+const dopusteni = () => PRIKAZI_ZA[obitelj()];
+const prikazId = () => dopusteni().includes(cfg.prikazi[obitelj()])
+  ? cfg.prikazi[obitelj()]
+  : dopusteni()[0];
+
+const stage = document.getElementById('stage');
+const prikaz = () => PRIKAZI[prikazId()];
+
+const bojaFaze = (faza) => faza ? `var(--${faza === 'rucno' ? 'rad' : faza})` : 'var(--faint)';
 
 const sat = (ms) => {
   const uk = Math.max(0, Math.ceil(ms / 1000));
-  return `${String(Math.floor(uk / 60)).padStart(2, '0')}:${String(uk % 60).padStart(2, '0')}`;
+  const h = Math.floor(uk / 3600);
+  const m = Math.floor(uk % 3600 / 60);
+  const sek = uk % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+  return h ? `${h}:${pad(m)}:${pad(sek)}` : `${pad(m)}:${pad(sek)}`;
 };
 
 function postaviPrikaz(id) {
-  cfg.prikaz = PRIKAZI[id] ? id : 'traka';
+  if (dopusteni().includes(id)) cfg.prikazi[obitelj()] = id;
   stage.replaceChildren();          // bez ovoga ostaju mrtvi čvorovi
   prikaz().mount(stage);
   paint();
@@ -535,8 +900,11 @@ const tocke = (n) => {
   return el;
 };
 
-const paliTocke = (el, krug) =>
-  [...el.children].forEach((tocka, i) => tocka.classList.toggle('on', i < krug));
+/** Točke broje krugove ciklusa; u ručnom načinu ciklusa nema. */
+function paliTocke(el, s) {
+  el.hidden = !s.ciklus;
+  [...el.children].forEach((tocka, i) => tocka.classList.toggle('on', i < s.krug));
+}
 
 /* ── Traka ─────────────────────────────────────────────── */
 PRIKAZI.traka = {
@@ -569,7 +937,7 @@ PRIKAZI.traka = {
 
     const uk = JEZGRA.plan(cfg).reduce((zbroj, x) => zbroj + x.min, 0);
     korijen.querySelector('[data-skala]').innerHTML =
-      `<span>0</span><span>${Math.round(uk / 2)} min</span><span>${uk} min</span>`;
+      `<span>0</span><span>${Math.round(uk / 2)} ${t('min')}</span><span>${uk} ${t('min')}</span>`;
   },
   paint(s) {
     this.time.textContent = sat(s.preostalo);
@@ -601,7 +969,7 @@ PRIKAZI.znamenka = {
     const razina = Math.round((1 - s.udio) * 100);
     this.time.style.backgroundImage =
       `linear-gradient(0deg, ${bojaFaze(s.faza)} ${razina}%, var(--line) ${razina}%)`;
-    paliTocke(this.krugovi, s.krug);
+    paliTocke(this.krugovi, s);
   }
 };
 
@@ -637,7 +1005,7 @@ PRIKAZI.prsten = {
     this.fazaEl.textContent = t(s.faza || 'mirno');
     this.arc.setAttribute('stroke', bojaFaze(s.faza));
     this.arc.setAttribute('stroke-dashoffset', OPSEG * (1 - s.udio));
-    paliTocke(this.krugovi, s.krug);
+    paliTocke(this.krugovi, s);
   }
 };
 
@@ -680,7 +1048,7 @@ PRIKAZI.posuda = {
     this.dolje.setAttribute('fill', boja);
     // Mlaz postoji samo dok pijesak stvarno pada — u mirovanju i na
     // pauzi bi tvrdio da nešto teče, a ne teče.
-    const tece = !s.mirno && !s.pauzirano && s.udio > 0 && s.udio < 1;
+    const tece = !s.mirno && !s.pripremljeno && !s.pauzirano && s.udio > 0 && s.udio < 1;
     this.mlaz.setAttribute('stroke', boja);
     this.mlaz.setAttribute('opacity', tece ? '1' : '0');
     this.time.textContent = sat(s.preostalo);
@@ -689,7 +1057,7 @@ PRIKAZI.posuda = {
 };
 
 /* ═══════════════════════════════════════════════════════════
-   4 · Odbrojavanje
+   5 · Odbrojavanje
 
    Vrijeme se čita iz sata, ne zbraja po okviru — inače alat
    zaostane čim preglednik uspori karticu u pozadini.
@@ -698,7 +1066,10 @@ PRIKAZI.posuda = {
 const els = {
   go: document.getElementById('go'),
   skip: document.getElementById('skip'),
-  reset: document.getElementById('reset')
+  reset: document.getElementById('reset'),
+  trajanje: document.getElementById('trajanje'),
+  klizac: document.getElementById('klizac'),
+  ladica: document.getElementById('ladica')
 };
 
 let backstop = null;
@@ -710,7 +1081,10 @@ function naoruzaj() {
   backstop = setTimeout(zavrsiFazu, Math.max(0, run.endsAt - Date.now()) + 40);
 }
 
-function kreni(faza = run.faza || 'rad') {
+/** Faza kojom se kreće iz mirnog stanja — ovisi o načinu. */
+const prvaFaza = () => JEZGRA.jeCiklus(cfg) ? 'rad' : 'rucno';
+
+function kreni(faza = run.faza || prvaFaza()) {
   wakeAudio();
   run.faza = faza;
   run.endsAt = Date.now() + (run.ostatak != null ? run.ostatak : JEZGRA.trajanje(cfg, faza));
@@ -724,8 +1098,9 @@ function kreni(faza = run.faza || 'rad') {
 }
 
 function pauziraj() {
-  if (!run.faza || run.ostatak != null) return;
+  if (!run.faza || run.endsAt == null || run.ostatak != null) return;
   run.ostatak = Math.max(0, run.endsAt - Date.now());
+  run.endsAt = null;
   clearTimeout(backstop);
   otkaziZvuk();
   syncLive();
@@ -736,12 +1111,17 @@ function pauziraj() {
 
 /** Preskakanje ne broji krug — nisi ga odradio. */
 function preskoci() {
-  if (!run.faza) return kreni('rad');
-  const dalje = JEZGRA.sljedeca(cfg, run.faza, run.krug);
+  if (!JEZGRA.jeCiklus(cfg)) return;
+  const dalje = JEZGRA.sljedeca(cfg, run.faza || 'rad', run.krug);
   otkaziZvuk();
+  clearTimeout(backstop);
   run.krug = dalje.krug;
   run.ostatak = null;
-  kreni(dalje.faza);
+  run.endsAt = null;
+  run.faza = dalje.faza;
+  // Preskakanje u full auto načinu odmah kreće dalje; u auto načinu
+  // ostaje pripremljeno, jer je i ondje svaki korak tvoja odluka.
+  if (cfg.nacin === 'full') kreni(dalje.faza); else { save(); paint(); }
 }
 
 function reset() {
@@ -768,11 +1148,20 @@ function zavrsiFazu() {
   run.endsAt = null;
   clearTimeout(backstop);
 
+  // U dnevni brojač ulaze samo krugovi rada iz ciklusa. Ručni timer
+  // nije krug — mjeri vrijeme, ne pomodore.
   if (bio === 'rad') {
     const dan = JEZGRA.danas();
     dani[dan] = (dani[dan] || 0) + 1;
     const zadatak = zadaci.find((z) => z.id === run.zadatak);
     if (zadatak) zadatak.ucinjeno++;
+  }
+
+  if (!JEZGRA.jeCiklus(cfg)) {
+    javi(bio, null);
+    run.faza = null;                  // ručni timer nema što slijediti
+    pustiBudan(); syncLive(); save(); paint();
+    return;
   }
 
   const dalje = JEZGRA.sljedeca(cfg, bio, run.krug);
@@ -782,8 +1171,8 @@ function zavrsiFazu() {
 
   javi(bio, dalje.faza);
 
-  const sam = dalje.faza === 'rad' ? cfg.autoRad : cfg.autoPauza;
-  if (sam) kreni(dalje.faza);
+  // Jedina razlika između `auto` i `full`: tko pritisne dalje.
+  if (cfg.nacin === 'full') kreni(dalje.faza);
   else { pustiBudan(); syncLive(); save(); paint(); }
 }
 
@@ -807,22 +1196,234 @@ function uhvatiPropusteno() {
     pustiBudan();
     save();
   }
-  if (zaostalo > 60000) poruka('Krug je istekao dok te nije bilo.');
+  if (zaostalo > 60000) poruka(t('isteklo'));
   paint();
 }
 
 /* ═══════════════════════════════════════════════════════════
-   5 · Crtanje
+   6 · Ručno trajanje
+
+   Klizač ne ide po sekundi nego po popisu okruglih vrijednosti —
+   gušće na kratkom kraju, gdje se i bira. Tako je i na mobitelu
+   svaka pozicija upotrebljiva, bez preciznog pogađanja.
    ═══════════════════════════════════════════════════════════ */
 
+const STOPS = [
+  30, 45, 60, 90, 120, 150, 180, 240, 300, 360, 420, 480, 540, 600,
+  720, 900, 1080, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3600,
+  4200, 4800, 5400
+];
+
+const PRESETI = [300, 900, 1500];
+
+els.klizac.max = String(STOPS.length - 1);
+
+/** Najbliža stopa danom broju sekundi — klizač zna samo indekse. */
+const indeksStope = (sek) => {
+  let najbolji = 0;
+  for (let i = 1; i < STOPS.length; i++) {
+    if (Math.abs(STOPS[i] - sek) < Math.abs(STOPS[najbolji] - sek)) najbolji = i;
+  }
+  return najbolji;
+};
+
+function crtajTrajanje() {
+  const rucno = !JEZGRA.jeCiklus(cfg);
+  els.trajanje.hidden = !rucno;
+  if (!rucno) return;
+
+  const kutija = els.trajanje.querySelector('[data-presetovi]');
+  kutija.replaceChildren(...PRESETI.map((sek) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = `${sek / 60} ${t('min')}`;
+    b.setAttribute('aria-pressed', String(cfg.rucnoSek === sek));
+    b.addEventListener('click', () => postaviRucno(sek));
+    return b;
+  }));
+
+  els.klizac.value = String(indeksStope(cfg.rucnoSek));
+  // Mijenjati trajanje ispod odbrojavanja koje teče znači ili izgubiti
+  // napredak ili lagati o njemu; lakše je tražiti da prvo staneš.
+  const tece = run.faza && (run.endsAt != null || run.ostatak != null);
+  els.klizac.disabled = Boolean(tece);
+  for (const b of kutija.children) b.disabled = Boolean(tece);
+}
+
+function postaviRucno(sek) {
+  cfg.rucnoSek = Math.max(5, Math.round(sek));
+  save();
+  crtajTrajanje();
+  paint();
+}
+
+els.klizac.addEventListener('input', () => postaviRucno(STOPS[Number(els.klizac.value)]));
+
+/* ═══════════════════════════════════════════════════════════
+   7 · Načini
+   ═══════════════════════════════════════════════════════════ */
+
+const NACINI = [
+  { id: 'auto', kljuc: 'nacinAuto' },
+  { id: 'full', kljuc: 'nacinFull' },
+  { id: 'rucno', kljuc: 'nacinRucno' }
+];
+
+const kutijaNacina = document.querySelector('[data-nacini]');
+
+function crtajNacine() {
+  kutijaNacina.replaceChildren(...NACINI.map((n) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = t(n.kljuc);
+    b.setAttribute('aria-pressed', String(cfg.nacin === n.id));
+    b.addEventListener('click', () => postaviNacin(n.id));
+    return b;
+  }));
+}
+
+/**
+ * Promjena načina uvijek zaustavlja ono što teče.
+ *
+ * Prijelaz iz ciklusa u ručno nema smisleno „nastavi" — faza koja je
+ * tekla ne postoji u novom načinu, a i trajanje joj je drugo.
+ */
+function postaviNacin(id) {
+  if (!NACINI.some((n) => n.id === id) || cfg.nacin === id) return;
+  const bioCiklus = JEZGRA.jeCiklus(cfg);
+  cfg.nacin = id;
+  if (bioCiklus !== JEZGRA.jeCiklus(cfg)) reset(); else { save(); }
+  crtajNacine();
+  crtajTrajanje();
+  crtajPostavke();
+  postaviPrikaz(prikazId());
+}
+
+/* ═══════════════════════════════════════════════════════════
+   8 · Ladica postavki
+   ═══════════════════════════════════════════════════════════ */
+
+const kutijaPostavki = document.querySelector('[data-postavke]');
+
+function polje(naslovKljuc, ...djeca) {
+  const el = document.createElement('div');
+  el.className = 'polje';
+  const ime = document.createElement('p');
+  ime.className = 'polje-ime';
+  ime.textContent = t(naslovKljuc);
+  el.append(ime, ...djeca);
+  return el;
+}
+
+function cipovi(izbori, aktivan, odabir) {
+  const el = document.createElement('div');
+  el.className = 'cipovi';
+  el.replaceChildren(...izbori.map((izbor) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-pressed', String(izbor.id === aktivan));
+    if (izbor.cipovi) {
+      b.className = 'cip-tema';
+      b.innerHTML = izbor.cipovi.map((boja) => `<i style="background:${boja}"></i>`).join('')
+        + `<span>${t(izbor.kljuc)}</span>`;
+    } else {
+      b.textContent = t(izbor.kljuc);
+    }
+    b.addEventListener('click', () => odabir(izbor.id));
+    return b;
+  }));
+  return el;
+}
+
+/** Redak s brojem i dvama gumbima — bez tipkovnice, za prst. */
+function brojcanik(imeKljuc, vrijednost, min, max, jedinica, promjena) {
+  const el = document.createElement('div');
+  el.className = 'broj';
+  el.innerHTML = `
+    <span class="broj-ime"></span>
+    <span class="broj-kontrola">
+      <button type="button" data-manje aria-label="−">−</button>
+      <span class="broj-vrijednost"></span>
+      <button type="button" data-vise aria-label="+">+</button>
+    </span>`;
+  el.querySelector('.broj-ime').textContent = t(imeKljuc);
+  el.querySelector('.broj-vrijednost').textContent = jedinica ? `${vrijednost} ${t(jedinica)}` : vrijednost;
+  const manje = el.querySelector('[data-manje]');
+  const vise = el.querySelector('[data-vise]');
+  manje.disabled = vrijednost <= min;
+  vise.disabled = vrijednost >= max;
+  manje.addEventListener('click', () => promjena(Math.max(min, vrijednost - 1)));
+  vise.addEventListener('click', () => promjena(Math.min(max, vrijednost + 1)));
+  return el;
+}
+
+function crtajPostavke() {
+  const polja = [];
+
+  polja.push(polje('nacin', cipovi(NACINI, cfg.nacin, postaviNacin)));
+
+  polja.push(polje('prikaz', cipovi(
+    dopusteni().map((id) => ({ id, kljuc: id })), prikazId(), postaviPrikaz)));
+
+  // Trajanja ciklusa nemaju što raditi u ručnom načinu — ondje trajanje
+  // zadaje klizač na glavnom ekranu, svaki put iznova.
+  if (JEZGRA.jeCiklus(cfg)) {
+    const postavi = (kljuc) => (v) => {
+      cfg[kljuc] = v;
+      save();
+      crtajPostavke();
+      postaviPrikaz(prikazId());     // traka gradi segmente iz trajanja
+      paint();
+    };
+    polja.push(polje('trajanja',
+      brojcanik('radMin', cfg.rad, 1, 90, 'min', postavi('rad')),
+      brojcanik('kratkaMin', cfg.kratka, 1, 30, 'min', postavi('kratka')),
+      brojcanik('dugaMin', cfg.duga, 1, 60, 'min', postavi('duga')),
+      brojcanik('krugova', cfg.ciklus, 2, 8, null, postavi('ciklus'))));
+  }
+
+  polja.push(polje('tema', cipovi(TEME, cfg.tema, applyTheme)));
+  polja.push(polje('jezik', cipovi(
+    Object.entries(LANGS).map(([id, ime]) => ({ id, kljuc: id, ime })), lang, setLang)));
+
+  // Nazivi jezika se ne prevode — „Deutsch" je „Deutsch" na svakom jeziku.
+  const jezici = polja.at(-1).querySelectorAll('.cipovi button');
+  Object.values(LANGS).forEach((ime, i) => { jezici[i].textContent = ime; });
+
+  kutijaPostavki.replaceChildren(...polja);
+}
+
+const otvoriLadicu = () => { crtajPostavke(); els.ladica.setAttribute('aria-hidden', 'false'); };
+const zatvoriLadicu = () => els.ladica.setAttribute('aria-hidden', 'true');
+
+document.getElementById('postavke').addEventListener('click', otvoriLadicu);
+document.getElementById('zatvori').addEventListener('click', zatvoriLadicu);
+els.ladica.addEventListener('click', (e) => { if (e.target === els.ladica) zatvoriLadicu(); });
+
+/* ═══════════════════════════════════════════════════════════
+   9 · Crtanje
+   ═══════════════════════════════════════════════════════════ */
+
+/**
+ * Natpis glavnog gumba je jedino mjesto gdje se razlika između auto i
+ * full auto vidi bez čekanja: u auto načinu gumb imenuje fazu koja
+ * čeka tvoj pristanak.
+ */
 function natpisGumba(s) {
-  els.go.textContent = s.mirno ? 'Kreni' : s.pauzirano ? 'Nastavi' : 'Pauza';
+  if (s.pripremljeno) els.go.textContent = `${t('kreni')} · ${t(s.faza)}`;
+  else if (s.pauzirano) els.go.textContent = t('nastavi');
+  else if (s.mirno) els.go.textContent = t('kreni');
+  else els.go.textContent = t('pauza');
 }
 
 function paint(s = JEZGRA.stanje(cfg, run, Date.now())) {
+  // Tema se primjenjuje prije nego je ijedan prikaz montiran, a i ona
+  // traži precrtavanje. Prvi `paint` stiže iz `postaviPrikaz`.
+  if (!stage.firstChild) return;
   document.body.style.setProperty('--faza-boja', bojaFaze(s.faza));
   prikaz().paint(s);
   natpisGumba(s);
+  els.skip.hidden = !s.ciklus;       // ručni timer nema što preskočiti
   crtajZadatke();
   crtajTjedan();
 }
@@ -831,7 +1432,7 @@ let zadnjaSekunda = -1;
 
 function petlja() {
   const s = JEZGRA.stanje(cfg, run, Date.now());
-  if (!s.mirno && !s.pauzirano && s.preostalo <= 0) zavrsiFazu();
+  if (!s.mirno && !s.pripremljeno && !s.pauzirano && s.preostalo <= 0) zavrsiFazu();
   else {
     const sekunda = Math.ceil(s.preostalo / 1000);
     // Tekst se prepisuje tek kad se prikazana sekunda promijeni.
@@ -841,38 +1442,39 @@ function petlja() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   6 · Veze
+   10 · Veze
    ═══════════════════════════════════════════════════════════ */
 
-els.go.addEventListener('click', () => (run.faza && run.ostatak == null ? pauziraj() : kreni()));
-els.skip.addEventListener('click', preskoci);
-els.reset.addEventListener('click', reset);
+function glavni() {
+  const s = JEZGRA.stanje(cfg, run, Date.now());
+  if (s.mirno || s.pripremljeno || s.pauzirano) kreni();
+  else pauziraj();
+}
 
-/* Ladica postavki dolazi u svom koraku. Dotad gumb vrti prikaze, a
-   natpis kaže istinu o tome što radi — gumb koji piše „Postavke", a
-   mijenja izgled, gori je od gumba kojeg još nema. */
-document.getElementById('postavke').addEventListener('click', () => {
-  postaviPrikaz(REDOM[(REDOM.indexOf(cfg.prikaz) + 1) % REDOM.length]);
-});
+els.go.addEventListener('click', glavni);
+els.skip.addEventListener('click', preskoci);
+els.reset.addEventListener('click', () => { reset(); crtajTrajanje(); });
 
 addEventListener('keydown', (e) => {
   if (e.target.matches('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
-  if (e.code === 'Space') { e.preventDefault(); run.faza && run.ostatak == null ? pauziraj() : kreni(); }
+  if (k === 'escape') return zatvoriLadicu();
+  if (els.ladica.getAttribute('aria-hidden') === 'false') return;
+  if (e.code === 'Space') { e.preventDefault(); glavni(); }
   else if (k === 's') preskoci();
-  else if (k === 'r') reset();
-  else if (k === 't') applyTheme(cfg.tema === 'dan' ? 'noc' : 'dan');
-  else if (REDOM[Number(k) - 1]) postaviPrikaz(REDOM[Number(k) - 1]);
+  else if (k === 'r') { reset(); crtajTrajanje(); }
+  else if (k === 't') applyTheme(TEME[(TEME.findIndex((x) => x.id === cfg.tema) + 1) % TEME.length].id);
+  else if (dopusteni()[Number(k) - 1]) postaviPrikaz(dopusteni()[Number(k) - 1]);
 });
 
 addEventListener('visibilitychange', () => { if (!document.hidden) uhvatiPropusteno(); });
 
 /* ═══════════════════════════════════════════════════════════
-   7 · Start
+   11 · Start
    ═══════════════════════════════════════════════════════════ */
 
 applyTheme(cfg.tema);
-postaviPrikaz(cfg.prikaz);
+applyLang();
 uhvatiPropusteno();
 naoruzaj();
 requestAnimationFrame(petlja);

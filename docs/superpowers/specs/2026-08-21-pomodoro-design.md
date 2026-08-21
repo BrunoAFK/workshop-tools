@@ -84,49 +84,22 @@ Boja faze je jedina jaka boja u sučelju i znači isto u obje teme.
 | Kratka pauza | `#4e8c66` | `#4e8c66` |
 | Duga pauza | `#ae8334` | `#d9a441` |
 
-Podloge:
+Tema nije samo podloga nego cijeli set. Četiri su:
 
-| Token | Dan | Noć |
-| --- | --- | --- |
-| `--bg` | `#faf8f3` | `#131316` |
-| `--panel` | `#ffffff` | `#1b1b1f` |
-| `--ink` | `#15140e` | `#ece9e2` |
-| `--dim` | `#6f6a5c` | `#9a958a` |
-| `--faint` | `#9a9484` | `#6b665c` |
-| `--line` | `#e3ded1` | `#2c2c31` |
-| `--line-2` | `#cdc5b2` | `#3c3c44` |
-| `--on-state` | `#ffffff` | `#ffffff` |
+| Tema | `--bg` | `--panel` | rad | kratka | duga |
+| --- | --- | --- | --- | --- | --- |
+| Dan | `#faf8f3` | `#ffffff` | `#c0503a` | `#4e8c66` | `#ae8334` |
+| Noć | `#131316` | `#1b1b1f` | `#c0503a` | `#4e8c66` | `#d9a441` |
+| Papir | `#f2ece0` | `#fbf7ef` | `#a8452f` | `#43765a` | `#8f6a26` |
+| Ugljen | `#0e0e0f` | `#171719` | `#d2604a` | `#5fa87b` | `#e0b25c` |
 
-**Zadana tema je dan.** Pomodoro je alat za radne sate, a i katalog je
-svijetao. `timer.html` ima obrnuto zadano jer se gleda u teretani.
+Ton faze je isti u svim temama, svjetlina nije: ista terakota koja na
+Papiru daje 5,0 na Uglju daje 1,9. Sve dvanaest kombinacija boje faze i
+podloge izmjereno je i prelazi 3:1 (WCAG 1.4.11 za grafiku koja nosi
+značenje); `--dim` prelazi 4,5 u svakoj temi.
 
-Boje faza nose značenje, pa ton ostaje isti u obje teme. Svjetlina se
-mijenja samo ondje gdje kontrast padne ispod 3:1 — što je prag koji WCAG
-1.4.11 traži za grafiku koja nosi značenje, a boja faze upravo to i jest:
-puni znamenku, boji prsten i pijesak u posudi.
-
-Izmjereno prema podlozi `--bg`:
-
-| Faza | Dan `#faf8f3` | Noć `#131316` |
-| --- | --- | --- |
-| Rad `#c0503a` | 4,45 | 3,93 |
-| Kratka `#4e8c66` | 3,76 | 4,65 |
-| Duga `#d9a441` | **2,12** | 8,25 |
-
-Jantar pada na **danjoj** podlozi, ne na noćnoj. Zato duga pauza jedina
-ima dvije vrijednosti: `#ae8334` po danu (3,25) i `#d9a441` po noći
-(8,25). Ton je isti, promijenjena je samo svjetlina.
-
-> Ranija inačica ovog speca predviđala je obrnuto — da će boje pasti na
-> noćnoj podlozi — i dopuštala popravak samo ondje. Mjerenje pri recenziji
-> Taska 1 pokazalo je da je pretpostavka bila kriva.
-
-`--faint` je 2,85 po danu i 3,25 po noći — dovoljno za ukras, nikad za
-tekst koji se mora pročitati.
-
-Uz podloge idu i `--line-2` (jača linija, za rub kontrole) i `--on-state`
-(tekst na plohi u boji faze), oba postoje i u `timer.html` i u
-`box-breathing.html`.
+U postavkama tema nosi tri pločice umjesto samog naziva — „Ugljen" ne
+govori ništa o tome kako tema izgleda, tri pločice govore sve.
 
 `syncThemeColor()` nakon promjene teme čita `--bg` i upisuje ga u
 `<meta name="theme-color">`, pa se zatamni i traka preglednika.
@@ -211,9 +184,34 @@ Redoslijed:
 4. pokreni sljedeću fazu ako to dopušta `autoPauza` odnosno `autoRad`;
    inače stani u mirno stanje s pripremljenom sljedećom fazom
 
-**Prijelazi su asimetrični po zadanome:** rad → pauza kreće sam, jer si
-tada još za stolom. Pauza → rad traži tvoju odluku, jer bi inače timer
-trčao prazan dok te nema. Oboje je prekidač u postavkama.
+### Načini
+
+Dva prekidača (`autoPauza`, `autoRad`) ne opisuju stvar — zamjenjuje ih
+jedan `nacin` s tri vrijednosti:
+
+| Način | Slijed | Napredovanje | Trajanje |
+| --- | --- | --- | --- |
+| `auto` | zadan | svaki korak čeka tvoj klik | iz postavki |
+| `full` | zadan | teče samo | iz postavki |
+| `rucno` | nema ga — jedan timer | klikom | klizačem, svaki put |
+
+Jedina razlika između `auto` i `full` je tko pritisne dalje. Zato stanje
+ima **četiri** oblika, ne dva:
+
+```
+mirno        ništa nije odabrano
+pripremljeno faza je poznata, ali čeka klik   ← ovo je auto način
+u tijeku     teče
+pauzirano    stoji, `ostatak` pamti koliko je bilo
+```
+
+`pripremljeno` je jedino mjesto gdje se razlika između `auto` i `full`
+vidi bez čekanja: gumb ondje imenuje fazu koja traži pristanak —
+„Kreni · Pauza".
+
+Promjena načina koja prelazi granicu ciklus↔ručno uvijek zaustavlja ono
+što teče. Faza koja je tekla u novom načinu ne postoji, a i trajanje joj
+je drugo, pa „nastavi" nema što nastaviti.
 
 ### Povratak nakon dugog izbivanja
 
@@ -242,6 +240,18 @@ PRIKAZI = {
 
 Prebacivanje prikaza: `stage.replaceChildren()`, pa `mount`, pa `paint`.
 
+Skup prikaza ovisi o načinu. **Traka crta plan ciklusa, pa je u ručnom
+načinu nema** — ondje bi bila prazan pravokutnik koji tvrdi da postoji
+slijed:
+
+| Obitelj | Prikazi |
+| --- | --- |
+| `auto` i `full` | traka, znamenka, prsten, posuda — s točkama ciklusa |
+| `rucno` | znamenka, prsten, posuda — bez točaka |
+
+Izbor se pamti **po obitelji**, ne globalno: prebacivanje na ručno ne
+smije tiho promijeniti prikaz i u auto načinu.
+
 | Prikaz | Što crta |
 | --- | --- |
 | `traka` | Plan ciklusa vodoravno, segmenti razmjerni trajanju; pokazivač putuje kroz njih, odrađeni segmenti blijede |
@@ -255,6 +265,22 @@ sekundi radi iste brojke.
 
 Vrijeme se **uvijek čita iz sata**, nikad ne zbraja po okviru — inače
 alat zaostane čim preglednik uspori karticu u pozadini.
+
+---
+
+## Ručno trajanje
+
+Klizač ne ide po sekundi nego po popisu okruglih vrijednosti — gušće na
+kratkom kraju, gdje se i bira. Tako je i na mobitelu svaka pozicija
+upotrebljiva, bez preciznog pogađanja. Uz njega tri presetka: 5, 15 i 25
+minuta.
+
+Trajanje je **dio glavnog ekrana, ne postavka**: u ručnom načinu mijenja
+se svaku sesiju, a postavka je ono što se namjesti jednom.
+
+Dok timer radi, klizač i presetci su onemogućeni. Mijenjati trajanje
+ispod odbrojavanja koje teče znači ili izgubiti napredak ili lagati o
+njemu; lakše je tražiti da prvo staneš.
 
 ---
 
@@ -371,11 +397,36 @@ Kontrole stoje pri dnu, pa alat podiže traku za instalaciju iznad njih:
 | `T` | Tema |
 | `Esc` | Zatvori ladicu |
 
+### Zaglavlje
+
+Način je **vrh sučelja, ne postavka**: mijenja što gumbi rade i koji su
+prikazi uopće mogući, pa mora biti vidljiv bez otvaranja ičega. Tri
+načina stoje kao jedna segmentirana traka, jer je izbor jedan od tri.
+
+Uz njega je samo ikona postavki.
+
+### Kontrole
+
+| Način | Gumbi |
+| --- | --- |
+| `auto`, `full` | Kreni/Pauza · Preskoči · Reset |
+| `rucno` | Kreni/Pauza · Reset |
+
+Ručni timer nema što preskočiti, pa mu gumba nema.
+
 ### Postavke
 
-Ladica sa: prikazom, trajanjima (rad, kratka, duga, krugova do duge),
-prijelazima, slojevima, zvukom, obavijestima, ekranom, temom, jezikom,
-uputama i dvjema radnjama čišćenja.
+Modal s: načinom, prikazom (filtriranim po načinu), trajanjima ciklusa
+(rad, kratka, duga, krugova do duge — brojčanici s +/−, ne polja za
+tipkanje), temom, jezikom. Zvuk, obavijesti, slojevi i upute dolaze uz
+svoje odjeljke.
+
+Trajanja ciklusa nemaju što raditi u ručnom načinu — ondje ih modal ni
+ne prikazuje.
+
+Zastor modala je **neovisan o temi**: crna na 42%. Miješanje prema
+`--bg` gasi pozadinu prema njezinoj vlastitoj boji, pa na Uglju ploča
+ostaje na 1,06:1 od zastora i drži je samo linija od 1px.
 
 ---
 
