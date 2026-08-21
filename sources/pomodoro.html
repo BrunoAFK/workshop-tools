@@ -50,7 +50,7 @@
      stoji uz boju kao tekst — boja nije jedini nositelj podatka. */
 
 html[data-theme="dan"] {
-  --blizu: #c25f16; --rad: #35618f; --kratka: #4e8c66; --duga: #ae8334; --warn: #c33a22;
+  --fokus: #d0271b; --blizu: #c25f16; --rad: #35618f; --kratka: #4e8c66; --duga: #ae8334; --warn: #c33a22;
   --bg: #faf8f3; --panel: #ffffff; --ink: #15140e;
   --dim: #6f6a5c; --faint: #9a9484;
   --line: #e3ded1; --line-2: #cdc5b2; --on-state: #fff;
@@ -58,7 +58,7 @@ html[data-theme="dan"] {
 }
 
 html[data-theme="noc"] {
-  --blizu: #f28b3a; --rad: #5b9bd5; --kratka: #57a37b; --duga: #d9a441; --warn: #ef5340;
+  --fokus: #ff5a4a; --blizu: #f28b3a; --rad: #5b9bd5; --kratka: #57a37b; --duga: #d9a441; --warn: #ef5340;
   --bg: #131316; --panel: #1b1b1f; --ink: #ece9e2;
   --dim: #9a958a; --faint: #6b665c;
   --line: #2c2c31; --line-2: #3c3c44; --on-state: #10161c;
@@ -66,7 +66,7 @@ html[data-theme="noc"] {
 }
 
 html[data-theme="papir"] {
-  --blizu: #ad5310; --rad: #2f5a85; --kratka: #43765a; --duga: #8f6a26; --warn: #b23a22;
+  --fokus: #c22a15; --blizu: #ad5310; --rad: #2f5a85; --kratka: #43765a; --duga: #8f6a26; --warn: #b23a22;
   --bg: #f2ece0; --panel: #fbf7ef; --ink: #241f16;
   --dim: #6b6152; --faint: #9c9282;
   --line: #ddd4c2; --line-2: #c6bba5; --on-state: #fff;
@@ -74,7 +74,7 @@ html[data-theme="papir"] {
 }
 
 html[data-theme="ugljen"] {
-  --blizu: #f5934a; --rad: #64a8e0; --kratka: #5fa87b; --duga: #e0b25c; --warn: #f2624c;
+  --fokus: #ff6b57; --blizu: #f5934a; --rad: #64a8e0; --kratka: #5fa87b; --duga: #e0b25c; --warn: #f2624c;
   --bg: #0e0e0f; --panel: #171719; --ink: #e6e6e8;
   --dim: #92929a; --faint: #63636b;
   --line: #26262a; --line-2: #36363c; --on-state: #0b1218;
@@ -82,6 +82,27 @@ html[data-theme="ugljen"] {
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* ═══ FOKUS ════════════════════════════════════════════════
+   Vlastita boja, ne `--warn`: crvena upozorenja govori o vremenu koje
+   istječe, a ova o tome gdje si. Da dijele token, promjena jedne tiho
+   bi pomaknula drugu.
+
+   Izmjereno prema podlozi i prema plohi u sve četiri teme — pokazivač
+   fokusa traži 3:1 (WCAG 2.4.11), a najniže je 4,91.
+
+   `:focus-visible`, ne `:focus`: prsten se pokazuje pri kretanju
+   tipkovnicom, a ne oko svakog gumba koji si upravo kliknuo mišem. */
+
+:focus-visible {
+  outline: 2px solid var(--fokus);
+  outline-offset: 2px;
+}
+
+/* Kontrole koje su i same okrugle nose prsten uz svoj oblik. */
+.cipovi button:focus-visible, .presetovi button:focus-visible, .vrste button:focus-visible,
+.broj-kontrola button:focus-visible, .sklopka:focus-visible, .ikona:focus-visible,
+.zapis-x:focus-visible { outline-offset: 3px; }
 
 [hidden] { display: none !important; }
 
@@ -487,6 +508,7 @@ main {
   width: 100%;
   height: var(--ctl);
   accent-color: var(--rad);
+  border-radius: 999px;
   background: none;
   cursor: pointer;
 }
@@ -723,7 +745,7 @@ main {
 }
 
 .zapis-vrsta:hover { border-bottom-color: var(--line); }
-.zapis-vrsta:focus { outline: none; border-bottom-color: var(--dim); }
+.zapis-vrsta:focus { outline: none; border-bottom-color: var(--fokus); }
 .zapis-vrsta option { color: var(--ink); background: var(--panel); }
 .zapis-kad, .zapis-trajanje {
   font-family: var(--num);
@@ -746,7 +768,9 @@ main {
 }
 .zapis-opis::placeholder { color: var(--faint); }
 .zapis-opis:hover { border-bottom-color: var(--line); }
-.zapis-opis:focus { outline: none; border-bottom-color: var(--dim); color: var(--ink); }
+/* Polje koje izgleda kao tekst ne dobiva prsten nego crtu ispod — ona
+   je već tu, samo se oboji. Prsten bi oko retka popisa bio glomazan. */
+.zapis-opis:focus { outline: none; border-bottom-color: var(--fokus); color: var(--ink); }
 
 .zapis-x {
   width: 28px; height: 28px;
@@ -2235,11 +2259,53 @@ const ladicaOtvorena = () => els.ladica.getAttribute('aria-hidden') === 'false';
  */
 const osvjeziPostavke = () => { if (ladicaOtvorena()) crtajPostavke(); };
 
-const otvoriLadicu = () => { crtajPostavke(); els.ladica.setAttribute('aria-hidden', 'false'); };
-const zatvoriLadicu = () => els.ladica.setAttribute('aria-hidden', 'true');
+const FOKUSABILNO = 'button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])';
 
-const otvoriPovijest = () => { javka(''); crtajPovijest(); els.povijest.setAttribute('aria-hidden', 'false'); };
-const zatvoriPovijest = () => els.povijest.setAttribute('aria-hidden', 'true');
+/**
+ * Fokus ostaje u otvorenoj ladici.
+ *
+ * Bez ovoga `Tab` iz modala odšeta na gumbe iza njega: crveni prsten
+ * se pojavi na „Preskoči" ispod zastora, a `Enter` pokrene nešto što
+ * uopće ne vidiš. `aria-modal` to samo obećava čitaču zaslona —
+ * tipkovnicu drži ovaj kod.
+ */
+function drziFokus(e) {
+  if (e.key !== 'Tab') return;
+  const ladica = [els.ladica, els.povijest].find((x) => x.getAttribute('aria-hidden') === 'false');
+  if (!ladica) return;
+  const meta = [...ladica.querySelectorAll(FOKUSABILNO)].filter((x) => !x.disabled && x.offsetParent);
+  if (!meta.length) return;
+  const prvi = meta[0], zadnji = meta.at(-1);
+  if (e.shiftKey && document.activeElement === prvi) { e.preventDefault(); zadnji.focus(); }
+  else if (!e.shiftKey && document.activeElement === zadnji) { e.preventDefault(); prvi.focus(); }
+  else if (!ladica.contains(document.activeElement)) { e.preventDefault(); prvi.focus(); }
+}
+
+addEventListener('keydown', drziFokus, true);
+
+/* Fokus se vraća onome tko je ladicu otvorio — inače nakon zatvaranja
+   pada na početak dokumenta i kretanje tipkovnicom kreće ispočetka. */
+let pozivatelj = null;
+
+function otvori(ladica, priprema) {
+  pozivatelj = document.activeElement;
+  priprema();
+  ladica.setAttribute('aria-hidden', 'false');
+  ladica.querySelector(FOKUSABILNO)?.focus();
+}
+
+function zatvori(ladica) {
+  if (ladica.getAttribute('aria-hidden') === 'true') return;
+  ladica.setAttribute('aria-hidden', 'true');
+  pozivatelj?.focus?.();
+  pozivatelj = null;
+}
+
+const otvoriLadicu = () => otvori(els.ladica, crtajPostavke);
+const zatvoriLadicu = () => zatvori(els.ladica);
+
+const otvoriPovijest = () => otvori(els.povijest, () => { javka(''); crtajPovijest(); });
+const zatvoriPovijest = () => zatvori(els.povijest);
 
 /** Zatvara koja god je otvorena — `Esc` ne mora znati koja je to. */
 const zatvoriSve = () => { zatvoriLadicu(); zatvoriPovijest(); };
