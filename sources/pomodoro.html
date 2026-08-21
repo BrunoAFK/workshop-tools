@@ -9,7 +9,7 @@
 <meta name="accent-color" content="#c0503a">
 <meta name="keywords" content="Vrijeme, Fokus">
 <meta property="og:image" content="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 180'%3E%3Crect width='320' height='180' fill='%23faf8f3'/%3E%3Ccircle cx='160' cy='90' r='74' fill='%23c3c3c8'/%3E%3Ccircle cx='160' cy='90' r='64' fill='%23141414'/%3E%3Ccircle cx='160' cy='90' r='59' fill='%23fbfbfa'/%3E%3Cpath d='M160 90L160 47A43 43 0 0 1 200.4 105Z' fill='%23e8340c'/%3E%3Cg stroke='%2315140e' stroke-width='2.4'%3E%3Cpath d='M160 31v10'/%3E%3Cpath d='M181.5 36.8l-5 8.7'/%3E%3Cpath d='M197.2 52.5l-8.7 5'/%3E%3Cpath d='M203 74h-10'/%3E%3Cpath d='M197.2 95.5l-8.7-5'/%3E%3Cpath d='M181.5 111.2l-5-8.7'/%3E%3Cpath d='M160 117v10'/%3E%3Cpath d='M138.5 111.2l5-8.7'/%3E%3Cpath d='M122.8 95.5l8.7-5'/%3E%3Cpath d='M117 74h10'/%3E%3Cpath d='M122.8 52.5l8.7 5'/%3E%3Cpath d='M138.5 36.8l5 8.7'/%3E%3C/g%3E%3Ccircle cx='160' cy='90' r='12' fill='%238e8e93'/%3E%3C/svg%3E">
-<title>Pomodoro — krugovi rada i pauze</title>
+<title data-i18n="naslov">Pomodoro — krugovi rada i pauze</title>
 <style>
 /* ═══════════════════════════════════════════════════════════
    POMODORO
@@ -852,42 +852,51 @@ const STRINGS = {
     kreni: 'Kreni', pauza: 'Pauza', nastavi: 'Nastavi', preskoci: 'Preskoči', reset: 'Reset',
     postavke: 'Postavke', zatvori: 'Zatvori', trajanje: 'Trajanje',
     nacin: 'Način', nacinAuto: 'Auto', nacinFull: 'Full auto', nacinRucno: 'Ručno',
-    prikaz: 'Prikaz', traka: 'Traka', znamenka: 'Znamenka', kuhinjski: 'Kuhinjski sat', napredak: 'Napredak', barNapredak: 'Traka', deflateNapredak: 'Praznjenje', fillNapredak: 'Punjenje', prsten: 'Prsten', posuda: 'Posuda',
+    prikaz: 'Prikaz', traka: 'Tijek', znamenka: 'Znamenka', prsten: 'Prsten',
+    posuda: 'Posuda', kuhinjski: 'Kuhinjski sat',
+    napredak: 'Napredak', barNapredak: 'Traka', deflateNapredak: 'Praznjenje', fillNapredak: 'Punjenje',
     trajanja: 'Trajanja', radMin: 'Rad', kratkaMin: 'Kratka pauza', dugaMin: 'Duga pauza',
     zvukNaslov: 'Zvuk', zvukUkljucen: 'Zvučni signali', tikZadnjih: 'Tik zadnjih sekundi',
     tikBrojIme: 'Koliko tikova', zadnjaMinuta: 'Znak na zadnjoj minuti',
     ekran: 'Ekran', ekranBudan: 'Ne gasi dok faza traje', razvoj: 'Brzina sata (za probu)',
     krugova: 'Krugova do duge', tema: 'Tema', jezik: 'Jezik',
     temaDan: 'Dan', temaNoc: 'Noć', temaPapir: 'Papir', temaUgljen: 'Ugljen',
-    min: 'min', isteklo: 'Krug je istekao dok te nije bilo.'
+    min: 'min', isteklo: 'Krug je istekao dok te nije bilo.',
+    naslov: 'Pomodoro — krugovi rada i pauze'
   },
   en: {
     rad: 'Focus', kratka: 'Break', duga: 'Long break', rucno: 'Timer', mirno: 'Ready',
     kreni: 'Start', pauza: 'Pause', nastavi: 'Resume', preskoci: 'Skip', reset: 'Reset',
     postavke: 'Settings', zatvori: 'Close', trajanje: 'Duration',
     nacin: 'Mode', nacinAuto: 'Auto', nacinFull: 'Full auto', nacinRucno: 'Manual',
-    prikaz: 'View', traka: 'Strip', znamenka: 'Numeral', kuhinjski: 'Kitchen dial', napredak: 'Progress', barNapredak: 'Bar', deflateNapredak: 'Drain', fillNapredak: 'Fill', kuhinjski: 'Küchenuhr', napredak: 'Fortschritt', barNapredak: 'Balken', deflateNapredak: 'Leeren', fillNapredak: 'Füllen', prsten: 'Ring', posuda: 'Hourglass',
+    prikaz: 'View', traka: 'Timeline', znamenka: 'Digits', prsten: 'Ring',
+    posuda: 'Hourglass', kuhinjski: 'Kitchen dial',
+    napredak: 'Progress', barNapredak: 'Bar', deflateNapredak: 'Draining', fillNapredak: 'Filling',
     trajanja: 'Durations', radMin: 'Focus', kratkaMin: 'Short break', dugaMin: 'Long break',
-    zvukNaslov: 'Sound', zvukUkljucen: 'Sound cues', tikZadnjih: 'Tick on last seconds',
-    tikBrojIme: 'How many ticks', zadnjaMinuta: 'Cue at one minute left',
-    ekran: 'Screen', ekranBudan: 'Keep awake during a phase', razvoj: 'Clock speed (for testing)',
+    zvukNaslov: 'Sound', zvukUkljucen: 'Sound cues', tikZadnjih: 'Tick in the final seconds',
+    tikBrojIme: 'How many ticks', zadnjaMinuta: 'One-minute warning',
+    ekran: 'Screen', ekranBudan: 'Keep the screen awake while running', razvoj: 'Clock speed (for testing)',
     krugova: 'Rounds to long break', tema: 'Theme', jezik: 'Language',
     temaDan: 'Day', temaNoc: 'Night', temaPapir: 'Paper', temaUgljen: 'Charcoal',
-    min: 'min', isteklo: 'The round ran out while you were away.'
+    min: 'min', isteklo: 'The round ran out while you were away.',
+    naslov: 'Pomodoro — focus and break rounds'
   },
   de: {
     rad: 'Arbeit', kratka: 'Pause', duga: 'Lange Pause', rucno: 'Timer', mirno: 'Bereit',
     kreni: 'Start', pauza: 'Pause', nastavi: 'Weiter', preskoci: 'Überspringen', reset: 'Zurücksetzen',
     postavke: 'Einstellungen', zatvori: 'Schließen', trajanje: 'Dauer',
-    nacin: 'Modus', nacinAuto: 'Auto', nacinFull: 'Voll automatisch', nacinRucno: 'Manuell',
-    prikaz: 'Ansicht', traka: 'Leiste', znamenka: 'Ziffern', prsten: 'Ring', posuda: 'Sanduhr',
-    trajanja: 'Dauern', radMin: 'Arbeit', kratkaMin: 'Kurze Pause', dugaMin: 'Lange Pause',
+    nacin: 'Modus', nacinAuto: 'Auto', nacinFull: 'Vollautomatisch', nacinRucno: 'Manuell',
+    prikaz: 'Ansicht', traka: 'Zeitleiste', znamenka: 'Ziffern', prsten: 'Ring',
+    posuda: 'Sanduhr', kuhinjski: 'Küchenuhr',
+    napredak: 'Fortschritt', barNapredak: 'Balken', deflateNapredak: 'Leeren', fillNapredak: 'Füllen',
+    trajanja: 'Zeiten', radMin: 'Arbeit', kratkaMin: 'Kurze Pause', dugaMin: 'Lange Pause',
     zvukNaslov: 'Ton', zvukUkljucen: 'Signaltöne', tikZadnjih: 'Ticken der letzten Sekunden',
-    tikBrojIme: 'Anzahl Ticks', zadnjaMinuta: 'Hinweis bei einer Minute',
-    ekran: 'Bildschirm', ekranBudan: 'Wach halten während einer Phase', razvoj: 'Taktgeschwindigkeit (zum Testen)',
+    tikBrojIme: 'Anzahl Ticks', zadnjaMinuta: 'Hinweis eine Minute vorher',
+    ekran: 'Bildschirm', ekranBudan: 'Bildschirm anlassen, solange es läuft', razvoj: 'Zeitraffer (zum Testen)',
     krugova: 'Runden bis lange Pause', tema: 'Thema', jezik: 'Sprache',
-    temaDan: 'Tag', temaNoc: 'Nacht', temaPapir: 'Papier', temaUgljen: 'Kohle',
-    min: 'Min', isteklo: 'Die Runde lief ab, während du weg warst.'
+    temaDan: 'Tag', temaNoc: 'Nacht', temaPapir: 'Papier', temaUgljen: 'Anthrazit',
+    min: 'Min', isteklo: 'Die Runde lief ab, während du weg warst.',
+    naslov: 'Pomodoro — Arbeits- und Pausenrunden'
   }
 };
 
