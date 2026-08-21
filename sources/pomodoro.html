@@ -504,12 +504,14 @@ main {
   .cipovi button[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--ink) 88%, var(--panel)); }
   .presetovi button:hover { border-color: var(--dim); }
   .broj-kontrola button:not(:disabled):hover { border-color: var(--dim); background: color-mix(in srgb, var(--panel) 92%, var(--ink)); }
+  .sklopka:hover { border-color: var(--dim); }
+  .sklopka[aria-checked="true"]:hover { background: color-mix(in srgb, var(--ink) 86%, var(--panel)); }
   .polje:hover .polje-ime { color: var(--dim); }
   .kontrole button:hover { background: color-mix(in srgb, var(--panel) 93%, var(--ink)); }
   #go:hover { background: color-mix(in srgb, var(--go-boja, var(--rad)) 90%, black); }
 }
 
-.cipovi button, .presetovi button, .broj-kontrola button, .kontrole button, .ikona, .polje-ime {
+.cipovi button, .presetovi button, .broj-kontrola button, .kontrole button, .ikona, .polje-ime, .sklopka {
   transition: background-color .12s var(--ease), border-color .12s var(--ease), color .12s var(--ease);
 }
 
@@ -555,6 +557,28 @@ main {
 }
 
 .broj-kontrola button:disabled { opacity: .3; }
+
+.sklopka {
+  position: relative;
+  flex: none;
+  width: 46px; height: 28px;
+  padding: 0;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--panel);
+}
+
+.sklopka i {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--dim);
+  transition: left .16s var(--ease), background-color .16s var(--ease);
+}
+
+.sklopka[aria-checked="true"] { border-color: transparent; background: var(--ink); }
+.sklopka[aria-checked="true"] i { left: 23px; background: var(--bg); }
 
 .broj-vrijednost {
   min-width: 62px;
@@ -830,6 +854,9 @@ const STRINGS = {
     nacin: 'Način', nacinAuto: 'Auto', nacinFull: 'Full auto', nacinRucno: 'Ručno',
     prikaz: 'Prikaz', traka: 'Traka', znamenka: 'Znamenka', kuhinjski: 'Kuhinjski sat', napredak: 'Napredak', barNapredak: 'Traka', deflateNapredak: 'Praznjenje', fillNapredak: 'Punjenje', prsten: 'Prsten', posuda: 'Posuda',
     trajanja: 'Trajanja', radMin: 'Rad', kratkaMin: 'Kratka pauza', dugaMin: 'Duga pauza',
+    zvukNaslov: 'Zvuk', zvukUkljucen: 'Zvučni signali', tikZadnjih: 'Tik zadnjih sekundi',
+    tikBrojIme: 'Koliko tikova', zadnjaMinuta: 'Znak na zadnjoj minuti',
+    ekran: 'Ekran', ekranBudan: 'Ne gasi dok faza traje', razvoj: 'Brzina sata (za probu)',
     krugova: 'Krugova do duge', tema: 'Tema', jezik: 'Jezik',
     temaDan: 'Dan', temaNoc: 'Noć', temaPapir: 'Papir', temaUgljen: 'Ugljen',
     min: 'min', isteklo: 'Krug je istekao dok te nije bilo.'
@@ -841,6 +868,9 @@ const STRINGS = {
     nacin: 'Mode', nacinAuto: 'Auto', nacinFull: 'Full auto', nacinRucno: 'Manual',
     prikaz: 'View', traka: 'Strip', znamenka: 'Numeral', kuhinjski: 'Kitchen dial', napredak: 'Progress', barNapredak: 'Bar', deflateNapredak: 'Drain', fillNapredak: 'Fill', kuhinjski: 'Küchenuhr', napredak: 'Fortschritt', barNapredak: 'Balken', deflateNapredak: 'Leeren', fillNapredak: 'Füllen', prsten: 'Ring', posuda: 'Hourglass',
     trajanja: 'Durations', radMin: 'Focus', kratkaMin: 'Short break', dugaMin: 'Long break',
+    zvukNaslov: 'Sound', zvukUkljucen: 'Sound cues', tikZadnjih: 'Tick on last seconds',
+    tikBrojIme: 'How many ticks', zadnjaMinuta: 'Cue at one minute left',
+    ekran: 'Screen', ekranBudan: 'Keep awake during a phase', razvoj: 'Clock speed (for testing)',
     krugova: 'Rounds to long break', tema: 'Theme', jezik: 'Language',
     temaDan: 'Day', temaNoc: 'Night', temaPapir: 'Paper', temaUgljen: 'Charcoal',
     min: 'min', isteklo: 'The round ran out while you were away.'
@@ -852,6 +882,9 @@ const STRINGS = {
     nacin: 'Modus', nacinAuto: 'Auto', nacinFull: 'Voll automatisch', nacinRucno: 'Manuell',
     prikaz: 'Ansicht', traka: 'Leiste', znamenka: 'Ziffern', prsten: 'Ring', posuda: 'Sanduhr',
     trajanja: 'Dauern', radMin: 'Arbeit', kratkaMin: 'Kurze Pause', dugaMin: 'Lange Pause',
+    zvukNaslov: 'Ton', zvukUkljucen: 'Signaltöne', tikZadnjih: 'Ticken der letzten Sekunden',
+    tikBrojIme: 'Anzahl Ticks', zadnjaMinuta: 'Hinweis bei einer Minute',
+    ekran: 'Bildschirm', ekranBudan: 'Wach halten während einer Phase', razvoj: 'Taktgeschwindigkeit (zum Testen)',
     krugova: 'Runden bis lange Pause', tema: 'Thema', jezik: 'Sprache',
     temaDan: 'Tag', temaNoc: 'Nacht', temaPapir: 'Papier', temaUgljen: 'Kohle',
     min: 'Min', isteklo: 'Die Runde lief ab, während du weg warst.'
@@ -924,6 +957,7 @@ function applyTheme(id) {
   syncThemeColor();
   save();
   paint();
+  osvjeziPostavke();
 }
 
 /** Traka preglednika prati temu — čita se stvarni `--bg` nakon promjene. */
@@ -993,6 +1027,7 @@ function postaviPrikaz(id) {
   zadnjaSekunda = -1;               // novi prikaz mora dobiti prvo crtanje
   paint();
   save();
+  osvjeziPostavke();
 }
 
 const tocke = (n) => {
@@ -1653,7 +1688,9 @@ function cipovi(izbori, aktivan, odabir) {
       b.innerHTML = izbor.cipovi.map((boja) => `<i style="background:${boja}"></i>`).join('')
         + `<span>${t(izbor.kljuc)}</span>`;
     } else {
-      b.textContent = t(izbor.kljuc);
+      // Nazivi jezika i brojke brzine se ne prevode — „Deutsch" je
+      // „Deutsch" na svakom jeziku, a „60×" je 60×.
+      b.textContent = izbor.ime || t(izbor.kljuc);
     }
     b.addEventListener('click', () => odabir(izbor.id));
     return b;
@@ -1680,6 +1717,19 @@ function brojcanik(imeKljuc, vrijednost, min, max, jedinica, promjena) {
   vise.disabled = vrijednost >= max;
   manje.addEventListener('click', () => promjena(Math.max(min, vrijednost - 1)));
   vise.addEventListener('click', () => promjena(Math.min(max, vrijednost + 1)));
+  return el;
+}
+
+/** Redak s prekidačem. `role="switch"` da čitač zaslona javi stanje. */
+function prekidac(imeKljuc, vrijednost, promjena) {
+  const el = document.createElement('div');
+  el.className = 'broj';
+  el.innerHTML = `<span class="broj-ime"></span>
+    <button class="sklopka" type="button" role="switch"><i></i></button>`;
+  el.querySelector('.broj-ime').textContent = t(imeKljuc);
+  const gumb = el.querySelector('.sklopka');
+  gumb.setAttribute('aria-checked', String(Boolean(vrijednost)));
+  gumb.addEventListener('click', () => promjena(!vrijednost));
   return el;
 }
 
@@ -1717,16 +1767,48 @@ function crtajPostavke() {
       })));
   }
 
+  const zvucnaPolja = [prekidac('zvukUkljucen', cfg.zvuk, (v) => {
+    cfg.zvuk = v; save(); if (v) zakaziZvuk(); else otkaziZvuk(); osvjeziPostavke();
+  })];
+  // Podopcije se pokazuju samo kad zvuk uopće svira — inače su kontrole
+  // koje ništa ne rade.
+  if (cfg.zvuk) {
+    zvucnaPolja.push(
+      prekidac('tikZadnjih', cfg.tik, (v) => { cfg.tik = v; save(); zakaziZvuk(); osvjeziPostavke(); }),
+      brojcanik('tikBrojIme', Number(cfg.tikBroj) || 3, 1, 10, null, (v) => {
+        cfg.tikBroj = v; save(); zakaziZvuk(); osvjeziPostavke();
+      }),
+      prekidac('zadnjaMinuta', cfg.minuta, (v) => { cfg.minuta = v; save(); zakaziZvuk(); osvjeziPostavke(); }));
+  }
+  polja.push(polje('zvukNaslov', ...zvucnaPolja));
+
+  polja.push(polje('ekran', prekidac('ekranBudan', cfg.budan, (v) => {
+    cfg.budan = v; save(); if (v) drziBudan(); else pustiBudan(); osvjeziPostavke();
+  })));
+
   polja.push(polje('tema', cipovi(temeZa(cfg.nacin), cfg.tema, applyTheme)));
   polja.push(polje('jezik', cipovi(
-    Object.entries(LANGS).map(([id, ime]) => ({ id, kljuc: id, ime })), lang, setLang)));
+    Object.entries(LANGS).map(([id, ime]) => ({ id, ime })), lang, setLang)));
 
-  // Nazivi jezika se ne prevode — „Deutsch" je „Deutsch" na svakom jeziku.
-  const jezici = polja.at(-1).querySelectorAll('.cipovi button');
-  Object.values(LANGS).forEach((ime, i) => { jezici[i].textContent = ime; });
+  // Ubrzava sat, ne skraćuje trajanja: krug i dalje piše 25:00 i prolazi
+  // kroz sve svoje signale, samo brže. Za probu, pa stoji na dnu.
+  polja.push(polje('razvoj', cipovi(
+    BRZINE.map((v) => ({ id: v, ime: `${v}×` })), brzina(), postaviBrzinu)));
 
   kutijaPostavki.replaceChildren(...polja);
 }
+
+const ladicaOtvorena = () => els.ladica.getAttribute('aria-hidden') === 'false';
+
+/**
+ * Precrtaj postavke ako su otvorene.
+ *
+ * Bez ovoga svaka postavka koja se ne mijenja kroz `crtajPostavke`
+ * mijenja stanje alata, ali ne i ono što ladica pokazuje — odabir se
+ * primijeni, a označen ostane stari, dok ladicu ne zatvoriš i otvoriš.
+ * Zato ovo zovu **svi** postavljači, ne samo neki.
+ */
+const osvjeziPostavke = () => { if (ladicaOtvorena()) crtajPostavke(); };
 
 const otvoriLadicu = () => { crtajPostavke(); els.ladica.setAttribute('aria-hidden', 'false'); };
 const zatvoriLadicu = () => els.ladica.setAttribute('aria-hidden', 'true');
