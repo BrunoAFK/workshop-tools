@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Pomodoro — rad u krugovima od 25 minuta s kratkim pauzama i dugom nakon četvrtog kruga. Četiri načina prikaza, popis zadataka s procjenom i tjedan iza tebe.">
+<meta name="description" content="Pomodoro — rad u krugovima od 25 minuta s kratkim pauzama i dugom nakon četvrtog kruga. Tri načina rada, pet prikaza vremena — od gole znamenke do replike mehaničkog kuhinjskog sata — i četiri teme.">
 <meta name="date" content="2026-08-21">
 <meta name="theme-color" content="#faf8f3">
 <meta name="accent-color" content="#c0503a">
 <meta name="keywords" content="Vrijeme, Fokus">
+<meta property="og:image" content="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 180'%3E%3Crect width='320' height='180' fill='%23faf8f3'/%3E%3Ccircle cx='160' cy='90' r='74' fill='%23c3c3c8'/%3E%3Ccircle cx='160' cy='90' r='64' fill='%23141414'/%3E%3Ccircle cx='160' cy='90' r='59' fill='%23fbfbfa'/%3E%3Cpath d='M160 90L160 47A43 43 0 0 1 200.4 105Z' fill='%23e8340c'/%3E%3Cg stroke='%2315140e' stroke-width='2.4'%3E%3Cpath d='M160 31v10'/%3E%3Cpath d='M181.5 36.8l-5 8.7'/%3E%3Cpath d='M197.2 52.5l-8.7 5'/%3E%3Cpath d='M203 74h-10'/%3E%3Cpath d='M197.2 95.5l-8.7-5'/%3E%3Cpath d='M181.5 111.2l-5-8.7'/%3E%3Cpath d='M160 117v10'/%3E%3Cpath d='M138.5 111.2l5-8.7'/%3E%3Cpath d='M122.8 95.5l8.7-5'/%3E%3Cpath d='M117 74h10'/%3E%3Cpath d='M122.8 52.5l8.7 5'/%3E%3Cpath d='M138.5 36.8l5 8.7'/%3E%3C/g%3E%3Ccircle cx='160' cy='90' r='12' fill='%238e8e93'/%3E%3C/svg%3E">
 <title>Pomodoro — krugovi rada i pauze</title>
 <style>
 /* ═══════════════════════════════════════════════════════════
@@ -29,38 +30,45 @@
   --ease: cubic-bezier(.2, .8, .25, 1);
 }
 
-  /* Boja faze nosi značenje — puni znamenku, boji prsten i pijesak u
+  /* Boja stanja nosi značenje — puni znamenku, boji prsten i pijesak u
      posudi — pa mora doseći 3:1 (WCAG 1.4.11) na podlozi na kojoj se
-     crta. Ton je isti u svim temama, svjetlina nije: ista terakota koja
-     na papiru daje 5,0 na uglju daje 1,9. Vrijednosti su izmjerene, ne
-     odabrane okom; skripta je u readmeu alata. */
+     crta. Sve su vrijednosti izmjerene, ne odabrane okom.
+
+     Rad **nije** crven. Crvena je u ovom repozitoriju već zauzeta:
+     `timer.html` je u svih pet tema koristi samo za kraj, a rad boji
+     zeleno. Razlog je praktičan koliko i konvencionalan — ako je rad
+     crven, zadnjim sekundama ne preostaje nijedna jača boja, pa se
+     upozorenje nema čime razlikovati od stanja koje traje 25 minuta.
+
+     Tonovi se razlikuju bojom, ne svjetlinom, pa naziv faze uvijek
+     stoji uz boju kao tekst — boja nije jedini nositelj podatka. */
 
 html[data-theme="dan"] {
-  --rad: #c0503a; --kratka: #4e8c66; --duga: #ae8334;
+  --rad: #35618f; --kratka: #4e8c66; --duga: #ae8334; --warn: #c33a22;
   --bg: #faf8f3; --panel: #ffffff; --ink: #15140e;
   --dim: #6f6a5c; --faint: #9a9484;
   --line: #e3ded1; --line-2: #cdc5b2; --on-state: #fff;
 }
 
 html[data-theme="noc"] {
-  --rad: #c0503a; --kratka: #4e8c66; --duga: #d9a441;
+  --rad: #5b9bd5; --kratka: #57a37b; --duga: #d9a441; --warn: #ef5340;
   --bg: #131316; --panel: #1b1b1f; --ink: #ece9e2;
   --dim: #9a958a; --faint: #6b665c;
-  --line: #2c2c31; --line-2: #3c3c44; --on-state: #fff;
+  --line: #2c2c31; --line-2: #3c3c44; --on-state: #10161c;
 }
 
 html[data-theme="papir"] {
-  --rad: #a8452f; --kratka: #43765a; --duga: #8f6a26;
+  --rad: #2f5a85; --kratka: #43765a; --duga: #8f6a26; --warn: #b23a22;
   --bg: #f2ece0; --panel: #fbf7ef; --ink: #241f16;
   --dim: #6b6152; --faint: #9c9282;
   --line: #ddd4c2; --line-2: #c6bba5; --on-state: #fff;
 }
 
 html[data-theme="ugljen"] {
-  --rad: #d2604a; --kratka: #5fa87b; --duga: #e0b25c;
+  --rad: #64a8e0; --kratka: #5fa87b; --duga: #e0b25c; --warn: #f2624c;
   --bg: #0e0e0f; --panel: #171719; --ink: #e6e6e8;
   --dim: #92929a; --faint: #63636b;
-  --line: #26262a; --line-2: #36363c; --on-state: #14100c;
+  --line: #26262a; --line-2: #36363c; --on-state: #0b1218;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -162,14 +170,16 @@ main {
 /* Kreni je jedina puna, obojena kontrola — sve ostalo je opcija,
    ovo je radnja. Boja je boja rada, jer je mirno stanje uvijek
    priprema za sljedeći krug rada. */
+/* Glavni gumb nosi boju **stanja**, ne fiksnu boju rada: dok traje
+   pauza, plavi gumb bi tvrdio da radiš. `--go-boja` postavlja `paint`. */
 #go {
   flex: 1.4;
   border-color: transparent;
-  background: var(--rad);
+  background: var(--go-boja, var(--rad));
   color: var(--on-state);
 }
 
-#go:active { background: color-mix(in srgb, var(--rad) 84%, black); }
+#go:active { background: color-mix(in srgb, var(--go-boja, var(--rad)) 84%, black); }
 
 /* ═══ LADICA ═══════════════════════════════════════════════
    Sadržaj postavki dolazi kasnije; ovdje samo ljuska koja zna
@@ -339,6 +349,24 @@ main {
 .prsten .brojka { font-size: min(13cqw, 13cqh); }
 .prsten-arc { transition: stroke-dashoffset .25s linear; }
 
+/* ── Traka napretka (u znamenki, način `bar`) ───────────── */
+.traka-napretka {
+  width: min(320px, 70cqw);
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.traka-napretka i { display: block; height: 100%; transition: width .25s linear; }
+
+/* ── Kuhinjski sat ────────────────────────────────────────
+   Predmet, ne dijagram: obruč i lice ne prate temu, jer replika koja
+   se prebojava prestaje biti replika. Mijenja se samo ono oko njega. */
+.kuhinjski { gap: var(--sp-4); }
+.sat-tijelo { line-height: 0; filter: drop-shadow(0 10px 22px rgb(0 0 0 / .22)); }
+.sat-tijelo svg { display: block; width: min(64cqw, 62cqh); height: min(64cqw, 62cqh); }
+.kuhinjski .brojka { font-size: min(9cqw, 9cqh); }
+
 /* ── Posuda ───────────────────────────────────────────────
    Gornji bulb se prazni u donji. Brojka je namjerno sitna —
    ovaj prikaz se gleda, ne očitava. */
@@ -377,7 +405,8 @@ main {
   color: var(--dim);
 }
 
-.ikona:active { background: color-mix(in srgb, var(--panel) 82%, var(--ink)); }
+.ikona:hover { background: color-mix(in srgb, var(--panel) 88%, var(--ink)); color: var(--ink); }
+.ikona:active { background: color-mix(in srgb, var(--panel) 78%, var(--ink)); }
 
 /* ═══ TRAJANJE (ručno) ═════════════════════════════════════ */
 
@@ -467,6 +496,23 @@ main {
   font-weight: 600;
 }
 
+/* Bez pokazivača ne znaš što ćeš pogoditi. Prijelaz je kratak da traka
+   ne kasni za mišem, a `:hover` se gasi na dodirnim ekranima gdje bi
+   inače ostao zaglavljen na zadnjem dirnutom gumbu. */
+@media (hover: hover) {
+  .cipovi button:hover { border-color: var(--dim); background: color-mix(in srgb, var(--panel) 92%, var(--ink)); }
+  .cipovi button[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--ink) 88%, var(--panel)); }
+  .presetovi button:hover { border-color: var(--dim); }
+  .broj-kontrola button:not(:disabled):hover { border-color: var(--dim); background: color-mix(in srgb, var(--panel) 92%, var(--ink)); }
+  .polje:hover .polje-ime { color: var(--dim); }
+  .kontrole button:hover { background: color-mix(in srgb, var(--panel) 93%, var(--ink)); }
+  #go:hover { background: color-mix(in srgb, var(--go-boja, var(--rad)) 90%, black); }
+}
+
+.cipovi button, .presetovi button, .broj-kontrola button, .kontrole button, .ikona, .polje-ime {
+  transition: background-color .12s var(--ease), border-color .12s var(--ease), color .12s var(--ease);
+}
+
 .cipovi button[aria-pressed="true"] {
   border-color: transparent;
   background: var(--ink);
@@ -531,9 +577,10 @@ main {
 <header class="vrh">
   <span class="vrh-nacin" data-nacin-oznaka></span>
   <button class="ikona" id="postavke" type="button" data-i18n-attr="aria-label:postavke">
-    <svg viewBox="0 0 20 20" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5">
-      <circle cx="10" cy="10" r="2.6"/>
-      <path d="M10 2.2v2M10 15.8v2M17.8 10h-2M4.2 10h-2M15.5 4.5l-1.4 1.4M5.9 14.1l-1.4 1.4M15.5 15.5l-1.4-1.4M5.9 5.9 4.5 4.5"/>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+         stroke-width="1.6" stroke-linejoin="round">
+      <path d="M10.3 2.6h3.4l.4 2.3 1.9 1.1 2.2-.8 1.7 2.9-1.8 1.5v2.2l1.8 1.5-1.7 2.9-2.2-.8-1.9 1.1-.4 2.3h-3.4l-.4-2.3-1.9-1.1-2.2.8-1.7-2.9 1.8-1.5v-2.2L4.1 8.1l1.7-2.9 2.2.8 1.9-1.1Z"/>
+      <circle cx="12" cy="12" r="3"/>
     </svg>
   </button>
 </header>
@@ -594,6 +641,7 @@ const JEZGRA = (() => {
 
     zadaciOn: true, tjedanOn: true,
     zvuk: true, tik: true,
+    napredak: 'deflate', zadnjeSek: 15,
     obavijesti: false, budan: true,
     tema: 'dan', lang: null
   };
@@ -660,7 +708,7 @@ const JEZGRA = (() => {
 
     if (!run.faza) {
       return { mirno: true, pripremljeno: false, pauzirano: false, faza: null, ciklus,
-               preostalo: trajanje(cfg, ciklus ? 'rad' : 'rucno'), udio: 0,
+               preostalo: trajanje(cfg, ciklus ? 'rad' : 'rucno'), udio: 0, zavrsava: false,
                krug: run.krug, udioSeanse: seansa(null, 0) };
     }
 
@@ -668,13 +716,18 @@ const JEZGRA = (() => {
 
     if (run.endsAt == null && run.ostatak == null) {
       return { mirno: false, pripremljeno: true, pauzirano: false, faza: run.faza, ciklus,
-               preostalo: puno, udio: 0, krug: run.krug, udioSeanse: seansa(run.faza, 0) };
+               preostalo: puno, udio: 0, zavrsava: false, krug: run.krug,
+               udioSeanse: seansa(run.faza, 0) };
     }
 
     const preostalo = Math.max(0, run.ostatak != null ? run.ostatak : run.endsAt - sada);
     const udio = puno ? 1 - preostalo / puno : 1;
+    // Zadnje sekunde su vlastito stanje, ne samo mali `preostalo`. Bez
+    // njega upozorenje nema svoju boju, pa zadnjih 15 sekundi izgleda
+    // isto kao prvih dvadeset minuta.
+    const zavrsava = run.ostatak == null && preostalo > 0 && preostalo <= cfg.zadnjeSek * 1000;
     return { mirno: false, pripremljeno: false, pauzirano: run.ostatak != null,
-             faza: run.faza, ciklus, preostalo, udio, krug: run.krug,
+             faza: run.faza, ciklus, preostalo, udio, zavrsava, krug: run.krug,
              udioSeanse: seansa(run.faza, udio) };
   }
 
@@ -745,7 +798,7 @@ const STRINGS = {
     kreni: 'Kreni', pauza: 'Pauza', nastavi: 'Nastavi', preskoci: 'Preskoči', reset: 'Reset',
     postavke: 'Postavke', zatvori: 'Zatvori', trajanje: 'Trajanje',
     nacin: 'Način', nacinAuto: 'Auto', nacinFull: 'Full auto', nacinRucno: 'Ručno',
-    prikaz: 'Prikaz', traka: 'Traka', znamenka: 'Znamenka', prsten: 'Prsten', posuda: 'Posuda',
+    prikaz: 'Prikaz', traka: 'Traka', znamenka: 'Znamenka', kuhinjski: 'Kuhinjski sat', napredak: 'Napredak', barNapredak: 'Traka', deflateNapredak: 'Praznjenje', fillNapredak: 'Punjenje', prsten: 'Prsten', posuda: 'Posuda',
     trajanja: 'Trajanja', radMin: 'Rad', kratkaMin: 'Kratka pauza', dugaMin: 'Duga pauza',
     krugova: 'Krugova do duge', tema: 'Tema', jezik: 'Jezik',
     temaDan: 'Dan', temaNoc: 'Noć', temaPapir: 'Papir', temaUgljen: 'Ugljen',
@@ -756,7 +809,7 @@ const STRINGS = {
     kreni: 'Start', pauza: 'Pause', nastavi: 'Resume', preskoci: 'Skip', reset: 'Reset',
     postavke: 'Settings', zatvori: 'Close', trajanje: 'Duration',
     nacin: 'Mode', nacinAuto: 'Auto', nacinFull: 'Full auto', nacinRucno: 'Manual',
-    prikaz: 'View', traka: 'Strip', znamenka: 'Numeral', prsten: 'Ring', posuda: 'Hourglass',
+    prikaz: 'View', traka: 'Strip', znamenka: 'Numeral', kuhinjski: 'Kitchen dial', napredak: 'Progress', barNapredak: 'Bar', deflateNapredak: 'Drain', fillNapredak: 'Fill', kuhinjski: 'Küchenuhr', napredak: 'Fortschritt', barNapredak: 'Balken', deflateNapredak: 'Leeren', fillNapredak: 'Füllen', prsten: 'Ring', posuda: 'Hourglass',
     trajanja: 'Durations', radMin: 'Focus', kratkaMin: 'Short break', dugaMin: 'Long break',
     krugova: 'Rounds to long break', tema: 'Theme', jezik: 'Language',
     temaDan: 'Day', temaNoc: 'Night', temaPapir: 'Paper', temaUgljen: 'Charcoal',
@@ -822,10 +875,10 @@ function setLang(kod) {
 const SVI_NACINI = ['auto', 'full', 'rucno'];
 
 const TEME = [
-  { id: 'dan',    kljuc: 'temaDan',    nacini: SVI_NACINI, cipovi: ['#faf8f3', '#ffffff', '#c0503a'] },
-  { id: 'noc',    kljuc: 'temaNoc',    nacini: SVI_NACINI, cipovi: ['#131316', '#1b1b1f', '#c0503a'] },
-  { id: 'papir',  kljuc: 'temaPapir',  nacini: SVI_NACINI, cipovi: ['#f2ece0', '#fbf7ef', '#a8452f'] },
-  { id: 'ugljen', kljuc: 'temaUgljen', nacini: SVI_NACINI, cipovi: ['#0e0e0f', '#171719', '#d2604a'] }
+  { id: 'dan',    kljuc: 'temaDan',    nacini: SVI_NACINI, cipovi: ['#faf8f3', '#ffffff', '#35618f'] },
+  { id: 'noc',    kljuc: 'temaNoc',    nacini: SVI_NACINI, cipovi: ['#131316', '#1b1b1f', '#5b9bd5'] },
+  { id: 'papir',  kljuc: 'temaPapir',  nacini: SVI_NACINI, cipovi: ['#f2ece0', '#fbf7ef', '#2f5a85'] },
+  { id: 'ugljen', kljuc: 'temaUgljen', nacini: SVI_NACINI, cipovi: ['#0e0e0f', '#171719', '#64a8e0'] }
 ];
 
 /** Teme koje vrijede u danom načinu, u zadanom redoslijedu. */
@@ -862,8 +915,8 @@ const PRIKAZI = {};
 /* Traka crta plan ciklusa, pa je u ručnom načinu nema što crtati —
    ondje bi bila prazan pravokutnik koji tvrdi da postoji slijed. */
 const PRIKAZI_ZA = {
-  ciklus: ['traka', 'znamenka', 'prsten', 'posuda'],
-  rucno: ['znamenka', 'prsten', 'posuda']
+  ciklus: ['traka', 'znamenka', 'prsten', 'posuda', 'kuhinjski'],
+  rucno: ['znamenka', 'prsten', 'posuda', 'kuhinjski']
 };
 
 const obitelj = () => JEZGRA.jeCiklus(cfg) ? 'ciklus' : 'rucno';
@@ -881,7 +934,16 @@ const prikaz = () => PRIKAZI[prikazId()];
 let montiran = null;
 let zadnjaSekunda = -1;
 
-const bojaFaze = (faza) => faza ? `var(--${faza === 'rucno' ? 'rad' : faza})` : 'var(--faint)';
+/* Boja slijedi **stanje**, ne samo fazu: zadnje sekunde nose vlastitu,
+   jer je upozorenje drugi podatak od toga koja faza traje. */
+const bojaStanja = (s) => {
+  if (!s.faza) return 'var(--faint)';
+  if (s.zavrsava) return 'var(--warn)';
+  return `var(--${s.faza === 'rucno' ? 'rad' : s.faza})`;
+};
+
+const NAPREDAK = ['bar', 'deflate', 'fill'];
+const nacinNapretka = () => NAPREDAK.includes(cfg.napredak) ? cfg.napredak : 'deflate';
 
 const sat = (ms) => {
   const uk = Math.max(0, Math.ceil(ms / 1000));
@@ -965,20 +1027,40 @@ PRIKAZI.znamenka = {
     korijen.className = 'prikaz znamenka';
     korijen.innerHTML = `
       <span class="faza" data-faza></span>
-      <span class="brojka" data-time>00:00</span>`;
+      <span class="brojka" data-time>00:00</span>
+      <span class="traka-napretka" data-bar hidden><i data-bar-fill></i></span>`;
     korijen.append(tocke(cfg.ciklus));
     el.append(korijen);
     this.time = korijen.querySelector('[data-time]');
     this.fazaEl = korijen.querySelector('[data-faza]');
+    this.bar = korijen.querySelector('[data-bar]');
+    this.barFill = korijen.querySelector('[data-bar-fill]');
     this.krugovi = korijen.querySelector('.tocke');
   },
   paint(s) {
     this.time.textContent = sat(s.preostalo);
     this.fazaEl.textContent = t(s.faza || 'mirno');
-    // Boja se povlači iz znamenki odozdo kako vrijeme curi.
+
+    const boja = bojaStanja(s);
     const razina = Math.round((1 - s.udio) * 100);
+    const nacin = nacinNapretka();
+
+    this.bar.hidden = nacin !== 'bar';
+    if (nacin === 'bar') {
+      // Znamenka ostaje puna; napredak nosi zasebna traka ispod nje.
+      this.time.style.backgroundImage = 'none';
+      this.time.style.webkitTextFillColor = boja;
+      this.barFill.style.width = `${razina}%`;
+      this.barFill.style.background = boja;
+      return;
+    }
+
+    this.time.style.webkitTextFillColor = '';
+    // `deflate` prazni znamenku u neutralno, `fill` je puni bojom
+    // upozorenja odozgo — potrošeno se vidi, a ne samo preostalo.
+    const potroseno = nacin === 'fill' ? 'var(--warn)' : 'var(--line)';
     this.time.style.backgroundImage =
-      `linear-gradient(0deg, ${bojaFaze(s.faza)} ${razina}%, var(--line) ${razina}%)`;
+      `linear-gradient(0deg, ${boja} ${razina}%, ${potroseno} ${razina}%)`;
     paliTocke(this.krugovi, s);
   }
 };
@@ -1013,9 +1095,90 @@ PRIKAZI.prsten = {
   paint(s) {
     this.time.textContent = sat(s.preostalo);
     this.fazaEl.textContent = t(s.faza || 'mirno');
-    this.arc.setAttribute('stroke', bojaFaze(s.faza));
+    this.arc.setAttribute('stroke', bojaStanja(s));
     this.arc.setAttribute('stroke-dashoffset', OPSEG * (1 - s.udio));
     paliTocke(this.krugovi, s);
+  }
+};
+
+/* ── Kuhinjski sat ─────────────────────────────────────────
+   Replika mehaničkog kuhinjskog timera: metalni obruč, bijelo lice,
+   brojke 0–55 zakrenute radijalno i crveni isječak koji se steže.
+
+   Na ovom licu crvena **ne znači opasnost nego preostalo** — tako je
+   na samom predmetu. Zato isječak ostaje crven u svim fazama, a koja
+   je faza piše ispod, u boji faze.
+
+   Skala je apsolutnih 60 minuta, kao na predmetu. Trajanje duže od
+   sata puni krug do kraja i počinje se micati kad padne ispod 60. */
+
+const SAT_CRVENA = '#e8340c';
+
+/** Isječak od 12 sati u smjeru kazaljke, u stupnjevima. */
+function isjecak(cx, cy, r, kut) {
+  if (kut <= 0) return '';
+  if (kut >= 359.99) return `M${cx} ${cy - r}A${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r}Z`;
+  const rad = (kut - 90) * Math.PI / 180;
+  return `M${cx} ${cy}L${cx} ${cy - r}A${r} ${r} 0 ${kut > 180 ? 1 : 0} 1 `
+       + `${(cx + r * Math.cos(rad)).toFixed(2)} ${(cy + r * Math.sin(rad)).toFixed(2)}Z`;
+}
+
+PRIKAZI.kuhinjski = {
+  mount(el) {
+    const korijen = document.createElement('div');
+    korijen.className = 'prikaz kuhinjski';
+
+    const crte = [];
+    for (let m = 0; m < 60; m++) {
+      const veliki = m % 5 === 0;
+      crte.push(`<line x1="100" y1="${veliki ? 42 : 51}" x2="100" y2="59"`
+        + ` stroke="#15140e" stroke-width="${veliki ? 2.6 : 1.1}"`
+        + ` transform="rotate(${m * 6} 100 100)"/>`);
+    }
+
+    const brojke = [];
+    for (let m = 0; m < 60; m += 5) {
+      brojke.push(`<text x="100" y="35" transform="rotate(${m * 6} 100 100)"`
+        + ` text-anchor="middle" fill="#15140e" font-family="var(--num)"`
+        + ` font-size="15" font-weight="700">${m}</text>`);
+    }
+
+    korijen.innerHTML = `
+      <div class="sat-tijelo">
+        <svg viewBox="0 0 200 200">
+          <defs>
+            <linearGradient id="obruc" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#e9e9ea"/><stop offset=".35" stop-color="#9a9a9e"/>
+              <stop offset=".62" stop-color="#d8d8da"/><stop offset="1" stop-color="#7e7e83"/>
+            </linearGradient>
+            <linearGradient id="gumb" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#d5d5d8"/><stop offset=".48" stop-color="#8e8e93"/>
+              <stop offset=".52" stop-color="#b8b8bd"/><stop offset="1" stop-color="#7a7a80"/>
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="98" fill="url(#obruc)"/>
+          <circle cx="100" cy="100" r="86" fill="#141414"/>
+          <circle cx="100" cy="100" r="81" fill="#fbfbfa"/>
+          <path data-isjecak fill="${SAT_CRVENA}"/>
+          ${crte.join('')}
+          ${brojke.join('')}
+          <circle cx="100" cy="100" r="15" fill="url(#gumb)"/>
+          <circle cx="100" cy="100" r="15" fill="none" stroke="#6f6f74" stroke-width=".8"/>
+        </svg>
+      </div>
+      <span class="brojka" data-time>00:00</span>
+      <span class="faza" data-faza></span>`;
+
+    el.append(korijen);
+    this.isjecak = korijen.querySelector('[data-isjecak]');
+    this.time = korijen.querySelector('[data-time]');
+    this.fazaEl = korijen.querySelector('[data-faza]');
+  },
+  paint(s) {
+    const minuta = Math.min(60, s.preostalo / 60000);
+    this.isjecak.setAttribute('d', isjecak(100, 100, 59, minuta * 6));
+    this.time.textContent = sat(s.preostalo);
+    this.fazaEl.textContent = t(s.faza || 'mirno');
   }
 };
 
@@ -1049,7 +1212,7 @@ PRIKAZI.posuda = {
     this.fazaEl = korijen.querySelector('[data-faza]');
   },
   paint(s) {
-    const boja = bojaFaze(s.faza);
+    const boja = bojaStanja(s);
     this.gore.setAttribute('y', 18 + s.udio * 74);
     this.gore.setAttribute('height', 74 - s.udio * 74);
     this.gore.setAttribute('fill', boja);
@@ -1388,6 +1551,15 @@ function crtajPostavke() {
       brojcanik('krugova', cfg.ciklus, 2, 8, null, postavi('ciklus'))));
   }
 
+  // Napredak ima smisla samo u znamenki — ostali prikazi napredak
+  // crtaju svojim oblikom, pa im izbor ne bi imao što promijeniti.
+  if (prikazId() === 'znamenka') {
+    polja.push(polje('napredak', cipovi(
+      NAPREDAK.map((id) => ({ id, kljuc: `${id}Napredak` })), nacinNapretka(), (id) => {
+        cfg.napredak = id; save(); crtajPostavke(); paint();
+      })));
+  }
+
   polja.push(polje('tema', cipovi(temeZa(cfg.nacin), cfg.tema, applyTheme)));
   polja.push(polje('jezik', cipovi(
     Object.entries(LANGS).map(([id, ime]) => ({ id, kljuc: id, ime })), lang, setLang)));
@@ -1427,7 +1599,10 @@ function paint(s = JEZGRA.stanje(cfg, run, Date.now())) {
   // podizanje, gdje tema traži crtanje prije prvog `mount`, i promjenu
   // načina, gdje `prikazId()` odskoči na drugu obitelj prije montiranja.
   if (montiran !== prikazId()) return;
-  document.body.style.setProperty('--faza-boja', bojaFaze(s.faza));
+  const boja = bojaStanja(s);
+  document.body.style.setProperty('--faza-boja', boja);
+  // U mirnom stanju gumb ostaje u boji rada — sljedeće što slijedi jest rad.
+  document.body.style.setProperty('--go-boja', s.faza ? boja : 'var(--rad)');
   prikaz().paint(s);
   natpisGumba(s);
   els.skip.hidden = !s.ciklus;       // ručni timer nema što preskočiti
