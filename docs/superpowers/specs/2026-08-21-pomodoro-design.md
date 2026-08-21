@@ -78,11 +78,11 @@ datoteke, jer se dokument kopira na drugu putanju.
 
 Boja faze je jedina jaka boja u sučelju i znači isto u obje teme.
 
-| Faza | Boja |
-| --- | --- |
-| Rad | `#c0503a` |
-| Kratka pauza | `#4e8c66` |
-| Duga pauza | `#d9a441` |
+| Faza | Dan | Noć |
+| --- | --- | --- |
+| Rad | `#c0503a` | `#c0503a` |
+| Kratka pauza | `#4e8c66` | `#4e8c66` |
+| Duga pauza | `#ae8334` | `#d9a441` |
 
 Podloge:
 
@@ -94,13 +94,39 @@ Podloge:
 | `--dim` | `#6f6a5c` | `#9a958a` |
 | `--faint` | `#9a9484` | `#6b665c` |
 | `--line` | `#e3ded1` | `#2c2c31` |
+| `--line-2` | `#cdc5b2` | `#3c3c44` |
+| `--on-state` | `#ffffff` | `#ffffff` |
 
 **Zadana tema je dan.** Pomodoro je alat za radne sate, a i katalog je
 svijetao. `timer.html` ima obrnuto zadano jer se gleda u teretani.
 
-Boje faza ostaju identične u obje teme. Iznimka je dopuštena samo ako
-kontrast prema noćnoj podlozi padne ispod 3:1 za velik tekst — tada se
-posvjetljuje **samo** noćna inačica, uz zadržan ton. Značenje se ne mijenja.
+Boje faza nose značenje, pa ton ostaje isti u obje teme. Svjetlina se
+mijenja samo ondje gdje kontrast padne ispod 3:1 — što je prag koji WCAG
+1.4.11 traži za grafiku koja nosi značenje, a boja faze upravo to i jest:
+puni znamenku, boji prsten i pijesak u posudi.
+
+Izmjereno prema podlozi `--bg`:
+
+| Faza | Dan `#faf8f3` | Noć `#131316` |
+| --- | --- | --- |
+| Rad `#c0503a` | 4,45 | 3,93 |
+| Kratka `#4e8c66` | 3,76 | 4,65 |
+| Duga `#d9a441` | **2,12** | 8,25 |
+
+Jantar pada na **danjoj** podlozi, ne na noćnoj. Zato duga pauza jedina
+ima dvije vrijednosti: `#ae8334` po danu (3,25) i `#d9a441` po noći
+(8,25). Ton je isti, promijenjena je samo svjetlina.
+
+> Ranija inačica ovog speca predviđala je obrnuto — da će boje pasti na
+> noćnoj podlozi — i dopuštala popravak samo ondje. Mjerenje pri recenziji
+> Taska 1 pokazalo je da je pretpostavka bila kriva.
+
+`--faint` je 2,85 po danu i 3,25 po noći — dovoljno za ukras, nikad za
+tekst koji se mora pročitati.
+
+Uz podloge idu i `--line-2` (jača linija, za rub kontrole) i `--on-state`
+(tekst na plohi u boji faze), oba postoje i u `timer.html` i u
+`box-breathing.html`.
 
 `syncThemeColor()` nakon promjene teme čita `--bg` i upisuje ga u
 `<meta name="theme-color">`, pa se zatamni i traka preglednika.
