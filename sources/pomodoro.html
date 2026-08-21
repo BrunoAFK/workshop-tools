@@ -474,6 +474,14 @@ main {
 .polje { padding: var(--sp-4) 0; border-bottom: 1px solid var(--line); }
 .polje:last-child { border-bottom: 0; }
 
+/* Podpolje: pripada prekidaču iznad sebe, pa nema svoju crtu ni razmak
+   koji bi ga od njega odvojio. */
+.polje .polje {
+  padding: var(--sp-1) 0 var(--sp-2) var(--sp-4);
+  border-bottom: 0;
+}
+.polje .polje-ime { font-size: .62rem; color: var(--faint); margin-bottom: var(--sp-2); }
+
 .polje-ime {
   margin: 0 0 var(--sp-3);
   font-size: .68rem;
@@ -664,7 +672,7 @@ const JEZGRA = (() => {
     prikazi: { ciklus: 'traka', rucno: 'prsten' },
 
     zadaciOn: true, tjedanOn: true,
-    zvuk: true, tik: true, tikBroj: 3, minuta: true,
+    zvuk: true, odbroj: true, odbrojSek: 5, najava: true, najavaMin: 1,
     napredak: 'deflate', zadnjeSek: 15, brzina: 1,
     obavijesti: false, budan: true,
     tema: 'dan', lang: null
@@ -817,6 +825,12 @@ const poruka = (tekst) => console.log(tekst);
 
 const BRZINE = [1, 10, 60, 300];
 
+/** Od koliko sekundi pred kraj kreće zvučno odbrojavanje. */
+const ODBROJ = [3, 5, 10, 30];
+
+/** Koliko minuta prije kraja stiže najava. */
+const NAJAVA = [1, 5, 10];
+
 let bazaStvarna = Date.now();
 let bazaVirt = Date.now();
 
@@ -856,8 +870,9 @@ const STRINGS = {
     posuda: 'Posuda', kuhinjski: 'Kuhinjski sat',
     napredak: 'Napredak', barNapredak: 'Traka', deflateNapredak: 'Praznjenje', fillNapredak: 'Punjenje',
     trajanja: 'Trajanja', radMin: 'Rad', kratkaMin: 'Kratka pauza', dugaMin: 'Duga pauza',
-    zvukNaslov: 'Zvuk', zvukUkljucen: 'Zvučni signali', tikZadnjih: 'Tik zadnjih sekundi',
-    tikBrojIme: 'Koliko tikova', zadnjaMinuta: 'Znak na zadnjoj minuti',
+    zvukNaslov: 'Zvuk', zvukUkljucen: 'Zvučni signali',
+    odbrojIme: 'Odbrojavanje pred kraj', odbrojSekIme: 'Kreće koliko prije',
+    najavaIme: 'Najava pred kraj', najavaMinIme: 'Koliko prije',
     ekran: 'Ekran', ekranBudan: 'Ne gasi dok faza traje', razvoj: 'Brzina sata (za probu)',
     krugova: 'Krugova do duge', tema: 'Tema', jezik: 'Jezik',
     temaDan: 'Dan', temaNoc: 'Noć', temaPapir: 'Papir', temaUgljen: 'Ugljen',
@@ -873,8 +888,9 @@ const STRINGS = {
     posuda: 'Hourglass', kuhinjski: 'Kitchen dial',
     napredak: 'Progress', barNapredak: 'Bar', deflateNapredak: 'Draining', fillNapredak: 'Filling',
     trajanja: 'Durations', radMin: 'Focus', kratkaMin: 'Short break', dugaMin: 'Long break',
-    zvukNaslov: 'Sound', zvukUkljucen: 'Sound cues', tikZadnjih: 'Tick in the final seconds',
-    tikBrojIme: 'How many ticks', zadnjaMinuta: 'One-minute warning',
+    zvukNaslov: 'Sound', zvukUkljucen: 'Sound cues',
+    odbrojIme: 'Countdown before the end', odbrojSekIme: 'Starts this far ahead',
+    najavaIme: 'Advance warning', najavaMinIme: 'How far ahead',
     ekran: 'Screen', ekranBudan: 'Keep the screen awake while running', razvoj: 'Clock speed (for testing)',
     krugova: 'Rounds to long break', tema: 'Theme', jezik: 'Language',
     temaDan: 'Day', temaNoc: 'Night', temaPapir: 'Paper', temaUgljen: 'Charcoal',
@@ -890,8 +906,9 @@ const STRINGS = {
     posuda: 'Sanduhr', kuhinjski: 'Küchenuhr',
     napredak: 'Fortschritt', barNapredak: 'Balken', deflateNapredak: 'Leeren', fillNapredak: 'Füllen',
     trajanja: 'Zeiten', radMin: 'Arbeit', kratkaMin: 'Kurze Pause', dugaMin: 'Lange Pause',
-    zvukNaslov: 'Ton', zvukUkljucen: 'Signaltöne', tikZadnjih: 'Ticken der letzten Sekunden',
-    tikBrojIme: 'Anzahl Ticks', zadnjaMinuta: 'Hinweis eine Minute vorher',
+    zvukNaslov: 'Ton', zvukUkljucen: 'Signaltöne',
+    odbrojIme: 'Countdown vor dem Ende', odbrojSekIme: 'Beginnt so viel vorher',
+    najavaIme: 'Vorwarnung', najavaMinIme: 'Wie lange vorher',
     ekran: 'Bildschirm', ekranBudan: 'Bildschirm anlassen, solange es läuft', razvoj: 'Zeitraffer (zum Testen)',
     krugova: 'Runden bis lange Pause', tema: 'Thema', jezik: 'Sprache',
     temaDan: 'Tag', temaNoc: 'Nacht', temaPapir: 'Papier', temaUgljen: 'Anthrazit',
@@ -1343,14 +1360,26 @@ function ton(freq, sekundi, glasnoca = 0.22, delay = 0, oblik = 'sine') {
   return [osc];
 }
 
-/* Kraj rada i kraj pauze ne zvuče isto: iz rada izlaziš u odmor, pa
-   signal pada; iz pauze se vraćaš na posao, pa se penje. Tako znaš što
-   je gotovo i bez gledanja u ekran. */
-const KRAJ = {
-  rad:    [[784, 0.24, 0], [587.33, 0.24, 0.26], [392, 0.5, 0.52]],
-  rucno:  [[784, 0.24, 0], [587.33, 0.24, 0.26], [392, 0.5, 0.52]],
-  kratka: [[523.25, 0.2, 0], [784, 0.34, 0.22]],
-  duga:   [[523.25, 0.2, 0], [659.25, 0.2, 0.22], [784, 0.44, 0.44]]
+/**
+ * Tri signala, i nijedan ne smije zvučati kao drugi.
+ *
+ *   najava   — nizak, mek, kratak. „Bliži se kraj."
+ *   odbroj   — visok, vrlo kratak, tih. Jedan po sekundi.
+ *   kraj     — jedan ton, dug i pun. „Gotovo je."
+ *
+ * Razlikuju se u sve tri dimenzije odjednom — visini, trajanju i
+ * glasnoći — jer se sluša usput, a ne pozorno. Dva signala koja dijele
+ * dvije od tri postaju isti zvuk čim nisi usredotočen na njih.
+ */
+const SIGNAL = {
+  najava: { freq: 392,    trajanje: 0.4,  glasnoca: 0.14, oblik: 'triangle' },
+  odbroj: { freq: 1046.5, trajanje: 0.07, glasnoca: 0.16, oblik: 'sine' },
+  kraj:   { freq: 659.25, trajanje: 0.7,  glasnoca: 0.32, oblik: 'sine' }
+};
+
+const signal = (ime, delay) => {
+  const z = SIGNAL[ime];
+  return ton(z.freq, z.trajanje, z.glasnoca, delay, z.oblik);
 };
 
 function otkaziZvuk() {
@@ -1373,28 +1402,28 @@ function zakaziZvuk() {
   if (!cfg.zvuk || !run.faza || run.ostatak != null || run.endsAt == null) return;
   if (!wakeAudio()) return;
 
+  // Zvučni sklop mjeri stvarne sekunde, a `preostalo` je u virtualnima.
   const doKraja = (run.endsAt - sada()) / 1000 / brzina();
   if (doKraja <= 0) return;
   const punoSek = JEZGRA.trajanje(cfg, run.faza) / 1000 / brzina();
 
-  // Zadnja minuta: jedan tih ton, i to samo ako je faza dovoljno duga
-  // da minuta uopće nešto znači.
-  if (cfg.minuta && punoSek > 150) {
-    const naMinuti = doKraja - 60 / brzina();
-    if (naMinuti > 0) zakazani.push(...ton(440, 0.3, 0.12, naMinuti, 'triangle'));
+  // Najava se preskače kad je faza jedva duža od nje same — javka koja
+  // stigne u prvoj sekundi kruga ne najavljuje ništa.
+  if (cfg.najava) {
+    const prije = Number(cfg.najavaMin) * 60 / brzina();
+    const kada = doKraja - prije;
+    if (kada > 0 && punoSek > prije * 1.5) zakazani.push(...signal('najava', kada));
   }
 
-  if (cfg.tik) {
-    const koliko = Math.min(Number(cfg.tikBroj) || 3, Math.floor(doKraja * brzina()));
-    for (let n = koliko; n >= 1; n--) {
+  if (cfg.odbroj) {
+    const odSek = Math.min(Number(cfg.odbrojSek) || 5, Math.floor(doKraja * brzina()));
+    for (let n = odSek; n >= 1; n--) {
       const kada = doKraja - n / brzina();
-      if (kada > 0) zakazani.push(...ton(880, 0.11, 0.2, kada));
+      if (kada > 0) zakazani.push(...signal('odbroj', kada));
     }
   }
 
-  for (const [freq, trajanje, odmak] of KRAJ[run.faza] || KRAJ.rad) {
-    zakazani.push(...ton(freq, trajanje, 0.3, doKraja + odmak));
-  }
+  zakazani.push(...signal('kraj', doKraja));
 }
 
 /**
@@ -1779,15 +1808,28 @@ function crtajPostavke() {
   const zvucnaPolja = [prekidac('zvukUkljucen', cfg.zvuk, (v) => {
     cfg.zvuk = v; save(); if (v) zakaziZvuk(); else otkaziZvuk(); osvjeziPostavke();
   })];
+
   // Podopcije se pokazuju samo kad zvuk uopće svira — inače su kontrole
-  // koje ništa ne rade.
+  // koje ništa ne rade. Isto vrijedi za brojke ispod svog prekidača.
   if (cfg.zvuk) {
-    zvucnaPolja.push(
-      prekidac('tikZadnjih', cfg.tik, (v) => { cfg.tik = v; save(); zakaziZvuk(); osvjeziPostavke(); }),
-      brojcanik('tikBrojIme', Number(cfg.tikBroj) || 3, 1, 10, null, (v) => {
-        cfg.tikBroj = v; save(); zakaziZvuk(); osvjeziPostavke();
-      }),
-      prekidac('zadnjaMinuta', cfg.minuta, (v) => { cfg.minuta = v; save(); zakaziZvuk(); osvjeziPostavke(); }));
+    zvucnaPolja.push(prekidac('odbrojIme', cfg.odbroj, (v) => {
+      cfg.odbroj = v; save(); zakaziZvuk(); osvjeziPostavke();
+    }));
+    if (cfg.odbroj) {
+      zvucnaPolja.push(polje('odbrojSekIme', cipovi(
+        ODBROJ.map((v) => ({ id: v, ime: `${v} s` })), Number(cfg.odbrojSek), (v) => {
+          cfg.odbrojSek = v; save(); zakaziZvuk(); osvjeziPostavke();
+        })), );
+    }
+    zvucnaPolja.push(prekidac('najavaIme', cfg.najava, (v) => {
+      cfg.najava = v; save(); zakaziZvuk(); osvjeziPostavke();
+    }));
+    if (cfg.najava) {
+      zvucnaPolja.push(polje('najavaMinIme', cipovi(
+        NAJAVA.map((v) => ({ id: v, ime: `${v} ${t('min')}` })), Number(cfg.najavaMin), (v) => {
+          cfg.najavaMin = v; save(); zakaziZvuk(); osvjeziPostavke();
+        })));
+    }
   }
   polja.push(polje('zvukNaslov', ...zvucnaPolja));
 
