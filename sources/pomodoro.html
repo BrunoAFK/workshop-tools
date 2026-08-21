@@ -555,6 +555,7 @@ main {
   .broj-kontrola button:not(:disabled):hover { border-color: var(--dim); background: color-mix(in srgb, var(--panel) 92%, var(--ink)); }
   .sklopka:hover { border-color: var(--dim); }
   .povijest-alati button:hover { border-color: var(--dim); background: color-mix(in srgb, var(--panel) 92%, var(--ink)); }
+  .zapis-vrsta:hover { border-bottom-color: var(--dim); }
   .zapis-x:hover { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
   .sklopka[aria-checked="true"]:hover { background: color-mix(in srgb, var(--ink) 86%, var(--panel)); }
   .polje:hover .polje-ime { color: var(--dim); }
@@ -689,7 +690,7 @@ main {
   border-bottom: 1px solid var(--line);
 }
 
-.zapis-faza { width: 7.5rem; flex: none; }
+.zapis-vrsta { width: 8.5rem; flex: none; }
 .zapis-kad { width: 9.5rem; flex: none; }
 .zapis-trajanje { width: 8rem; flex: none; }
 .zapis-opis { flex: 1 1 16rem; min-width: 0; }
@@ -699,7 +700,31 @@ main {
    mobitelu narastao za cijeli red visine. */
 .zapis-x { position: absolute; top: var(--sp-2); right: 0; }
 
-.zapis-faza { font-size: .88rem; font-weight: 600; }
+/* Izbor izgleda kao naziv dok ga ne dirneš — popis od pedeset padajućih
+   okvira bio bi zid od kutija. Strelica ostaje blijedo vidljiva, jer bi
+   posve skriven izbor bio i neotkriven. */
+.zapis-vrsta {
+  appearance: none;
+  padding: 3px 16px 3px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 600;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-size: 4px 4px, 4px 4px;
+  background-position: right 6px center, right 2px center;
+  background-repeat: no-repeat;
+}
+
+.zapis-vrsta:hover { border-bottom-color: var(--line); }
+.zapis-vrsta:focus { outline: none; border-bottom-color: var(--dim); }
+.zapis-vrsta option { color: var(--ink); background: var(--panel); }
 .zapis-kad, .zapis-trajanje {
   font-family: var(--num);
   font-variant-numeric: tabular-nums;
@@ -2231,6 +2256,10 @@ els.povijest.addEventListener('click', (e) => { if (e.target === els.povijest) z
    8b · Ladica povijesti
    ═══════════════════════════════════════════════════════════ */
 
+/* Naknadno se smije prekvalificirati bilo koji zapis, i ručni i onaj iz
+   ciklusa: tek se poslije zna je li onih 25 minuta stvarno bio rad. */
+const VRSTE_ZAPISA = ['rad', 'kratka', 'duga', 'rucno'];
+
 const kutijaZapisa = document.querySelector('[data-zapisi]');
 const javkaEl = document.querySelector('[data-javka]');
 
@@ -2283,7 +2312,9 @@ function crtajPovijest() {
     const kad = z.kraj ? `${satnica(z.pocetak)}–${satnica(z.kraj)}` : `${satnica(z.pocetak)}…`;
     dijelovi.push(`
       <div class="zapis" data-id="${esc(z.id)}" style="--faza-zapisa:${boja}">
-        <span class="zapis-faza">${esc(t(z.faza))}</span>
+        <select class="zapis-vrsta" data-vrsta aria-label="${esc(t('vrsta'))}">${
+          VRSTE_ZAPISA.map((v) => `<option value="${v}"${v === z.faza ? ' selected' : ''}>${esc(t(v))}</option>`).join('')
+        }</select>
         <span class="zapis-kad">${esc(kad)}</span>
         <span class="zapis-trajanje">${esc(trajanjeZapisa(z))}${
           z.dovrsen ? '' : ` <span class="zapis-prekinut">${esc(t('prekinuto'))}</span>`}</span>
@@ -2308,10 +2339,30 @@ kutijaZapisa?.addEventListener('click', (e) => {
 
 kutijaZapisa?.addEventListener('change', (e) => {
   const redak = e.target.closest('.zapis');
-  if (!redak || !e.target.matches('.zapis-opis')) return;
+  if (!redak) return;
   const z = povijest.find((x) => x.id === redak.dataset.id);
   if (!z) return;
-  z.opis = e.target.value.trim();
+
+  if (e.target.matches('.zapis-opis')) {
+    z.opis = e.target.value.trim();
+    save();
+    return;
+  }
+
+  if (!e.target.matches('[data-vrsta]')) return;
+  z.faza = VRSTE_ZAPISA.includes(e.target.value) ? e.target.value : z.faza;
+
+  /* Boja se mijenja na licu mjesta, bez precrtavanja popisa: precrtavanje
+     bi otelo fokus s izbora koji si upravo otvorio. */
+  redak.style.setProperty('--faza-zapisa', bojaVrste(z.faza));
+
+  /* Ako je to zapis kruga koji upravo teče, mora se promijeniti i sam
+     timer — inače bi ga `zatvoriZapis` na kraju vratio na staro. */
+  if (z.id === run.zapis && z.rucno) {
+    cfg.rucnoVrsta = z.faza === 'duga' ? 'rucno' : z.faza;
+    crtajTrajanje();
+    paint();
+  }
   save();
 });
 
