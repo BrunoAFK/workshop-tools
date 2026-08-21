@@ -219,6 +219,16 @@ main {
   opacity: 1;
 }
 
+/* Povijest je popis, ne obrazac: dobiva gotovo cijeli zaslon, jer se
+   redak s vremenom, trajanjem i opisom u 430 px lomi u tri reda. */
+#povijestLadica { place-items: center; padding: var(--sp-3); }
+
+#povijestLadica .ladica-box {
+  width: min(1180px, 100%);
+  height: calc(100dvh - var(--sp-5));
+  max-height: none;
+}
+
 /* Kutija je odvojena od zastora da bi imala vlastitu granicu skrola —
    Task 12 u nju stavlja postavke i cijeli blok uputa, a `body` ima
    `overflow: hidden`, pa ovo ostaje jedino mjesto koje smije skrolati. */
@@ -603,7 +613,12 @@ main {
 
 /* ═══ POVIJEST ═════════════════════════════════════════════ */
 
-.povijest-alati { display: flex; gap: var(--sp-2); padding: var(--sp-3) 0 var(--sp-4); }
+.povijest-alati {
+  display: flex;
+  gap: var(--sp-2);
+  padding: var(--sp-3) 0 var(--sp-4);
+}
+.povijest-alati button { flex: 0 1 190px; }
 
 .povijest-alati button {
   flex: 1;
@@ -636,20 +651,34 @@ main {
   color: var(--faint);
 }
 
+/* Flex s prelomom umjesto medijskog upita: u širokoj ladici sve stane
+   u jedan red, a kad ponestane mjesta opis sam padne u sljedeći. Isti
+   kod drži oba slučaja. */
+/* Boja faze je **rub retka**, ne element u njemu: u popisu od pedeset
+   zapisa nazivi se stapaju, a boja se čita bez čitanja. Rubom, jer se
+   `align-self: stretch` u prelomljenom flexu proteže samo unutar svoje
+   linije — na uskom zaslonu crta bi pokrila prvi redak, a ostala dva ne. */
 .zapis {
-  display: grid;
-  grid-template-columns: 4px 1fr auto;
-  align-items: start;
-  gap: var(--sp-3);
-  padding: var(--sp-3) 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-3);
+  padding: var(--sp-3) 34px var(--sp-3) var(--sp-3);
+  border-left: 4px solid var(--faza-zapisa, var(--line-2));
   border-bottom: 1px solid var(--line);
 }
 
-/* Boja faze kao tanka crta uz redak — u popisu od pedeset zapisa
-   nazivi se stapaju, a boja se čita bez čitanja. */
-.zapis-boja { align-self: stretch; border-radius: 2px; min-height: 34px; }
+.zapis-faza { width: 7.5rem; flex: none; }
+.zapis-kad { width: 9.5rem; flex: none; }
+.zapis-trajanje { width: 8rem; flex: none; }
+.zapis-opis { flex: 1 1 16rem; min-width: 0; }
 
-.zapis-glava { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
+/* Gumb za brisanje je izvan toka: u prelomljenom retku bi ga
+   `margin-left: auto` odgurnuo u vlastitu liniju i svaki zapis na
+   mobitelu narastao za cijeli red visine. */
+.zapis-x { position: absolute; top: var(--sp-2); right: 0; }
+
 .zapis-faza { font-size: .88rem; font-weight: 600; }
 .zapis-kad, .zapis-trajanje {
   font-family: var(--num);
@@ -662,8 +691,6 @@ main {
 /* Polje izgleda kao tekst dok ga ne dirneš — popis od pedeset okvira
    za unos bio bi zid od kutija. */
 .zapis-opis {
-  width: 100%;
-  margin-top: 2px;
   padding: 3px 0;
   border: 0;
   border-bottom: 1px solid transparent;
@@ -2191,18 +2218,13 @@ function crtajPovijest() {
     const boja = z.faza === 'rucno' ? 'var(--rad)' : `var(--${z.faza})`;
     const kad = z.kraj ? `${satnica(z.pocetak)}–${satnica(z.kraj)}` : `${satnica(z.pocetak)}…`;
     dijelovi.push(`
-      <div class="zapis" data-id="${esc(z.id)}">
-        <span class="zapis-boja" style="background:${boja}"></span>
-        <div>
-          <div class="zapis-glava">
-            <span class="zapis-faza">${esc(t(z.faza))}</span>
-            <span class="zapis-kad">${esc(kad)}</span>
-            <span class="zapis-trajanje">· ${esc(trajanjeZapisa(z))}</span>
-            ${z.dovrsen ? '' : `<span class="zapis-prekinut">${esc(t('prekinuto'))}</span>`}
-          </div>
-          <input class="zapis-opis" type="text" maxlength="140"
-                 value="${esc(z.opis)}" placeholder="${esc(t('opisPlaceholder'))}">
-        </div>
+      <div class="zapis" data-id="${esc(z.id)}" style="--faza-zapisa:${boja}">
+        <span class="zapis-faza">${esc(t(z.faza))}</span>
+        <span class="zapis-kad">${esc(kad)}</span>
+        <span class="zapis-trajanje">${esc(trajanjeZapisa(z))}${
+          z.dovrsen ? '' : ` <span class="zapis-prekinut">${esc(t('prekinuto'))}</span>`}</span>
+        <input class="zapis-opis" type="text" maxlength="140"
+               value="${esc(z.opis)}" placeholder="${esc(t('opisPlaceholder'))}">
         <button class="zapis-x" type="button" data-obrisi
                 aria-label="${esc(t('obrisi'))}">✕</button>
       </div>`);
