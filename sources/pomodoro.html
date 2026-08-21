@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Pomodoro — rad u krugovima od 25 minuta s kratkim pauzama i dugom nakon četvrtog kruga. Četiri načina prikaza, popis zadataka s procjenom i tjedan iza tebe.">
+<meta name="date" content="2026-08-21">
+<meta name="theme-color" content="#faf8f3">
+<meta name="accent-color" content="#c0503a">
+<meta name="keywords" content="Vrijeme, Fokus">
+<title>Pomodoro — krugovi rada i pauze</title>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   POMODORO
+
+   Kostur: raspored, tokeni i obje teme. Jezgra, prikazi i sadržaj
+   ladice dolaze u kasnijim koracima — ovdje stoji samo geometrija
+   u koju će se uklopiti, da se ne mijenja poslije.
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --sans: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+  --num: "DIN Alternate", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  --r: 14px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 28px;
+  --ctl: 44px;                       /* meta za prst, ne za miš */
+  --install-offset: 92px;            /* traka za instalaciju ide iznad kontrola */
+  --ease: cubic-bezier(.2, .8, .25, 1);
+
+  /* Boja faze je jedina jaka boja i znači isto u obje teme —
+     mijenja se podloga, ne značenje. Zato stoji izvan bloka teme. */
+  --rad: #c0503a; --kratka: #4e8c66; --duga: #d9a441;
+
+  /* Dan je zadana tema: Pomodoro je alat za radne sate, a i katalog
+     je svijetao. `timer.html` ima obrnuto zadano jer se gleda u
+     teretani — ovdje nema tog razloga. */
+  --bg: #faf8f3; --panel: #ffffff; --ink: #15140e;
+  --dim: #6f6a5c; --faint: #9a9484; --line: #e3ded1;
+}
+
+html[data-tema="noc"] {
+  --bg: #131316; --panel: #1b1b1f; --ink: #ece9e2;
+  --dim: #9a958a; --faint: #6b665c; --line: #2c2c31;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
+body {
+  overflow: hidden;                  /* ništa se nikad ne skrola */
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button { font: inherit; color: inherit; cursor: pointer; }
+
+/* ═══ RASPORED ═════════════════════════════════════════════
+   Tijelo je stupac: pozornica raste da popuni prostor, slojevi
+   zadataka i tjedna sjede ispod nje kad su uključeni, kontrole su
+   prikovane pri dnu. `min-height: 0` na pozornici je nužan — bez
+   njega grid-dijete odbija biti manje od svog sadržaja i pozornica
+   bi gurnula kontrole ispod ruba ekrana.
+   ═══════════════════════════════════════════════════════════ */
+
+main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+
+#stage {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+#zadaci, #tjedan {
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+}
+
+/* ═══ KONTROLE ═════════════════════════════════════════════
+   Izvan `main`-a, ne unutra: raspon pozornice se time ne mijenja
+   kad se doda ili makne sloj zadataka odnosno tjedna iznad. */
+
+.kontrole {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4) calc(var(--sp-3) + env(safe-area-inset-bottom)) var(--sp-4);
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.kontrole button {
+  flex: 1;
+  height: var(--ctl);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: none;
+  color: var(--ink);
+  font-size: .92rem;
+  font-weight: 600;
+}
+
+.kontrole button:active { background: var(--bg); }
+
+/* Kreni je jedina puna, obojena kontrola — sve ostalo je opcija,
+   ovo je radnja. Boja je boja rada, jer je mirno stanje uvijek
+   priprema za sljedeći krug rada. */
+.kontrole #go {
+  flex: 1.4;
+  border-color: transparent;
+  background: var(--rad);
+  color: #fff;
+}
+
+.kontrole #go:active { background: color-mix(in srgb, var(--rad) 84%, black); }
+
+/* ═══ LADICA ═══════════════════════════════════════════════
+   Sadržaj postavki dolazi kasnije; ovdje samo ljuska koja zna
+   biti nevidljiva. `aria-hidden` je i semantika i prekidač prikaza
+   — nema JS-a u ovom koraku koji bi dodavao posebnu klasu. */
+
+.ladica {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: end center;
+  padding: var(--sp-4);
+  background: color-mix(in srgb, var(--ink) 32%, transparent);
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity .18s var(--ease), visibility .18s var(--ease);
+}
+
+.ladica[aria-hidden="false"] {
+  visibility: visible;
+  opacity: 1;
+}
+</style>
+</head>
+<body>
+
+<main>
+  <div id="stage"></div>          <!-- ovdje prikaz crta -->
+  <div id="zadaci" hidden></div>
+  <div id="tjedan" hidden></div>
+</main>
+<div class="kontrole">
+  <button id="go">Kreni</button>
+  <button id="skip">Preskoči</button>
+  <button id="reset">Reset</button>
+  <button id="postavke">Postavke</button>
+</div>
+<div class="ladica" id="ladica" role="dialog" aria-modal="true" aria-hidden="true"></div>
+
+</body>
+</html>
