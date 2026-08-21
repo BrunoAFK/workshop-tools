@@ -28,20 +28,27 @@
   --install-offset: 92px;            /* traka za instalaciju ide iznad kontrola */
   --ease: cubic-bezier(.2, .8, .25, 1);
 
-  /* Boja faze je jedina jaka boja i znači isto u obje teme —
-     mijenja se podloga, ne značenje. Zato stoji izvan bloka teme. */
-  --rad: #c0503a; --kratka: #4e8c66; --duga: #d9a441;
+  /* Boja faze nosi značenje — puni znamenku, boji prsten i pijesak
+     u posudi — pa mora doseći kontrast 3:1 (WCAG 1.4.11) na svojoj
+     podlozi. `--rad` i `--kratka` prolaze na obje podloge pa ostaju
+     identični u obje teme; `--duga` po danu pada na 2,12:1, pa dan
+     dobiva tamniju inačicu istog tona. Nije nedosljednost koju treba
+     "popraviti" — noć zadržava `#d9a441` jer ondje prolazi s 8,25:1. */
+  --rad: #c0503a; --kratka: #4e8c66; --duga: #ae8334;
 
   /* Dan je zadana tema: Pomodoro je alat za radne sate, a i katalog
      je svijetao. `timer.html` ima obrnuto zadano jer se gleda u
      teretani — ovdje nema tog razloga. */
-  --bg: #faf8f3; --panel: #ffffff; --ink: #15140e;
-  --dim: #6f6a5c; --faint: #9a9484; --line: #e3ded1;
+  --bg: #faf8f3; --panel: #fff; --ink: #15140e;
+  --dim: #6f6a5c; --faint: #9a9484;
+  --line: #e3ded1; --line-2: #cdc5b2; --on-state: #fff;
 }
 
-html[data-tema="noc"] {
+html[data-theme="noc"] {
+  --duga: #d9a441;                   /* isti ton, samo svjetliji — ovdje prolazi kontrast */
   --bg: #131316; --panel: #1b1b1f; --ink: #ece9e2;
-  --dim: #9a958a; --faint: #6b665c; --line: #2c2c31;
+  --dim: #9a958a; --faint: #6b665c;
+  --line: #2c2c31; --line-2: #3c3c44;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -70,9 +77,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* ═══ RASPORED ═════════════════════════════════════════════
    Tijelo je stupac: pozornica raste da popuni prostor, slojevi
    zadataka i tjedna sjede ispod nje kad su uključeni, kontrole su
-   prikovane pri dnu. `min-height: 0` na pozornici je nužan — bez
-   njega grid-dijete odbija biti manje od svog sadržaja i pozornica
-   bi gurnula kontrole ispod ruba ekrana.
+   prikovane pri dnu. `min-height: 0` na pozornici je nužan — kao
+   flex-dijete inače nasljeđuje `min-height: auto` i odbija biti
+   manje od svog sadržaja, pa bi pozornica gurnula kontrole ispod
+   ruba ekrana. To što je pozornica i sama grid-kontejner tu nije
+   bitno — ograničenje dolazi od `main`-a kao flex-roditelja.
    ═══════════════════════════════════════════════════════════ */
 
 main {
@@ -83,11 +92,20 @@ main {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
 }
 
+/* Ćelija dobiva pravu veličinu, ne prilagođenu sadržaju: `stretch`
+   umjesto `center` da prikaz (Task 6) ima raspon na koji se `100%`
+   može osloniti, `overflow: hidden` da golema znamenka (Task 4) ne
+   procuri preko slojeva ispod, `container-type: size` da se prikazi
+   mjere po ovoj ćeliji, ne po dokumentu — isti obrazac kao `.pane`
+   u `timer.html`. */
 #stage {
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
   display: grid;
-  place-items: center;
+  place-items: stretch;
+  container-type: size;
 }
 
 #zadaci, #tjedan {
@@ -103,7 +121,12 @@ main {
   flex-shrink: 0;
   display: flex;
   gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4) calc(var(--sp-3) + env(safe-area-inset-bottom)) var(--sp-4);
+  /* `main` uzima bočne umetke preko `padding`; ova traka je stvarno
+     puna širina ekrana pa mora sama tražiti isto, inače krajnji
+     gumbi upadnu pod zarez u pejzažu. */
+  padding: var(--sp-3) calc(var(--sp-4) + env(safe-area-inset-right))
+           calc(var(--sp-3) + env(safe-area-inset-bottom))
+           calc(var(--sp-4) + env(safe-area-inset-left));
   border-top: 1px solid var(--line);
   background: var(--panel);
 }
@@ -111,7 +134,7 @@ main {
 .kontrole button {
   flex: 1;
   height: var(--ctl);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-2);
   border-radius: var(--r);
   background: none;
   color: var(--ink);
@@ -119,19 +142,22 @@ main {
   font-weight: 600;
 }
 
-.kontrole button:active { background: var(--bg); }
+/* Miješa se prema `--ink`, ne prema `--bg`: potonji je gotovo
+   identičan `--panel` u danjoj temi (#faf8f3 na #fff), pa bi dodir
+   ostao nevidljiv baš na zadanoj temi. */
+.kontrole button:active { background: color-mix(in srgb, var(--panel) 88%, var(--ink)); }
 
 /* Kreni je jedina puna, obojena kontrola — sve ostalo je opcija,
    ovo je radnja. Boja je boja rada, jer je mirno stanje uvijek
    priprema za sljedeći krug rada. */
-.kontrole #go {
+#go {
   flex: 1.4;
   border-color: transparent;
   background: var(--rad);
-  color: #fff;
+  color: var(--on-state);
 }
 
-.kontrole #go:active { background: color-mix(in srgb, var(--rad) 84%, black); }
+#go:active { background: color-mix(in srgb, var(--rad) 84%, black); }
 
 /* ═══ LADICA ═══════════════════════════════════════════════
    Sadržaj postavki dolazi kasnije; ovdje samo ljuska koja zna
@@ -145,7 +171,10 @@ main {
   display: grid;
   place-items: end center;
   padding: var(--sp-4);
-  background: color-mix(in srgb, var(--ink) 32%, transparent);
+  /* Miješa se prema `--bg`, ne prema `--ink`: potonji je taman po
+     danu, ali svijetao po noći, pa bi zastor izbijelio noćno
+     sučelje umjesto da ga zatamni — isti obrazac kao `timer.html`. */
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
   visibility: hidden;
   opacity: 0;
   transition: opacity .18s var(--ease), visibility .18s var(--ease);
@@ -154,6 +183,23 @@ main {
 .ladica[aria-hidden="false"] {
   visibility: visible;
   opacity: 1;
+}
+
+/* Kutija je odvojena od zastora da bi imala vlastitu granicu skrola —
+   Task 12 u nju stavlja postavke i cijeli blok uputa, a `body` ima
+   `overflow: hidden`, pa ovo ostaje jedino mjesto koje smije skrolati. */
+.ladica-box {
+  width: min(430px, 100%);
+  max-height: calc(100dvh - var(--sp-6));
+  overflow-y: auto;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--panel);
+  padding-bottom: calc(var(--sp-4) + env(safe-area-inset-bottom));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
 </style>
 </head>
@@ -165,12 +211,14 @@ main {
   <div id="tjedan" hidden></div>
 </main>
 <div class="kontrole">
-  <button id="go">Kreni</button>
-  <button id="skip">Preskoči</button>
-  <button id="reset">Reset</button>
-  <button id="postavke">Postavke</button>
+  <button id="go" type="button">Kreni</button>
+  <button id="skip" type="button">Preskoči</button>
+  <button id="reset" type="button">Reset</button>
+  <button id="postavke" type="button">Postavke</button>
 </div>
-<div class="ladica" id="ladica" role="dialog" aria-modal="true" aria-hidden="true"></div>
+<div class="ladica" id="ladica" role="dialog" aria-modal="true" aria-hidden="true" data-i18n-attr="aria-label:postavke">
+  <div class="ladica-box"></div>
+</div>
 
 </body>
 </html>
