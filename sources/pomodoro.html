@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Pomodoro — rad u krugovima od 25 minuta s kratkim pauzama i dugom nakon četvrtog kruga. Tri načina rada, pet prikaza vremena — od gole znamenke do replike mehaničkog kuhinjskog sata — i četiri teme.">
+<meta name="description" content="Pomodoro — rad u krugovima od 25 minuta s kratkim pauzama i dugom nakon četvrtog kruga. Tri načina rada, šest prikaza vremena — od gole znamenke do replike mehaničkog kuhinjskog sata — četiri teme i povijest s izvozom.">
 <meta name="date" content="2026-08-21">
 <meta name="theme-color" content="#faf8f3">
 <meta name="accent-color" content="#c0503a">
@@ -524,6 +524,8 @@ main {
   .presetovi button:hover { border-color: var(--dim); }
   .broj-kontrola button:not(:disabled):hover { border-color: var(--dim); background: color-mix(in srgb, var(--panel) 92%, var(--ink)); }
   .sklopka:hover { border-color: var(--dim); }
+  .povijest-alati button:hover { border-color: var(--dim); background: color-mix(in srgb, var(--panel) 92%, var(--ink)); }
+  .zapis-x:hover { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
   .sklopka[aria-checked="true"]:hover { background: color-mix(in srgb, var(--ink) 86%, var(--panel)); }
   .polje:hover .polje-ime { color: var(--dim); }
   .kontrole button:hover { background: color-mix(in srgb, var(--panel) 93%, var(--ink)); }
@@ -599,6 +601,92 @@ main {
 .sklopka[aria-checked="true"] { border-color: transparent; background: var(--ink); }
 .sklopka[aria-checked="true"] i { left: 23px; background: var(--bg); }
 
+/* ═══ POVIJEST ═════════════════════════════════════════════ */
+
+.povijest-alati { display: flex; gap: var(--sp-2); padding: var(--sp-3) 0 var(--sp-4); }
+
+.povijest-alati button {
+  flex: 1;
+  height: 34px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: none;
+  color: var(--ink);
+  font-size: .8rem;
+  font-weight: 600;
+}
+
+.povijest-alati .opasno { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+
+.povijest-javka {
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: calc(var(--r) - 6px);
+  background: color-mix(in srgb, var(--kratka) 14%, transparent);
+  font-size: .8rem;
+  color: var(--ink);
+}
+
+.povijest-dan {
+  margin: var(--sp-4) 0 var(--sp-2);
+  font-size: .62rem;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.zapis {
+  display: grid;
+  grid-template-columns: 4px 1fr auto;
+  align-items: start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Boja faze kao tanka crta uz redak — u popisu od pedeset zapisa
+   nazivi se stapaju, a boja se čita bez čitanja. */
+.zapis-boja { align-self: stretch; border-radius: 2px; min-height: 34px; }
+
+.zapis-glava { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
+.zapis-faza { font-size: .88rem; font-weight: 600; }
+.zapis-kad, .zapis-trajanje {
+  font-family: var(--num);
+  font-variant-numeric: tabular-nums;
+  font-size: .76rem;
+  color: var(--dim);
+}
+.zapis-prekinut { font-size: .68rem; color: var(--faint); }
+
+/* Polje izgleda kao tekst dok ga ne dirneš — popis od pedeset okvira
+   za unos bio bi zid od kutija. */
+.zapis-opis {
+  width: 100%;
+  margin-top: 2px;
+  padding: 3px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  color: var(--dim);
+  font: inherit;
+  font-size: .8rem;
+}
+.zapis-opis::placeholder { color: var(--faint); }
+.zapis-opis:hover { border-bottom-color: var(--line); }
+.zapis-opis:focus { outline: none; border-bottom-color: var(--dim); color: var(--ink); }
+
+.zapis-x {
+  width: 28px; height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--faint);
+  font-size: .85rem;
+}
+
+.prazno { padding: var(--sp-5) 0; color: var(--faint); font-size: .85rem; text-align: center; }
+
 .broj-vrijednost {
   min-width: 62px;
   text-align: center;
@@ -619,6 +707,15 @@ main {
      Oznaka je tekst, ne kontrola. -->
 <header class="vrh">
   <span class="vrh-nacin" data-nacin-oznaka></span>
+  <button class="ikona" id="povijestGumb" type="button" data-i18n-attr="aria-label:povijest">
+    <!-- Sat sa strelicom unatrag — znak za povijest, ne za odbrojavanje. -->
+    <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor"
+         stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3.6 9.4A9 9 0 1 1 3 12"/>
+      <path d="M3.2 4.6v4.9h4.9"/>
+      <path d="M12 7.4V12l3.4 2"/>
+    </svg>
+  </button>
   <button class="ikona" id="postavke" type="button" data-i18n-attr="aria-label:postavke">
     <!-- Zupčanik je crtan geometrijom, ne od oka: šest zubi kao trapezi
          koji sjede na obodu. Razlika prema suncu je baš u tome — zrake
@@ -649,6 +746,24 @@ main {
   <button id="go" type="button">Kreni</button>
   <button id="skip" type="button" data-i18n="preskoci">Preskoči</button>
   <button id="reset" type="button" data-i18n="reset">Reset</button>
+</div>
+
+<div class="ladica" id="povijestLadica" role="dialog" aria-modal="true" aria-hidden="true" data-i18n-attr="aria-label:povijest">
+  <div class="ladica-box">
+    <div class="ladica-vrh">
+      <h2 data-i18n="povijest">Povijest</h2>
+      <button class="ikona" id="zatvoriPovijest" type="button" data-i18n-attr="aria-label:zatvori">✕</button>
+    </div>
+    <div class="ladica-tijelo">
+      <div class="povijest-alati">
+        <button type="button" id="izvezi" data-i18n="izvezi">Izvezi</button>
+        <button type="button" id="uvezi" data-i18n="uvezi">Uvezi</button>
+        <button type="button" id="obrisiSve" class="opasno" data-i18n="obrisiSve">Obriši sve</button>
+      </div>
+      <p class="povijest-javka" data-javka hidden></p>
+      <div data-zapisi></div>
+    </div>
+  </div>
 </div>
 
 <div class="ladica" id="ladica" role="dialog" aria-modal="true" aria-hidden="true" data-i18n-attr="aria-label:postavke">
@@ -800,9 +915,10 @@ const JEZGRA = (() => {
 const STORE = 'workshop.pomodoro';
 
 let cfg = { ...JEZGRA.DEFAULTS };
-let run = { faza: null, krug: 0, endsAt: null, ostatak: null, zadatak: null };
+let run = { faza: null, krug: 0, endsAt: null, ostatak: null, zadatak: null, zapis: null };
 let zadaci = [];
 let dani = {};
+let povijest = [];
 
 try {
   const spremljeno = JSON.parse(localStorage.getItem(STORE) || '{}');
@@ -811,19 +927,26 @@ try {
   run = { ...run, ...(spremljeno.run || {}) };
   zadaci = Array.isArray(spremljeno.zadaci) ? spremljeno.zadaci : [];
   dani = spremljeno.dani && typeof spremljeno.dani === 'object' ? spremljeno.dani : {};
+  povijest = Array.isArray(spremljeno.povijest) ? spremljeno.povijest : [];
 } catch { /* prvi put, ili neispravan zapis */ }
 
 /** Zapisi stariji od 60 dana ne trebaju nikome. */
+const NAJVISE_ZAPISA = 2000;
+
 function orezi() {
   const granica = new Date();
   granica.setDate(granica.getDate() - 60);
   const najstariji = JEZGRA.danas(granica);
   for (const dan of Object.keys(dani)) if (dan < najstariji) delete dani[dan];
+  // Povijest se ne briše po datumu nego po broju: zapis star godinu dana
+  // i dalje nešto znači, a `localStorage` ima svoj strop. Izvoz postoji
+  // upravo zato da granica ne bude gubitak.
+  if (povijest.length > NAJVISE_ZAPISA) povijest = povijest.slice(-NAJVISE_ZAPISA);
 }
 
 const save = () => {
   orezi();
-  try { localStorage.setItem(STORE, JSON.stringify({ cfg, run, zadaci, dani })); }
+  try { localStorage.setItem(STORE, JSON.stringify({ cfg, run, zadaci, dani, povijest })); }
   catch { /* privatni način */ }
 };
 
@@ -902,6 +1025,12 @@ const STRINGS = {
     krugova: 'Krugova do duge', tema: 'Tema', jezik: 'Jezik',
     temaDan: 'Dan', temaNoc: 'Noć', temaPapir: 'Papir', temaUgljen: 'Ugljen',
     min: 'min', isteklo: 'Krug je istekao dok te nije bilo.',
+    povijest: 'Povijest', izvezi: 'Izvezi', uvezi: 'Uvezi', obrisiSve: 'Obriši sve',
+    nemaZapisa: 'Još nema zapisa. Svako pokretanje se bilježi ovdje.',
+    opisPlaceholder: 'Na čemu si radio?', prekinuto: 'prekinuto', obrisi: 'Obriši',
+    izvezeno: 'Izvezeno zapisa: {n}.', uvezeno: 'Uvezeno novih zapisa: {n}.',
+    uvozKriv: 'Datoteka nije izvoz ovog alata.', obrisano: 'Povijest je obrisana.',
+    sigurno: 'Obrisati cijelu povijest? Izvoz je jedini način da je vratiš.',
     naslov: 'Pomodoro — krugovi rada i pauze'
   },
   en: {
@@ -920,6 +1049,12 @@ const STRINGS = {
     krugova: 'Rounds to long break', tema: 'Theme', jezik: 'Language',
     temaDan: 'Day', temaNoc: 'Night', temaPapir: 'Paper', temaUgljen: 'Charcoal',
     min: 'min', isteklo: 'The round ran out while you were away.',
+    povijest: 'History', izvezi: 'Export', uvezi: 'Import', obrisiSve: 'Clear all',
+    nemaZapisa: 'Nothing recorded yet. Every start lands here.',
+    opisPlaceholder: 'What were you working on?', prekinuto: 'stopped', obrisi: 'Delete',
+    izvezeno: 'Exported {n} entries.', uvezeno: 'Imported {n} new entries.',
+    uvozKriv: 'That file is not an export from this tool.', obrisano: 'History cleared.',
+    sigurno: 'Clear the whole history? An export is the only way back.',
     naslov: 'Pomodoro — focus and break rounds'
   },
   de: {
@@ -938,6 +1073,12 @@ const STRINGS = {
     krugova: 'Runden bis lange Pause', tema: 'Thema', jezik: 'Sprache',
     temaDan: 'Tag', temaNoc: 'Nacht', temaPapir: 'Papier', temaUgljen: 'Anthrazit',
     min: 'Min', isteklo: 'Die Runde lief ab, während du weg warst.',
+    povijest: 'Verlauf', izvezi: 'Exportieren', uvezi: 'Importieren', obrisiSve: 'Alles löschen',
+    nemaZapisa: 'Noch nichts aufgezeichnet. Jeder Start landet hier.',
+    opisPlaceholder: 'Woran hast du gearbeitet?', prekinuto: 'abgebrochen', obrisi: 'Löschen',
+    izvezeno: '{n} Einträge exportiert.', uvezeno: '{n} neue Einträge importiert.',
+    uvozKriv: 'Diese Datei ist kein Export dieses Werkzeugs.', obrisano: 'Verlauf gelöscht.',
+    sigurno: 'Den gesamten Verlauf löschen? Ein Export ist der einzige Weg zurück.',
     naslov: 'Pomodoro — Arbeits- und Pausenrunden'
   }
 };
@@ -1529,6 +1670,46 @@ function pustiBudan() {
 addEventListener('visibilitychange', () => { if (!document.hidden) drziBudan(); });
 
 /* ═══════════════════════════════════════════════════════════
+   4d · Povijest
+
+   Bilježi se **stvarno** vrijeme, `Date.now()`, ne virtualno: zapis
+   govori kad si radio, a ubrzanje sata je stvar probe i ne smije
+   pomaknuti sat na zidu. Zato uz stvarni početak i kraj stoji i
+   planirano trajanje — pri ubrzanju se to dvoje razilazi, i tako i
+   treba biti vidljivo.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Prekid kraći od pet sekundi ne ostavlja trag: to je promašen klik,
+   ne krug. Dovršen krug se bilježi bez obzira na trajanje. */
+const NAJKRACI_PREKID = 5000;
+
+const noviId = () => `z${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+
+function otvoriZapis(faza) {
+  if (run.zapis) return;                     // nastavak nakon pauze nije nov krug
+  run.zapis = noviId();
+  povijest.push({
+    id: run.zapis, faza,
+    pocetak: Date.now(), kraj: null,
+    planirano: JEZGRA.trajanje(cfg, faza),
+    dovrsen: false, opis: ''
+  });
+}
+
+function zatvoriZapis(dovrsen) {
+  if (!run.zapis) return;
+  const z = povijest.find((x) => x.id === run.zapis);
+  run.zapis = null;
+  if (!z) return;
+  z.kraj = Date.now();
+  z.dovrsen = dovrsen;
+  if (!dovrsen && z.kraj - z.pocetak < NAJKRACI_PREKID && !z.opis) {
+    povijest = povijest.filter((x) => x.id !== z.id);
+  }
+  crtajPovijest();
+}
+
+/* ═══════════════════════════════════════════════════════════
    5 · Odbrojavanje
 
    Vrijeme se čita iz sata, ne zbraja po okviru — inače alat
@@ -1541,7 +1722,8 @@ const els = {
   reset: document.getElementById('reset'),
   trajanje: document.getElementById('trajanje'),
   klizac: document.getElementById('klizac'),
-  ladica: document.getElementById('ladica')
+  ladica: document.getElementById('ladica'),
+  povijest: document.getElementById('povijestLadica')
 };
 
 let backstop = null;
@@ -1559,7 +1741,9 @@ const prvaFaza = () => JEZGRA.jeCiklus(cfg) ? 'rad' : 'rucno';
 
 function kreni(faza = run.faza || prvaFaza()) {
   wakeAudio();
+  if (run.faza !== faza) zatvoriZapis(false);   // preskok usred faze zatvara stari zapis
   run.faza = faza;
+  otvoriZapis(faza);
   run.endsAt = sada() + (run.ostatak != null ? run.ostatak : JEZGRA.trajanje(cfg, faza));
   run.ostatak = null;
   naoruzaj();
@@ -1588,6 +1772,7 @@ function preskoci() {
   const dalje = JEZGRA.sljedeca(cfg, run.faza || 'rad', run.krug);
   otkaziZvuk();
   clearTimeout(backstop);
+  zatvoriZapis(false);
   run.krug = dalje.krug;
   run.ostatak = null;
   run.endsAt = null;
@@ -1600,7 +1785,8 @@ function preskoci() {
 function reset() {
   otkaziZvuk();
   clearTimeout(backstop);
-  run = { faza: null, krug: 0, endsAt: null, ostatak: null, zadatak: run.zadatak };
+  zatvoriZapis(false);
+  run = { faza: null, krug: 0, endsAt: null, ostatak: null, zadatak: run.zadatak, zapis: null };
   pustiBudan();
   syncLive();
   save();
@@ -1631,6 +1817,7 @@ function zavrsiFazu() {
   }
 
   if (!JEZGRA.jeCiklus(cfg)) {
+    zatvoriZapis(true);
     javi(bio, null);
     run.faza = null;                  // ručni timer nema što slijediti
     pustiBudan(); syncLive(); save(); paint();
@@ -1638,6 +1825,7 @@ function zavrsiFazu() {
   }
 
   const dalje = JEZGRA.sljedeca(cfg, bio, run.krug);
+  zatvoriZapis(true);
   run.faza = dalje.faza;
   run.krug = dalje.krug;
   run.ostatak = null;
@@ -1934,9 +2122,187 @@ const osvjeziPostavke = () => { if (ladicaOtvorena()) crtajPostavke(); };
 const otvoriLadicu = () => { crtajPostavke(); els.ladica.setAttribute('aria-hidden', 'false'); };
 const zatvoriLadicu = () => els.ladica.setAttribute('aria-hidden', 'true');
 
+const otvoriPovijest = () => { javka(''); crtajPovijest(); els.povijest.setAttribute('aria-hidden', 'false'); };
+const zatvoriPovijest = () => els.povijest.setAttribute('aria-hidden', 'true');
+
+/** Zatvara koja god je otvorena — `Esc` ne mora znati koja je to. */
+const zatvoriSve = () => { zatvoriLadicu(); zatvoriPovijest(); };
+
 document.getElementById('postavke').addEventListener('click', otvoriLadicu);
 document.getElementById('zatvori').addEventListener('click', zatvoriLadicu);
 els.ladica.addEventListener('click', (e) => { if (e.target === els.ladica) zatvoriLadicu(); });
+
+document.getElementById('povijestGumb').addEventListener('click', otvoriPovijest);
+document.getElementById('zatvoriPovijest').addEventListener('click', zatvoriPovijest);
+els.povijest.addEventListener('click', (e) => { if (e.target === els.povijest) zatvoriPovijest(); });
+
+/* ═══════════════════════════════════════════════════════════
+   8b · Ladica povijesti
+   ═══════════════════════════════════════════════════════════ */
+
+const kutijaZapisa = document.querySelector('[data-zapisi]');
+const javkaEl = document.querySelector('[data-javka]');
+
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const satnica = (ms) => new Date(ms).toLocaleTimeString(LOCALES[lang] || 'hr-HR',
+  { hour: '2-digit', minute: '2-digit' });
+
+const datum = (ms) => new Date(ms).toLocaleDateString(LOCALES[lang] || 'hr-HR',
+  { weekday: 'long', day: 'numeric', month: 'long' });
+
+/** Trajanje zapisa: koliko je stvarno prošlo, ne koliko je bilo planirano. */
+function trajanjeZapisa(z) {
+  const ms = Math.max(0, (z.kraj || Date.now()) - z.pocetak);
+  const uk = Math.round(ms / 1000);
+  const h = Math.floor(uk / 3600), m = Math.floor(uk % 3600 / 60), sek = uk % 60;
+  if (h) return `${h} h ${m} ${t('min')}`;
+  if (m) return `${m} ${t('min')} ${String(sek).padStart(2, '0')} s`;
+  return `${sek} s`;
+}
+
+let javkaTimer = null;
+
+function javka(tekst) {
+  javkaEl.textContent = tekst;
+  javkaEl.hidden = !tekst;
+  clearTimeout(javkaTimer);
+  if (tekst) javkaTimer = setTimeout(() => { javkaEl.hidden = true; }, 6000);
+}
+
+function crtajPovijest() {
+  if (!kutijaZapisa) return;
+  const red = [...povijest].sort((a, b) => b.pocetak - a.pocetak);
+
+  if (!red.length) {
+    kutijaZapisa.innerHTML = `<p class="prazno">${esc(t('nemaZapisa'))}</p>`;
+    return;
+  }
+
+  const dijelovi = [];
+  let zadnjiDan = null;
+  for (const z of red) {
+    const dan = JEZGRA.danas(new Date(z.pocetak));
+    if (dan !== zadnjiDan) {
+      zadnjiDan = dan;
+      dijelovi.push(`<p class="povijest-dan">${esc(datum(z.pocetak))}</p>`);
+    }
+    const boja = z.faza === 'rucno' ? 'var(--rad)' : `var(--${z.faza})`;
+    const kad = z.kraj ? `${satnica(z.pocetak)}–${satnica(z.kraj)}` : `${satnica(z.pocetak)}…`;
+    dijelovi.push(`
+      <div class="zapis" data-id="${esc(z.id)}">
+        <span class="zapis-boja" style="background:${boja}"></span>
+        <div>
+          <div class="zapis-glava">
+            <span class="zapis-faza">${esc(t(z.faza))}</span>
+            <span class="zapis-kad">${esc(kad)}</span>
+            <span class="zapis-trajanje">· ${esc(trajanjeZapisa(z))}</span>
+            ${z.dovrsen ? '' : `<span class="zapis-prekinut">${esc(t('prekinuto'))}</span>`}
+          </div>
+          <input class="zapis-opis" type="text" maxlength="140"
+                 value="${esc(z.opis)}" placeholder="${esc(t('opisPlaceholder'))}">
+        </div>
+        <button class="zapis-x" type="button" data-obrisi
+                aria-label="${esc(t('obrisi'))}">✕</button>
+      </div>`);
+  }
+  kutijaZapisa.innerHTML = dijelovi.join('');
+}
+
+/* Jedan slušatelj na popisu: redaka zna biti stotine, a svaki svoj
+   slušatelj znači stotine njih koje treba i skinuti pri precrtavanju. */
+kutijaZapisa?.addEventListener('click', (e) => {
+  const redak = e.target.closest('.zapis');
+  if (!redak || !e.target.closest('[data-obrisi]')) return;
+  povijest = povijest.filter((x) => x.id !== redak.dataset.id);
+  save();
+  crtajPovijest();
+});
+
+kutijaZapisa?.addEventListener('change', (e) => {
+  const redak = e.target.closest('.zapis');
+  if (!redak || !e.target.matches('.zapis-opis')) return;
+  const z = povijest.find((x) => x.id === redak.dataset.id);
+  if (!z) return;
+  z.opis = e.target.value.trim();
+  save();
+});
+
+/* ── Izvoz i uvoz ──────────────────────────────────────────
+   Sve ostaje u pregledniku; ovo je jedini put van i natrag. Format je
+   običan JSON s oznakom alata i verzije, da uvoz ne primi bilo što. */
+
+const IZVOZ_OZNAKA = 'workshop.pomodoro';
+
+function izvezi() {
+  const podaci = JSON.stringify({
+    alat: IZVOZ_OZNAKA, verzija: 1,
+    izvezeno: new Date().toISOString(),
+    povijest
+  }, null, 2);
+  const veza = document.createElement('a');
+  veza.href = URL.createObjectURL(new Blob([podaci], { type: 'application/json' }));
+  veza.download = `pomodoro-${JEZGRA.danas()}.json`;
+  veza.click();
+  URL.revokeObjectURL(veza.href);
+  javka(t('izvezeno').replace('{n}', povijest.length));
+}
+
+/**
+ * Uvoz **dopunjuje**, ne zamjenjuje.
+ *
+ * Zapis s poznatim `id`-om se preskače, pa je uvoz iste datoteke dvaput
+ * bezopasan. Zamjena bi značila da jedan pogrešan uvoz briše sve što
+ * na ovom uređaju postoji, a povratka nema.
+ */
+async function uvezi(datoteka) {
+  try {
+    const tekst = await datoteka.text();
+    const podaci = JSON.parse(tekst);
+    if (podaci?.alat !== IZVOZ_OZNAKA || !Array.isArray(podaci.povijest)) {
+      return javka(t('uvozKriv'));
+    }
+    const poznati = new Set(povijest.map((x) => x.id));
+    let dodano = 0;
+    for (const z of podaci.povijest) {
+      if (!z || typeof z.id !== 'string' || poznati.has(z.id)) continue;
+      if (typeof z.pocetak !== 'number') continue;
+      povijest.push({
+        id: z.id, faza: z.faza || 'rad',
+        pocetak: z.pocetak, kraj: typeof z.kraj === 'number' ? z.kraj : null,
+        planirano: Number(z.planirano) || 0,
+        dovrsen: Boolean(z.dovrsen), opis: String(z.opis || '').slice(0, 140)
+      });
+      poznati.add(z.id);
+      dodano++;
+    }
+    save();
+    crtajPovijest();
+    javka(t('uvezeno').replace('{n}', dodano));
+  } catch {
+    javka(t('uvozKriv'));
+  }
+}
+
+document.getElementById('izvezi')?.addEventListener('click', izvezi);
+
+document.getElementById('uvezi')?.addEventListener('click', () => {
+  const polje = document.createElement('input');
+  polje.type = 'file';
+  polje.accept = 'application/json,.json';
+  polje.addEventListener('change', () => { if (polje.files?.[0]) uvezi(polje.files[0]); });
+  polje.click();
+});
+
+document.getElementById('obrisiSve')?.addEventListener('click', () => {
+  if (!povijest.length) return;
+  if (!confirm(t('sigurno'))) return;
+  povijest = [];
+  save();
+  crtajPovijest();
+  javka(t('obrisano'));
+});
 
 /* ═══════════════════════════════════════════════════════════
    9 · Crtanje
@@ -2002,8 +2368,8 @@ els.reset.addEventListener('click', () => { reset(); crtajTrajanje(); });
 addEventListener('keydown', (e) => {
   if (e.target.matches('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
-  if (k === 'escape') return zatvoriLadicu();
-  if (els.ladica.getAttribute('aria-hidden') === 'false') return;
+  if (k === 'escape') return zatvoriSve();
+  if (ladicaOtvorena() || els.povijest.getAttribute('aria-hidden') === 'false') return;
   if (e.code === 'Space') { e.preventDefault(); glavni(); }
   else if (k === 's') preskoci();
   else if (k === 'r') { reset(); crtajTrajanje(); }
@@ -2022,6 +2388,7 @@ addEventListener('visibilitychange', () => { if (!document.hidden) uhvatiPropust
 
 applyTheme(cfg.tema);
 applyLang();
+crtajPovijest();
 uhvatiPropusteno();
 naoruzaj();
 requestAnimationFrame(petlja);
