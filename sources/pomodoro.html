@@ -640,8 +640,8 @@ const JEZGRA = (() => {
     prikazi: { ciklus: 'traka', rucno: 'prsten' },
 
     zadaciOn: true, tjedanOn: true,
-    zvuk: true, tik: true,
-    napredak: 'deflate', zadnjeSek: 15,
+    zvuk: true, tik: true, tikBroj: 3, minuta: true,
+    napredak: 'deflate', zadnjeSek: 15, brzina: 1,
     obavijesti: false, budan: true,
     tema: 'dan', lang: null
   };
@@ -771,16 +771,46 @@ const save = () => {
 };
 
 /* Privremene zamjene — uklanjaju ih koraci koji donose pravu stvar. */
-const wakeAudio = () => {};
-const zakaziZvuk = () => {};
-const otkaziZvuk = () => {};
 const javi = () => {};
 const syncLive = () => {};
-const drziBudan = () => {};
-const pustiBudan = () => {};
 const crtajZadatke = () => {};
 const crtajTjedan = () => {};
 const poruka = (tekst) => console.log(tekst);
+
+/* ═══════════════════════════════════════════════════════════
+   1b · Sat
+
+   Za probu se vrijeme može ubrzati. Ne skraćuju se trajanja nego
+   **teče sat**: krug od 25 minuta i dalje piše 25:00 i odbrojava kroz
+   sve svoje faze, samo brže. Da se umjesto toga skratilo trajanje,
+   zadnjih 15 sekundi bilo bi pola kruga i upozorenje se ne bi dalo
+   isprobati — a to je obično ono što se i želi vidjeti.
+
+   `endsAt` je zapisan u ovom, virtualnom vremenu. Zato se pri
+   podizanju s ubrzanjem različitim od 1 zatečeni krug odbacuje: njegov
+   `endsAt` pripada prošlom mjerenju i ovdje ne znači ništa.
+   ═══════════════════════════════════════════════════════════ */
+
+const BRZINE = [1, 10, 60, 300];
+
+let bazaStvarna = Date.now();
+let bazaVirt = Date.now();
+
+const brzina = () => BRZINE.includes(cfg.brzina) ? cfg.brzina : 1;
+const sada = () => bazaVirt + (Date.now() - bazaStvarna) * brzina();
+
+/** Promjena brzine ne smije poskočiti vrijeme — sat se prvo premosti. */
+function postaviBrzinu(v) {
+  bazaVirt = sada();
+  bazaStvarna = Date.now();
+  cfg.brzina = BRZINE.includes(v) ? v : 1;
+  naoruzaj();
+  zakaziZvuk();
+  save();
+  osvjeziPostavke();
+}
+
+if (cfg.brzina !== 1) run = { faza: null, krug: 0, endsAt: null, ostatak: null, zadatak: run.zadatak };
 
 /* ═══════════════════════════════════════════════════════════
    2 · Jezici
@@ -1230,6 +1260,132 @@ PRIKAZI.posuda = {
 };
 
 /* ═══════════════════════════════════════════════════════════
+   4b · Zvuk
+
+   Tonovi se sintetiziraju — nema datoteke koja se učitava, pa alat
+   ostaje jedna samostalna datoteka i radi bez mreže. iOS pušta zvuk
+   tek nakon dodira, zato se kontekst otvara na prvi pritisak.
+   ═══════════════════════════════════════════════════════════ */
+
+let audio = null;
+let zakazani = [];
+
+function wakeAudio() {
+  if (!audio) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    audio = new Ctx();
+  }
+  if (audio.state === 'suspended') audio.resume();
+  return audio;
+}
+
+/** Jedan ton. `delay` je odmak u sekundama **stvarnog** vremena. */
+function ton(freq, sekundi, glasnoca = 0.22, delay = 0, oblik = 'sine') {
+  const ctx = wakeAudio();
+  if (!ctx) return [];
+  const at = ctx.currentTime + delay;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = oblik;
+  osc.frequency.setValueAtTime(freq, at);
+  // Nagli početak i mekan kraj — inače se čuje škljocaj na rubovima.
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(glasnoca, at + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + sekundi);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(at);
+  osc.stop(at + sekundi + 0.03);
+  return [osc];
+}
+
+/* Kraj rada i kraj pauze ne zvuče isto: iz rada izlaziš u odmor, pa
+   signal pada; iz pauze se vraćaš na posao, pa se penje. Tako znaš što
+   je gotovo i bez gledanja u ekran. */
+const KRAJ = {
+  rad:    [[784, 0.24, 0], [587.33, 0.24, 0.26], [392, 0.5, 0.52]],
+  rucno:  [[784, 0.24, 0], [587.33, 0.24, 0.26], [392, 0.5, 0.52]],
+  kratka: [[523.25, 0.2, 0], [784, 0.34, 0.22]],
+  duga:   [[523.25, 0.2, 0], [659.25, 0.2, 0.22], [784, 0.44, 0.44]]
+};
+
+function otkaziZvuk() {
+  for (const osc of zakazani) { try { osc.stop(); } catch { /* već gotov */ } }
+  zakazani = [];
+}
+
+/**
+ * Zvuk se zakazuje unaprijed, na satu zvučnog sklopa.
+ *
+ * Da se oglašava po okviru, u pozadinskoj kartici ne bi bilo ničega —
+ * ondje preglednik zaustavlja `requestAnimationFrame`. Ovako signali
+ * odu u red čim faza krene i čuju se bez obzira gdje je kartica.
+ *
+ * Odmaci se dijele brzinom sata: zvučni sklop mjeri stvarne sekunde,
+ * a `preostalo` je u virtualnima.
+ */
+function zakaziZvuk() {
+  otkaziZvuk();
+  if (!cfg.zvuk || !run.faza || run.ostatak != null || run.endsAt == null) return;
+  if (!wakeAudio()) return;
+
+  const doKraja = (run.endsAt - sada()) / 1000 / brzina();
+  if (doKraja <= 0) return;
+  const punoSek = JEZGRA.trajanje(cfg, run.faza) / 1000 / brzina();
+
+  // Zadnja minuta: jedan tih ton, i to samo ako je faza dovoljno duga
+  // da minuta uopće nešto znači.
+  if (cfg.minuta && punoSek > 150) {
+    const naMinuti = doKraja - 60 / brzina();
+    if (naMinuti > 0) zakazani.push(...ton(440, 0.3, 0.12, naMinuti, 'triangle'));
+  }
+
+  if (cfg.tik) {
+    const koliko = Math.min(Number(cfg.tikBroj) || 3, Math.floor(doKraja * brzina()));
+    for (let n = koliko; n >= 1; n--) {
+      const kada = doKraja - n / brzina();
+      if (kada > 0) zakazani.push(...ton(880, 0.11, 0.2, kada));
+    }
+  }
+
+  for (const [freq, trajanje, odmak] of KRAJ[run.faza] || KRAJ.rad) {
+    zakazani.push(...ton(freq, trajanje, 0.3, doKraja + odmak));
+  }
+}
+
+/**
+ * Ispusti zakazano iz popisa, ali ga ne zaustavljaj.
+ *
+ * Signal kraja svira i nakon nule. U full auto načinu sljedeća faza
+ * odmah zove `zakaziZvuk`, koji počinje s `otkaziZvuk` — pa bi pokosio
+ * upravo ono što se u tom trenutku čuje.
+ */
+const pustiZvuk = () => { zakazani = []; };
+
+/* ═══════════════════════════════════════════════════════════
+   4c · Ekran ostaje upaljen dok faza traje
+   ═══════════════════════════════════════════════════════════ */
+
+let lock = null;
+
+async function drziBudan() {
+  if (!cfg.budan || !run.faza || run.ostatak == null && run.endsAt == null) return pustiBudan();
+  if (run.ostatak != null) return pustiBudan();          // pauza ne treba ekran
+  if (lock) return;
+  try { lock = await navigator.wakeLock?.request('screen'); }
+  catch { lock = null; }                                  // odbijeno ili nema podrške
+  lock?.addEventListener?.('release', () => { lock = null; });
+}
+
+function pustiBudan() {
+  try { lock?.release?.(); } catch { /* već otpuštena */ }
+  lock = null;
+}
+
+/* Sustav otpušta bravu kad se kartica sakrije; pri povratku je treba natrag. */
+addEventListener('visibilitychange', () => { if (!document.hidden) drziBudan(); });
+
+/* ═══════════════════════════════════════════════════════════
    5 · Odbrojavanje
 
    Vrijeme se čita iz sata, ne zbraja po okviru — inače alat
@@ -1251,7 +1407,8 @@ let backstop = null;
 function naoruzaj() {
   clearTimeout(backstop);
   if (!run.faza || run.ostatak != null || run.endsAt == null) return;
-  backstop = setTimeout(zavrsiFazu, Math.max(0, run.endsAt - Date.now()) + 40);
+  // Odgoda je u stvarnom vremenu, pa se virtualni ostatak dijeli brzinom.
+  backstop = setTimeout(zavrsiFazu, Math.max(0, run.endsAt - sada()) / brzina() + 40);
 }
 
 /** Faza kojom se kreće iz mirnog stanja — ovisi o načinu. */
@@ -1260,7 +1417,7 @@ const prvaFaza = () => JEZGRA.jeCiklus(cfg) ? 'rad' : 'rucno';
 function kreni(faza = run.faza || prvaFaza()) {
   wakeAudio();
   run.faza = faza;
-  run.endsAt = Date.now() + (run.ostatak != null ? run.ostatak : JEZGRA.trajanje(cfg, faza));
+  run.endsAt = sada() + (run.ostatak != null ? run.ostatak : JEZGRA.trajanje(cfg, faza));
   run.ostatak = null;
   naoruzaj();
   zakaziZvuk();
@@ -1272,7 +1429,7 @@ function kreni(faza = run.faza || prvaFaza()) {
 
 function pauziraj() {
   if (!run.faza || run.endsAt == null || run.ostatak != null) return;
-  run.ostatak = Math.max(0, run.endsAt - Date.now());
+  run.ostatak = Math.max(0, run.endsAt - sada());
   run.endsAt = null;
   clearTimeout(backstop);
   otkaziZvuk();
@@ -1345,7 +1502,7 @@ function zavrsiFazu() {
   javi(bio, dalje.faza);
 
   // Jedina razlika između `auto` i `full`: tko pritisne dalje.
-  if (cfg.nacin === 'full') kreni(dalje.faza);
+  if (cfg.nacin === 'full') { pustiZvuk(); kreni(dalje.faza); }
   else { pustiBudan(); syncLive(); save(); paint(); }
 }
 
@@ -1358,11 +1515,11 @@ function zavrsiFazu() {
  */
 function uhvatiPropusteno() {
   if (!run.faza || run.ostatak != null || run.endsAt == null) return;
-  if (run.endsAt > Date.now()) return;
+  if (run.endsAt > sada()) return;
 
-  const zaostalo = Date.now() - run.endsAt;
+  const zaostalo = sada() - run.endsAt;
   zavrsiFazu();
-  if (run.endsAt != null && run.endsAt <= Date.now()) {
+  if (run.endsAt != null && run.endsAt <= sada()) {
     run.endsAt = null;
     run.ostatak = null;
     clearTimeout(backstop);
@@ -1594,7 +1751,7 @@ function natpisGumba(s) {
   else els.go.textContent = t('pauza');
 }
 
-function paint(s = JEZGRA.stanje(cfg, run, Date.now())) {
+function paint(s = JEZGRA.stanje(cfg, run, sada())) {
   // Ništa se ne crta dok DOM ne odgovara odabiru. Pokriva oba slučaja:
   // podizanje, gdje tema traži crtanje prije prvog `mount`, i promjenu
   // načina, gdje `prikazId()` odskoči na drugu obitelj prije montiranja.
@@ -1617,7 +1774,7 @@ function petlja() {
      kao da se osvježava tek na pauzu, jer `pauziraj()` crta izravno. */
   requestAnimationFrame(petlja);
 
-  const s = JEZGRA.stanje(cfg, run, Date.now());
+  const s = JEZGRA.stanje(cfg, run, sada());
   if (!s.mirno && !s.pripremljeno && !s.pauzirano && s.preostalo <= 0) return zavrsiFazu();
 
   const sekunda = Math.ceil(s.preostalo / 1000);
@@ -1630,7 +1787,7 @@ function petlja() {
    ═══════════════════════════════════════════════════════════ */
 
 function glavni() {
-  const s = JEZGRA.stanje(cfg, run, Date.now());
+  const s = JEZGRA.stanje(cfg, run, sada());
   if (s.mirno || s.pripremljeno || s.pauzirano) kreni();
   else pauziraj();
 }
